@@ -1,0 +1,170 @@
+===== PMCA KEYS: FUNCTION CHECK =====
+
+===== 1. EXTRA KEYS =====
+1:extra-keys-style = default
+2:extra-keys-text-all-caps = false
+3-
+4:extra-keys = [ \
+5- ['ESC','/','-','HOME','UP','END','PGUP'], \
+6- ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN', \
+7-  {macro: "pmca_copy1 ENTER", display: "1с"}, \
+8-  {macro: "pmca_copy2 ENTER", display: "2с"}, \
+9-  {macro: "pmca_copy3 ENTER", display: "3с"}] \
+10-]
+
+===== 2. COPY FUNCTIONS IN BASHRC =====
+export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-21-openjdk"
+export ANDROID_HOME="/data/data/com.termux/files/home/android-sdk"
+export ANDROID_SDK_ROOT="/data/data/com.termux/files/home/android-sdk"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
+
+# VARIO ARM64 ENVIRONMENT START
+
+export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-21-openjdk"
+export ANDROID_HOME="$HOME/android-sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
+# ARM64 Termux tools FIRST
+export PATH="$JAVA_HOME/bin:$PREFIX/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/build-tools/35.0.0:$ANDROID_HOME/platform-tools:$PATH"
+
+# VARIO ARM64 ENVIRONMENT END
+
+# PMCA_COMMAND_COPY_BUTTONS
+copy_last_commands() {
+    local n="${1:-1}"
+    local text
+
+    text="$(fc -ln -"$n" 2>/dev/null)"
+
+    if [ -z "$text" ]; then
+        echo "Нет доступных команд"
+        return 1
+    fi
+
+    # Используем текущий Termux clipboard механизм,
+    # но не позволяем ему зависнуть.
+    if command -v termux-clipboard-set >/dev/null 2>&1; then
+        printf '%s' "$text" | timeout 3 termux-clipboard-set >/dev/null 2>&1
+        local rc=$?
+
+        if [ "$rc" -eq 0 ]; then
+            echo "Скопировано последних команд: $n"
+            return 0
+        fi
+    fi
+
+    echo "Копирование недоступно"
+    return 1
+}
+
+1с() { copy_last_commands 1; }
+2с() { copy_last_commands 2; }
+3с() { copy_last_commands 3; }
+
+# PMCA_COMMAND_COPY_BUTTONS
+
+# ===== TERMUX HISTORY COPY KEYS =====
+
+copy_last_commands() {
+    local n="${1:-1}"
+    local start=$((n + 1))
+    local text
+
+    text="$(fc -ln -"$start" -2 2>/dev/null)"
+
+    if [ -z "$text" ]; then
+        echo "Нет доступных предыдущих команд"
+        return 1
+    fi
+
+    printf '%s' "$text" | timeout 3 termux-clipboard-set >/dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        echo "Скопировано команд: $n"
+    else
+        echo "Буфер Termux:API недоступен"
+    fi
+}
+
+
+
+
+# ===== PMCA HISTORY KEYS =====
+pmca_copy_history(){ n=${1:-1}; id=$(printf "%06d" "$(($(cat ~/.pmca_copy_id 2>/dev/null || echo 0)+1))"); echo "$id" > ~/.pmca_copy_id; text=$(fc -ln -50 -2 | sed "s/^[[:space:]]*//" | grep -v "^pmca_copy[123]$" | grep -v "^pmca_copy_history " | tail -n "$n"); printf "===== PMCA COPIED COMMANDS =====
+ID: COPY-$id
+COUNT: $n
+SOURCE: TERMUX HISTORY
+--------------------------------
+%s
+===== END PMCA COPY =====
+" "$text" | timeout 3 termux-clipboard-set; echo "[${n}с] COPY-$id: $n команд скопировано"; }
+pmca_copy1(){ pmca_copy_history 1; }
+pmca_copy2(){ pmca_copy_history 2; }
+pmca_copy3(){ pmca_copy_history 3; }
+# ===== END PMCA HISTORY KEYS =====
+
+
+# ===== PMCA OUTPUT LOGGER =====
+export PMCA_OUTPUT_LOG="$HOME/.pmca_output.log"
+
+pmca_output_start() {
+    : > "$PMCA_OUTPUT_LOG"
+    exec 3>&1 4>&2
+    exec > >(tee -a "$PMCA_OUTPUT_LOG") 2>&1
+}
+
+pmca_output_stop() {
+    exec >&3 2>&4
+    exec 3>&- 4>&-
+}
+
+# Запускать вывод через PMCA:
+pmca_run() {
+    pmca_output_start
+    "$@"
+    rc=$?
+    pmca_output_stop
+    return $rc
+}
+# ===== END PMCA OUTPUT LOGGER =====
+
+
+===== 3. COMMAND RESOLUTION =====
+pmca_copy1 is a function
+pmca_copy1 () 
+{ 
+    pmca_copy_history 1
+}
+pmca_copy2 is a function
+pmca_copy2 () 
+{ 
+    pmca_copy_history 2
+}
+pmca_copy3 is a function
+pmca_copy3 () 
+{ 
+    pmca_copy_history 3
+}
+
+===== 4. RECENT COMMAND HISTORY =====
+  689  termux-clipboard-set < ~/pmca_1c_check.txt
+  690  cd ~/PMCA 2>/dev/null || exit 1
+  691  (     echo "===== PMCA CONTINUE: DIAGNOSTIC =====";     echo "DATE: $(date)";     echo;      echo "===== 1. PROJECT FILES =====";     ls -la ~/PMCA;     echo;      echo "===== 2. TERMUX TOOLS =====";     for cmd in termux-clipboard-set termux-clipboard-get tmux script; do         printf '%-25s' "$cmd";         command -v "$cmd" || echo "NOT FOUND";     done;     echo;      echo "===== 3. EXTRA KEYS CONFIG =====";     if [ -f ~/.termux/termux.properties ]; then         grep -n -A 15 -B 3 'extra-keys'             ~/.termux/termux.properties || true;     else         echo "termux.properties NOT FOUND";     fi;     echo;      echo "===== 4. PMCA REFERENCES =====";     grep -RniE '1C|2C|3C|extra-keys|clipboard|bashrc'         ~/PMCA ~/.termux/termux.properties         --exclude-dir=.git 2>/dev/null | head -100;     echo;      echo "===== 5. RUNNING PROCESSES =====";     ps -ef | grep -E '[t]ermux_bridge_daemon|[p]mca';     echo;      echo "===== DIAGNOSTIC COMPLETE =====";     echo "===== SEND THIS RESULT ====="; ) 2>&1 | tee ~/PMCA/diagnostic_latest.txt
+  692  if command -v termux-clipboard-set >/dev/null 2>&1; then     timeout 3s termux-clipboard-set         < ~/PMCA/diagnostic_latest.txt         >/dev/null 2>&1 || true; fi
+  693  echo "Результат: ~/PMCA/diagnostic_latest.txt"
+  694  pmca_copy1
+  695  cd ~/PMCA || exit 1
+  696  LOG="$HOME/PMCA/keys_diagnostic.txt"
+  697  {     echo "===== 1C 2C 3C DIAGNOSTIC =====";     date;     echo;      echo "===== EXTRA KEYS CONFIG =====";     cat "$HOME/.termux/termux.properties" 2>/dev/null         || echo "Файл настроек отсутствует";     echo;      echo "===== CLIPBOARD TOOLS =====";     command -v termux-clipboard-set;     command -v termux-clipboard-get;     command -v tmux;     command -v script;     echo;      echo "===== BASH CONFIG REFERENCES =====";     grep -nE '1C|2C|3C|extra-keys|clipboard|PROMPT_COMMAND|DEBUG'         "$HOME/.bashrc" "$HOME/.bash_profile"         "$HOME/.profile" 2>/dev/null || true;     echo;      echo "===== SHELL =====";     printf 'BASH_VERSION=%s\n' "$BASH_VERSION";     printf 'SHELL=%s\n' "$SHELL";     echo;      echo "===== DIAGNOSTIC END ====="; } > "$LOG" 2>&1
+  698  cat "$LOG"
+  699  if command -v termux-clipboard-set >/dev/null 2>&1; then     timeout 3s termux-clipboard-set < "$LOG"         >/dev/null 2>&1 || true; fi
+  700  echo "===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ ====="
+  701  cd ~/PMCA || exit 1
+  702  LOG="$HOME/PMCA/keys_functions_check.txt"
+  703  {     echo "===== PMCA KEYS: FUNCTION CHECK =====";     echo;      echo "===== 1. EXTRA KEYS =====";     grep -n -A 8 -B 2 'extra-keys'         "$HOME/.termux/termux.properties" 2>/dev/null;     echo;      echo "===== 2. COPY FUNCTIONS IN BASHRC =====";     sed -n '1,120p' "$HOME/.bashrc" 2>/dev/null;     echo;      echo "===== 3. COMMAND RESOLUTION =====";     type pmca_copy1 2>&1;     type pmca_copy2 2>&1;     type pmca_copy3 2>&1;     echo;      echo "===== 4. RECENT COMMAND HISTORY =====";     history 2>/dev/null | tail -15;     echo;      echo "===== 5. PMCA SCRIPTS =====";     find "$HOME/PMCA" -maxdepth 2 -type f         \( -iname '*copy*' -o -iname '*key*' -o -iname '*clip*' \)         -print 2>/dev/null;     echo;      echo "===== END ====="; } > "$LOG" 2>&1
+
+===== 5. PMCA SCRIPTS =====
+/data/data/com.termux/files/home/PMCA/keys_diagnostic.txt
+/data/data/com.termux/files/home/PMCA/keys_functions_check.txt
+
+===== END =====

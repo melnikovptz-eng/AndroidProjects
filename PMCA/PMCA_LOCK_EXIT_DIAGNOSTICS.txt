@@ -1,0 +1,256 @@
+===== PMCA LOCK AND EXIT DIAGNOSTICS =====
+Fri Oct  9 22:30:43 EET 2026
+
+===== STARTUP AND LOCKS: LINES 1-100 =====
+     1	#!/data/data/com.termux/files/usr/bin/bash
+     2	
+     3	# === INTERNAL SINGLE DAEMON LOCK ===
+     4	INTERNAL_LOCKDIR="$HOME/storage/downloads/Taper/.daemon_internal.lockdir"
+     5	if ! mkdir "$INTERNAL_LOCKDIR" 2>/dev/null; then
+     6	    OLD_PID=$(cat "$INTERNAL_LOCKDIR/pid" 2>/dev/null || true)
+     7	    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+     8	        echo "DAEMON_ALREADY_RUNNING PID=$OLD_PID"
+     9	        exit 0
+    10	    fi
+    11	    rm -rf "$INTERNAL_LOCKDIR"
+    12	    mkdir "$INTERNAL_LOCKDIR" || exit 1
+    13	fi
+    14	echo "$$" > "$INTERNAL_LOCKDIR/pid"
+    15	trap 'rm -rf "$INTERNAL_LOCKDIR"' EXIT INT TERM
+    16	# === END INTERNAL SINGLE DAEMON LOCK ===
+    17	
+    18	
+    19	# ===== SINGLE DAEMON LOCK =====
+    20	LOCK_FILE="/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock"
+    21	
+    22	if [ -f "$LOCK_FILE" ]; then
+    23	    OLD_PID="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+    24	
+    25	    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    26	        echo "DAEMON BLOCKED: already running PID=$OLD_PID"
+    27	        exit 0
+    28	    fi
+    29	
+    30	    rm -f "$LOCK_FILE"
+    31	fi
+    32	
+    33	echo "$$" > "$LOCK_FILE"
+    34	
+    35	cleanup_daemon_lock() {
+    36	    if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+    37	        rm -f "$LOCK_FILE"
+    38	    fi
+    39	}
+    40	
+    41	trap cleanup_daemon_lock EXIT INT TERM
+    42	# ===== END SINGLE DAEMON LOCK =====
+    43	
+    44	
+    45	set -u
+    46	
+    47	BASE="$HOME/storage/downloads/Taper"
+    48	LOCK="$BASE/.daemon.lock"
+    49	LOG="$BASE/termux_bridge.log"
+    50	
+    51	mkdir -p "$BASE"
+    52	
+    53	if ! mkdir "$LOCK" 2>/dev/null; then
+    54	    if [ -f "$LOCK/pid" ]; then
+    55	        OLD_PID="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    56	
+    57	        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    58	            echo "TERMUX BRIDGE ALREADY RUNNING PID=$OLD_PID"
+    59	            exit 0
+    60	        fi
+    61	    fi
+    62	
+    63	    rm -rf "$LOCK"
+    64	
+    65	    if ! mkdir "$LOCK" 2>/dev/null; then
+    66	        echo "ERROR: LOCK"
+    67	        exit 1
+    68	    fi
+    69	fi
+    70	
+    71	echo "$$" > "$LOCK/pid"
+    72	
+    73	cleanup() {
+    74	    rm -rf "$LOCK"
+    75	}
+    76	
+    77	trap cleanup EXIT INT TERM
+    78	
+    79	log() {
+    80	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"
+    81	}
+    82	
+    83	COMMAND="$BASE/command.json"
+    84	RESULT="$BASE/result.json"
+    85	
+    86	log "========================================"
+    87	log "DAEMON START REAL BRIDGE V7"
+    88	log "BASE=$BASE"
+    89	log "========================================"
+    90	
+    91	while true; do
+    92	
+    93	    if [ -f "$COMMAND" ]; then
+    94	
+    95	        RAW="$(cat "$COMMAND" 2>/dev/null || true)"
+    96	
+    97	        if [ -n "$RAW" ]; then
+    98	
+    99	            OPERATION_ID="$(
+   100	                printf '%s' "$RAW" |
+
+===== COMMAND PROCESSING: LINES 240-310 =====
+   240	                    RESPONSE="COMMAND_OK:$CMD:$DATA"
+   241	                    ;;
+   242	            esac
+   243	
+   244	            if python - "$OPERATION_ID" "$RESPONSE" > "$RESULT" <<'PY'
+   245	import json
+   246	import sys
+   247	import time
+   248	
+   249	obj = {
+   250	    "operation_id": sys.argv[1],
+   251	    "timestamp": int(time.time() * 1000),
+   252	    "status": "SUCCESS",
+   253	    "response": sys.argv[2]
+   254	}
+   255	
+   256	print(json.dumps(obj, ensure_ascii=False))
+   257	PY
+   258	            then
+   259	
+   260	                if [ -s "$RESULT" ]; then
+   261	
+   262	                    log "SENT operation_id=$OPERATION_ID"
+   263	                    log "SENT status=SUCCESS"
+   264	                    log "SENT response=$RESPONSE"
+   265	                    log "RESULT_WRITTEN=YES"
+   266	
+   267	                    # AUTO CLIPBOARD: RESPONSE
+   268	                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+   269	                        printf '%s\n%s'                             "[AUTO_COPY][TERMUX][RESPONSE]"                             "$RESPONSE" | termux-clipboard-set
+   270	                        log "CLIPBOARD: AUTO_COPY RESPONSE length=${#RESPONSE}"
+   271	                    else
+   272	                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+   273	                    fi
+   274	
+   275	                    rm -f "$COMMAND"
+   276	
+   277	                    log "COMMAND COMPLETE"
+   278	
+   279	                else
+   280	
+   281	                    log "ERROR RESULT_EMPTY"
+   282	
+   283	                fi
+   284	
+   285	            else
+   286	
+   287	                log "ERROR RESULT_WRITE_FAILED"
+   288	
+   289	            fi
+   290	        fi
+   291	    fi
+   292	
+   293	    sleep 0.1
+   294	done
+
+===== LOCK FILES =====
+ABSENT: /data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock
+--- /data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock/pid ---
+18619
+
+--- /data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir/pid ---
+18619
+
+
+===== RECENT TERMINATION DIAGNOSTICS =====
+
+--- /data/data/com.termux/files/home/TaperV6/final_daemon_check.log ---
+===== FINAL DAEMON CHECK =====
+LOCK_PID=13931
+
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+COUNT=1
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====
+
+--- /data/data/com.termux/files/home/TaperV6/stop_old_daemon.log ---
+===== OLD DAEMON STOP DIAGNOSTIC =====
+PID=11503
+ALIVE=YES
+
+===== SIGNAL 15 =====
+
+===== AFTER TERM =====
+ALIVE_AFTER_TERM=YES
+
+===== SIGNAL 9 =====
+
+===== FINAL =====
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+DAEMON_COUNT=1
+
+===== PROTECTED PID =====
+10816
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====
+
+--- /data/data/com.termux/files/home/TaperV6/restart_shell_daemon.log ---
+===== RESTART TAPERV6 DAEMON WITH SHELL MODE =====
+CURRENT_PID=10816
+STOPPING_PID=10816
+
+===== CHECK OLD PROCESS =====
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== START UPDATED DAEMON =====
+NEW_PID=24929
+
+===== FINAL CHECK =====
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+DAEMON_COUNT=1
+
+===== SHELL CHECK =====
+SHELL_MODE=ENABLED
+
+===== LOCK PID =====
+10816
+
+===== ГОТОВО — DAEMON ПЕРЕЗАПУЩЕН =====
+
+--- /data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log ---
+===== PROCESS 10816 =====
+UID        PID  PPID  C STIME TTY          TIME CMD
+u0_a338  10816     1  1  2022 pts/38   00:00:45 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== PROCESS 11503 =====
+UID        PID  PPID  C STIME TTY          TIME CMD
+u0_a338  11503     1  1  2022 pts/38   00:03:28 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+
+===== COMMAND LINKS =====
+/data/data/com.termux/files/home/TaperV6
+/data/data/com.termux/files/home
+
+===== LOCKS =====
+--- internal ---
+10816
+--- file ---
+NONE
+--- directory ---
+NONE
+
+===== ALL MATCHING PROCESSES =====
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+11503 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====
+
+===== END =====

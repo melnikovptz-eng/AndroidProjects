@@ -1,0 +1,585 @@
+===== 1. TERMUX BRIDGE ADAPTER =====
+package com.pmca.bridge.termux;
+
+import android.content.Context;
+import android.os.Environment;
+
+import com.pmca.bridge.logging.PmcaLogger;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+
+public final class TermuxBridgeAdapter {
+    private final File bridgeDir;
+
+    public TermuxBridgeAdapter(Context context) {
+        File downloads = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        bridgeDir = new File(downloads, "Taper");
+    }
+
+    public synchronized boolean sendShellCommand(String command) {
+        if (command == null || command.trim().isEmpty()) {
+            PmcaLogger.log("Termux: пустая команда отклонена");
+            return false;
+        }
+
+        File commandFile = new File(bridgeDir, "command.json");
+        File tempFile = new File(bridgeDir, "command.pmca.tmp");
+
+        try {
+            if (!bridgeDir.isDirectory() && !bridgeDir.mkdirs()) {
+                PmcaLogger.log("Termux: папка моста недоступна");
+                return false;
+            }
+
+            // Не затираем существующую команду: она может ещё обрабатываться.
+            if (commandFile.exists()) {
+                PmcaLogger.log("Termux: command.json уже существует; отправка остановлена");
+                return false;
+            }
+
+            JSONObject json = new JSONObject();
+            json.put("command", "SHELL");
+            json.put("data", command);
+
+            byte[] bytes = json.toString().getBytes(StandardCharsets.UTF_8);
+            try (FileOutputStream out = new FileOutputStream(tempFile, false)) {
+                out.write(bytes);
+                out.getFD().sync();
+            }
+
+            if (!tempFile.renameTo(commandFile)) {
+                PmcaLogger.log("Termux: не удалось передать команду через rename");
+                // Не удаляем и не перезаписываем чужой command.json.
+                return false;
+            }
+
+            PmcaLogger.log("Termux: команда передана мосту");
+            return true;
+        } catch (Exception e) {
+            PmcaLogger.log("Termux: ошибка отправки: " + e.getClass().getSimpleName());
+            return false;
+        } finally {
+            // Удаляем только собственный временный файл, никогда command.json.
+            if (tempFile.exists()) {
+                // Если rename не сработал, временный файл может остаться.
+                // Не удаляем его автоматически: он нужен для диагностики.
+            }
+        }
+    }
+}
+
+===== 2. PMCA CONTROLLER =====
+package com.pmca.bridge.core;
+
+import android.content.Context;
+
+import com.pmca.bridge.clipboard.ClipboardCopyModule;
+import com.pmca.bridge.logging.PmcaLogger;
+import com.pmca.bridge.termux.TermuxBridgeAdapter;
+
+public final class PmcaController {
+    private final ClipboardCopyModule clipboard;
+    private final TermuxBridgeAdapter termux;
+
+    public PmcaController(Context context) {
+        clipboard = new ClipboardCopyModule(context);
+        termux = new TermuxBridgeAdapter(context);
+        PmcaLogger.log("Контроллер PMCA запущен");
+    }
+
+    public boolean sendToTermux(String command) {
+        PmcaLogger.log("Контроллер: запрос на выполнение в Termux");
+        return termux.sendShellCommand(command);
+    }
+
+    public boolean copy(String text, String label) {
+        boolean ok = clipboard.copy(text, label);
+        PmcaLogger.log(ok ? "Буфер: текст скопирован" : "Буфер: копирование не удалось");
+        return ok;
+    }
+
+    public String readClipboard() {
+        String text = clipboard.read();
+        PmcaLogger.log(text.isEmpty() ? "Буфер: пуст" : "Буфер: текст прочитан");
+        return text;
+    }
+}
+
+===== 3. MAIN ACTIVITY =====
+package com.pmca.bridge;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.graphics.Typeface;
+import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.pmca.bridge.core.PmcaController;
+import com.pmca.bridge.logging.PmcaLogger;
+
+public class MainActivity extends Activity {
+    private PmcaController controller;
+    private EditText input;
+    private TextView status;
+    private TextView output;
+    private TextView logs;
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private LinearLayout column() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        return layout;
+    }
+
+    private LinearLayout row() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        return layout;
+    }
+
+    private void addGap(LinearLayout parent, int heightDp) {
+        View gap = new View(this);
+        parent.addView(gap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)));
+    }
+
+    private Button makeButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setTextSize(15);
+        button.setAllCaps(false);
+        button.setMinHeight(dp(52));
+        return button;
+    }
+
+    private void addButton(LinearLayout parent, Button button, float weight) {
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(0, dp(54), weight);
+        params.setMargins(dp(4), 0, dp(4), 0);
+        parent.addView(button, params);
+    }
+
+    private TextView makeLabel(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(16);
+        view.setTypeface(null, Typeface.BOLD);
+        view.setTextColor(Color.rgb(30, 45, 60));
+        return view;
+    }
+
+    @Override
+    public void onCreate(Bundle state) {
+        super.onCreate(state);
+        controller = new PmcaController(this);
+        buildScreen();
+        refreshLogs();
+        setStatus("ГОТОВ К РАБОТЕ", false);
+    }
+
+    private void buildScreen() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout root = column();
+        root.setPadding(dp(16), dp(12), dp(16), dp(16));
+        root.setBackgroundColor(Color.rgb(244, 247, 250));
+
+        TextView title = makeLabel("PMCA");
+        title.setTextSize(25);
+        root.addView(title);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Portable Modular Controller Architecture");
+        subtitle.setTextSize(12);
+        subtitle.setTextColor(Color.DKGRAY);
+        root.addView(subtitle);
+
+        addGap(root, 12);
+        status = makeLabel("");
+        root.addView(status);
+
+        addGap(root, 14);
+        root.addView(makeLabel("Команда / текст"));
+        addGap(root, 6);
+
+        input = new EditText(this);
+        input.setHint("Введите команду для Termux…");
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        input.setTextSize(16);
+        input.setMinLines(3);
+        input.setMaxLines(7);
+        input.setPadding(dp(12), dp(10), dp(12), dp(10));
+        input.setBackgroundColor(Color.WHITE);
+        root.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addGap(root, 8);
+        LinearLayout firstRow = row();
+        Button send = makeButton("Выполнить в Termux");
+        Button paste = makeButton("Вставить из буфера");
+        addButton(firstRow, send, 1.15f);
+        addButton(firstRow, paste, 1f);
+        root.addView(firstRow);
+
+        addGap(root, 8);
+        LinearLayout secondRow = row();
+        Button copyInput = makeButton("Скопировать ввод");
+        Button clear = makeButton("Очистить ввод");
+        addButton(secondRow, copyInput, 1f);
+        addButton(secondRow, clear, 1f);
+        root.addView(secondRow);
+
+        addGap(root, 16);
+        root.addView(makeLabel("Результат"));
+        addGap(root, 6);
+
+        output = new TextView(this);
+        output.setText("Здесь появятся сообщения о действиях PMCA.");
+        output.setTextSize(14);
+        output.setTextColor(Color.rgb(35, 45, 55));
+        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+        output.setBackgroundColor(Color.WHITE);
+        root.addView(output, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addGap(root, 8);
+        Button copyResult = makeButton("Скопировать результат");
+        root.addView(copyResult, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 16);
+        LinearLayout logHeader = row();
+        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        Button refresh = makeButton("Обновить");
+        refresh.setMinHeight(dp(44));
+        logHeader.addView(refresh);
+        root.addView(logHeader);
+
+        addGap(root, 6);
+        logs = new TextView(this);
+        logs.setTextSize(12);
+        logs.setTextColor(Color.rgb(40, 50, 60));
+        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+        logs.setBackgroundColor(Color.WHITE);
+        root.addView(logs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+        addGap(root, 8);
+        Button copyLog = makeButton("Скопировать лог");
+        root.addView(copyLog, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        scroll.addView(root);
+        setContentView(scroll);
+
+        send.setOnClickListener(v -> {
+            hideKeyboard();
+            String command = input.getText().toString().trim();
+            if (command.isEmpty()) {
+                setStatus("НУЖНА КОМАНДА", false);
+                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            boolean ok = controller.sendToTermux(command);
+            if (ok) {
+                output.setText("Команда передана мосту Termux.\n"
+                        + "Ответ пока не подтверждён. Здесь не показывается старый result.json.");
+                setStatus("КОМАНДА ПЕРЕДАНА", true);
+            } else {
+                output.setText("Команда не передана.\n"
+                        + "Проверьте журнал и убедитесь, что предыдущая команда обработана.");
+                setStatus("ОТПРАВКА НЕ УДАЛАСЬ", false);
+            }
+            refreshLogs();
+        });
+
+        paste.setOnClickListener(v -> {
+            String text = controller.readClipboard();
+            if (!text.isEmpty()) {
+                input.setText(text);
+                input.setSelection(input.length());
+                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+            } else {
+                setStatus("БУФЕР ПУСТ", false);
+            }
+            refreshLogs();
+        });
+
+        copyInput.setOnClickListener(v -> {
+            boolean ok = controller.copy(input.getText().toString(), "PMCA ввод");
+            setStatus(ok ? "ВВОД СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        clear.setOnClickListener(v -> {
+            input.setText("");
+            output.setText("Ввод очищен.");
+            setStatus("ВВОД ОЧИЩЕН", true);
+            PmcaLogger.log("UI: поле ввода очищено");
+            refreshLogs();
+        });
+
+        copyResult.setOnClickListener(v -> {
+            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        refresh.setOnClickListener(v -> refreshLogs());
+
+        copyLog.setOnClickListener(v -> {
+            refreshLogs();
+            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+    }
+
+    private void setStatus(String text, boolean success) {
+        status.setText("● " + text);
+        status.setTextColor(success ? Color.rgb(20, 125, 70) : Color.rgb(155, 75, 35));
+    }
+
+    private void refreshLogs() {
+        if (logs != null) logs.setText(PmcaLogger.getText());
+    }
+
+    private void hideKeyboard() {
+        try {
+            InputMethodManager imm = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+        } catch (Exception ignored) {}
+    }
+}
+
+===== 4. DAEMON: COMMAND AND RESULT PROTOCOL =====
+
+while true; do
+
+    if [ -f "$COMMAND" ]; then
+
+        RAW="$(cat "$COMMAND" 2>/dev/null || true)"
+
+        if [ -n "$RAW" ]; then
+
+            OPERATION_ID="$(
+                printf '%s' "$RAW" |
+                python -c '
+import json,sys
+try:
+    print(json.load(sys.stdin).get("operation_id",""))
+except:
+    print("")
+' 2>/dev/null || true
+            )"
+
+            TYPE="$(
+                printf '%s' "$RAW" |
+                python -c '
+import json,sys
+try:
+    print(json.load(sys.stdin).get("type",""))
+except:
+    print("")
+' 2>/dev/null || true
+            )"
+
+            CMD="$(
+                printf '%s' "$RAW" |
+                python -c '
+import json,sys
+try:
+    print(json.load(sys.stdin).get("command",""))
+except:
+    print("")
+' 2>/dev/null || true
+            )"
+
+            DATA="$(
+                printf '%s' "$RAW" |
+                python -c '
+import json,sys
+try:
+    print(json.load(sys.stdin).get("data",""))
+except:
+    print("")
+' 2>/dev/null || true
+            )"
+
+            log "RECEIVED operation_id=$OPERATION_ID"
+            log "RECEIVED type=$TYPE"
+            log "RECEIVED command=$CMD"
+            log "RECEIVED data_length=${#DATA}"
+            log "RECEIVED data=$DATA"
+
+            # AUTO CLIPBOARD: INCOMING DATA
+            # CLIPBOARD_GET must read the user's existing clipboard first.
+            if [ "$CMD" = "CLIPBOARD_GET" ]; then
+                log "CLIPBOARD: incoming auto-copy SKIPPED for CLIPBOARD_GET"
+            elif command -v termux-clipboard-set >/dev/null 2>&1; then
+                printf '%s\n%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+            else
+                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+            fi
+
+            STATUS="SUCCESS"
+            RESPONSE=""
+
+            case "$CMD" in
+
+                TEST)
+                    RESPONSE="TEST_OK:$DATA"
+                    ;;
+
+                TAPER_DATA)
+                    log "TAPER_DATA RECEIVE_START"
+
+                    RESPONSE="TERMUX_DATA_RECEIVED: $DATA"
+
+                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+                    log "TAPER_DATA RECEIVE_COMPLETE"
+                    ;;
+
+                CLIPBOARD_GET)
+                    log "CLIPBOARD_GET START"
+
+                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+                        CLIPBOARD_DATA="$(timeout 3s termux-clipboard-get 2>/dev/null || true)"
+
+                        RESPONSE="CLIPBOARD_GET_OK"
+                        if [ -n "$CLIPBOARD_DATA" ]; then
+                            RESPONSE="${RESPONSE}
+CLIPBOARD_DATA:
+${CLIPBOARD_DATA}"
+                        else
+                            RESPONSE="${RESPONSE}
+CLIPBOARD_DATA:
+"
+                        fi
+
+                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+                    else
+                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+                    fi
+
+                    log "CLIPBOARD_GET COMPLETE"
+                    ;;
+
+                SHELL)
+                    log "SHELL EXECUTE_START"
+                    log "SHELL COMMAND_LENGTH=${#DATA}"
+                    log "SHELL COMMAND_BEGIN"
+                    log "$DATA"
+                    log "SHELL COMMAND_END"
+
+                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+
+                    if command -v timeout >/dev/null 2>&1; then
+                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+                        SHELL_EXIT=$?
+                    else
+                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+                        SHELL_EXIT=$?
+                    fi
+
+                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+                    rm -f "$SHELL_TMP"
+
+                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+
+                    RESPONSE="SHELL_EXIT_CODE=$SHELL_EXIT"
+
+                    if [ -n "$SHELL_OUTPUT" ]; then
+                        RESPONSE="${RESPONSE}
+SHELL_OUTPUT:
+${SHELL_OUTPUT}"
+                    else
+                        RESPONSE="${RESPONSE}
+SHELL_OUTPUT:
+<EMPTY>"
+                    fi
+
+                    log "SHELL EXECUTE_COMPLETE"
+                    ;;
+
+                *)
+                    RESPONSE="COMMAND_OK:$CMD:$DATA"
+                    ;;
+            esac
+
+            if python - "$OPERATION_ID" "$RESPONSE" > "$RESULT" <<'PY'
+import json
+import sys
+import time
+
+obj = {
+    "operation_id": sys.argv[1],
+    "timestamp": int(time.time() * 1000),
+    "status": "SUCCESS",
+    "response": sys.argv[2]
+}
+
+print(json.dumps(obj, ensure_ascii=False))
+PY
+            then
+
+                if [ -s "$RESULT" ]; then
+
+                    log "SENT operation_id=$OPERATION_ID"
+                    log "SENT status=SUCCESS"
+                    log "SENT response=$RESPONSE"
+                    log "RESULT_WRITTEN=YES"
+
+                    # AUTO CLIPBOARD: RESPONSE
+                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+                        printf '%s
+%s' "[AUTO_COPY][TERMUX][RESPONSE]" "$RESPONSE" | timeout 3s termux-clipboard-set
+                        log "CLIPBOARD: AUTO_COPY RESPONSE length=${#RESPONSE}"
+                    else
+                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+                    fi
+
+                    rm -f "$COMMAND"
+
+                    log "COMMAND COMPLETE"
+
+                else
+
+                    log "ERROR RESULT_EMPTY"
+
+                fi
+
+            else
+
+                log "ERROR RESULT_WRITE_FAILED"
+
+            fi
+        fi
+    fi
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

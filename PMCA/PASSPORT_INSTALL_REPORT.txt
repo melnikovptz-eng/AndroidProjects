@@ -1,0 +1,43 @@
+===== PMCA PASSPORT INSTALL REPORT =====
+Fri Oct  9 23:53:34 EET 2026
+
+PROJECT=/data/data/com.termux/files/home/PMCA
+BACKUP=/data/data/com.termux/files/home/PMCA/passport_backups/20261009_235334
+
+===== CREATED DOCUMENTS =====
+OK  README.md (2208 bytes)
+OK  PROJECT_PASSPORT.md (6131 bytes)
+OK  CURRENT_STATE.md (2636 bytes)
+OK  HANDOFF.md (3786 bytes)
+OK  MODULE_REGISTRY.md (3348 bytes)
+OK  CLIPBOARD_AUTOCOPY_SPEC.md (4077 bytes)
+OK  DECISIONS.md (2992 bytes)
+OK  CHANGELOG.md (822 bytes)
+OK  RECOVERY.md (2155 bytes)
+
+===== EXISTING CORE DOCUMENTS =====
+PRESERVED ARCHITECTURE.md (5650 bytes)
+PRESERVED PROJECT_CONTRACT.md (2469 bytes)
+PRESERVED PROJECT_STATUS.md (1032 bytes)
+
+===== BRIDGE FILE =====
+FOUND ~/TaperV6/termux_bridge_daemon.sh
+BRIDGE_SYNTAX_EXIT=0
+
+===== MANIFEST SHA256 =====
+21a7ca576f2928892a3254f466a46b5eb9e54c04650ce9b375cec5ea63521196  README.md
+d58dd2489053670c2a45f3006d8a12fce702165262aff30e2ca831ffa218f75d  PROJECT_PASSPORT.md
+2ddb88f57cf03a65629bdf5f062de9c92e6d7e435bc29618d65f70a5cc87861a  CURRENT_STATE.md
+9a7e37608a652c35ffde7d4d7bfc15555e4e38d99c60d37a0fc5b4c1634569f0  HANDOFF.md
+02f31884a5e27b2bd50bb9302496622937fd47bf25e16f3f0b126af35566eeaf  MODULE_REGISTRY.md
+08df4bd9732fe12509be1ba0b9383cd2d8c971720fbfa465d026abdc429459ee  CLIPBOARD_AUTOCOPY_SPEC.md
+6b32d0520cc63a578aeb6e53b61dfc3eb78e900d8602fcff3c62e64549772da4  DECISIONS.md
+1253ac3fd9ed68b6f54d3b2ef6d70e085ba200a3eb2f521109ef76c902232f58  CHANGELOG.md
+797bf070da6abe928f58f4fb8e5b95a8e19a1fb88dc89f710edf6e33ead65ac3  RECOVERY.md
+
+===== FINAL =====
+Passport documents created.
+Existing architecture/contract/status documents preserved.
+Bridge and daemon were not restarted.
+Android application source was not modified.
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

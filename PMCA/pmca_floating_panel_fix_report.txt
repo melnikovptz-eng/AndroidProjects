@@ -1,0 +1,9 @@
+===== PMCA FLOATING PANEL FIX =====
+STATUS=BUILD_SUCCESS
+APK=/data/data/com.termux/files/home/storage/downloads/PMCA.apk
+SIZE=49849
+SHA256=ffac4aecd5476b07c489de800e6d709826283817e820ac1a3c2ea77f7ca3388a
+BACKUP=/data/data/com.termux/files/home/PMCA/backups/FloatingPanelService.java.20261010_112115.bak
+BUILD_LOG=/data/data/com.termux/files/home/PMCA/pmca_floating_panel_build.log
+DATE=Sat Oct 10 11:21:49 EET 2026
+===== END =====

@@ -1,0 +1,66 @@
+# PMCA automatic output capture — isolated test.
+# Does not modify ~/.bashrc.
+
+[[ -r "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+
+PMCA_AUTO_DIR="$HOME/PMCA/logs/auto_commands"
+mkdir -p "$PMCA_AUTO_DIR"
+
+PMCA_AUTO_ACTIVE=0
+PMCA_AUTO_IN_PROMPT=0
+PMCA_AUTO_FILE=""
+PMCA_AUTO_SEQ=0
+
+__pmca_auto_start() {
+    [[ "$PMCA_AUTO_ACTIVE" == 1 ]] && return
+    [[ "$PMCA_AUTO_IN_PROMPT" == 1 ]] && return
+
+    case "$BASH_COMMAND" in
+        __pmca_auto_*|exit|logout|exec\ *|source\ *)
+            return
+            ;;
+    esac
+
+    PMCA_AUTO_SEQ=$((PMCA_AUTO_SEQ + 1))
+    PMCA_AUTO_FILE="$PMCA_AUTO_DIR/output_${PMCA_AUTO_SEQ}.txt"
+
+    : > "$PMCA_AUTO_FILE"
+
+    exec 19>&1 18>&2
+    exec > "$PMCA_AUTO_FILE" 2>&1
+
+    PMCA_AUTO_ACTIVE=1
+}
+
+__pmca_auto_finish() {
+    PMCA_AUTO_IN_PROMPT=1
+
+    if [[ "$PMCA_AUTO_ACTIVE" == 1 ]]; then
+        exec 1>&19 2>&18
+        exec 19>&- 18>&-
+
+        PMCA_AUTO_ACTIVE=0
+
+        if [[ -n "$PMCA_AUTO_FILE" && -f "$PMCA_AUTO_FILE" ]]; then
+            printf '%s\n' "$PMCA_AUTO_FILE" \
+                >> "$PMCA_AUTO_DIR/index.txt"
+            cat "$PMCA_AUTO_FILE"
+        fi
+    fi
+
+    PMCA_AUTO_IN_PROMPT=0
+}
+
+__pmca_auto_debug() {
+    if [[ "$BASH_COMMAND" == "__pmca_auto_finish"* ]]; then
+        PMCA_AUTO_IN_PROMPT=1
+        return
+    fi
+
+    [[ "$PMCA_AUTO_IN_PROMPT" == 1 ]] && return
+    __pmca_auto_start
+}
+
+trap '__pmca_auto_debug' DEBUG
+PROMPT_COMMAND='__pmca_auto_finish'
+echo "PMCA_AUTO_CAPTURE_TEST_READY"

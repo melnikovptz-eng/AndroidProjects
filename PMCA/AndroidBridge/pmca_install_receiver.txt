@@ -1,0 +1,159 @@
+===== INSTALL STATUS RECEIVER =====
+package com.pmca.bridge;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageInstaller;
+import android.os.Build;
+import android.widget.Toast;
+
+public class InstallStatusReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        int status = intent.getIntExtra(
+                PackageInstaller.EXTRA_STATUS,
+                PackageInstaller.STATUS_FAILURE);
+
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            Intent confirmation;
+            if (Build.VERSION.SDK_INT >= 33) {
+                confirmation = intent.getParcelableExtra(
+                        Intent.EXTRA_INTENT, Intent.class);
+            } else {
+                confirmation = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+            }
+
+            if (confirmation != null) {
+                confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(confirmation);
+            } else {
+                Toast.makeText(
+                        context,
+                        "Android не передал экран подтверждения установки.",
+                        Toast.LENGTH_LONG).show();
+            }
+        } else if (status == PackageInstaller.STATUS_SUCCESS) {
+            Toast.makeText(
+                    context,
+                    "PMCA успешно установлен.",
+                    Toast.LENGTH_LONG).show();
+        } else {
+            String message = intent.getStringExtra(
+                    PackageInstaller.EXTRA_STATUS_MESSAGE);
+            Toast.makeText(
+                    context,
+                    "Установка не завершена: " + status
+                            + (message == null ? "" : " — " + message),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+}
+
+===== MANIFEST =====
+10-        android:label="PMCA"
+11-        android:theme="@style/AppTheme">
+12-        <receiver
+13:            android:name=".InstallStatusReceiver"
+14-            android:exported="false" />
+15-        <service android:name=".termux.TermuxResultService" android:exported="false" />
+16-        <activity
+17-            android:name=".MainActivity"
+18-            android:exported="true">
+19-            <intent-filter>
+
+===== INSTALL CODE =====
+            return;
+        }
+
+        startLatestApkInstall();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PMCA_INSTALL_PERMISSION_REQUEST) {
+            if (Build.VERSION.SDK_INT < 26
+                    || getPackageManager().canRequestPackageInstalls()) {
+                startLatestApkInstall();
+            } else {
+                setStatus("РАЗРЕШЕНИЕ НЕ ПОЛУЧЕНО", false);
+            }
+        }
+    }
+
+    private void startLatestApkInstall() {
+        File downloads = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        File apk = new File(downloads, "PMCA.apk");
+
+        if (!apk.isFile() || apk.length() == 0) {
+            setStatus("APK НЕ НАЙДЕН", false);
+            android.widget.Toast.makeText(
+                    this,
+                    "Сначала собери проект и скопируй APK в Download/PMCA.apk.",
+                    android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int sessionId = -1;
+        try {
+            PackageInstaller installer = getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            sessionId = installer.createSession(params);
+
+            try (PackageInstaller.Session session = installer.openSession(sessionId);
+                 FileInputStream in = new FileInputStream(apk);
+                 OutputStream out = session.openWrite("PMCA.apk", 0, apk.length())) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, count);
+                }
+                session.fsync(out);
+            }
+
+            Intent callback = new Intent(this, InstallStatusReceiver.class);
+            callback.setAction("com.pmca.bridge.INSTALL_STATUS");
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= 23) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent statusIntent =
+                    PendingIntent.getBroadcast(this, sessionId, callback, flags);
+
+            try (PackageInstaller.Session commitSession =
+                         installer.openSession(sessionId)) {
+                commitSession.commit(statusIntent.getIntentSender());
+            }
+
+            setStatus("ЗАПРОС УСТАНОВКИ ОТПРАВЛЕН", true);
+            PmcaLogger.log("Запрошена установка: " + apk.getAbsolutePath());
+        } catch (Exception e) {
+            if (sessionId >= 0) {
+                try {
+                    getPackageManager().getPackageInstaller().abandonSession(sessionId);
+                } catch (Exception ignored) {
+                }
+            }
+            setStatus("ОШИБКА УСТАНОВКИ APK", false);
+            PmcaLogger.log("Ошибка установки APK: " + e);
+            android.widget.Toast.makeText(
+                    this,
+                    "Не удалось запустить установку: " + e.getMessage(),
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
+
+        refreshLogs();
+    }
+
+}
+
+===== ANDROID PACKAGE =====
+10:        applicationId 'com.pmca.bridge'
+11:        minSdk 23
+12:        targetSdk 28
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

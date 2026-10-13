@@ -1,0 +1,71 @@
+===== PMCA ANDROID API CHECK =====
+Fri Oct  9 22:40:52 EET 2026
+
+===== 1. TERMUX APP =====
+TERMUX_PACKAGE_NOT_LISTED
+
+===== 2. TERMUX API COMPANION =====
+NO_TERMUX_API_PACKAGE_LISTED
+
+===== 3. ANDROID PACKAGE DETAILS =====
+--- com.termux
+PACKAGE_DETAILS_NOT_AVAILABLE
+--- com.termux.api
+PACKAGE_DETAILS_NOT_AVAILABLE
+
+===== 4. TERMUX API CLIENT =====
+CLIPBOARD_HELP_EXIT=1
+
+===== 5. TERMUX VERSION =====
+Termux Variables:
+TERMUX_APP_PACKAGE_MANAGER=apt
+TERMUX_APP__APK_FILE=/data/app/~~jvQUtL5z3bk8XRQmvY6XNg==/com.termux-2Ifl-c4SHPI7N-QeCdagwQ==/base.apk
+TERMUX_APP__APK_RELEASE=F_DROID
+TERMUX_APP__APP_VERSION_CODE=1022
+TERMUX_APP__APP_VERSION_NAME=0.119.0-beta.3
+TERMUX_APP__DATA_DIR=/data/user/0/com.termux
+TERMUX_APP__IS_DEBUGGABLE_BUILD=false
+TERMUX_APP__IS_INSTALLED_ON_EXTERNAL_STORAGE=false
+TERMUX_APP__LEGACY_DATA_DIR=/data/data/com.termux
+TERMUX_APP__PACKAGE_NAME=com.termux
+TERMUX_APP__PID=19140
+TERMUX_APP__SE_FILE_CONTEXT=u:object_r:app_data_file:s0:c82,c257,c512,c768
+TERMUX_APP__SE_INFO=default:targetSdkVersion=28:complete
+TERMUX_APP__TARGET_SDK=28
+TERMUX_VERSION=0.119.0-beta.3
+TERMUX__APPS_DIR=/data/user/0/com.termux/termux/apps
+TERMUX__HOME=/data/data/com.termux/files/home
+TERMUX__PREFIX=/data/data/com.termux/files/usr
+TERMUX__ROOTFS_DIR=/data/data/com.termux/files
+TERMUX__SE_PROCESS_CONTEXT=u:r:untrusted_app_27:s0:c82,c257,c512,c768
+TERMUX__UID=10338
+TERMUX__USER_ID=0
+Packages CPU architecture:
+aarch64
+Subscribed repositories:
+# sources.list
+deb https://nl.mirror.flokinet.net/termux/termux-main stable main
+# x11-repo (sources.list.d/x11.list)
+deb https://nl.mirror.flokinet.net/termux/termux-x11 x11 main
+Updatable packages:
+7zip/stable 26.04 aarch64 [upgradable from: 26.03]
+android-tools/stable 37.0.0p1 aarch64 [upgradable from: 37.0.0-2]
+cmake/stable 4.4.4 aarch64 [upgradable from: 4.4.3]
+command-not-found/stable 3.5.0-14 aarch64 [upgradable from: 3.5.0-13]
+dash/stable 0.5.13.5 aarch64 [upgradable from: 0.5.12-2]
+findutils/stable 4.11.0 aarch64 [upgradable from: 4.10.0-1]
+gawk/stable 5.4.1 aarch64 [upgradable from: 5.3.2]
+glib/stable 2.90.1 aarch64 [upgradable from: 2.90.0]
+gradle/stable 1:9.8.1 all [upgradable from: 1:9.8.0]
+harfbuzz/stable 14.6.0 aarch64 [upgradable from: 14.5.1]
+libexpat/stable 2.9.0 aarch64 [upgradable from: 2.8.5]
+libheif/stable 1.23.6 aarch64 [upgradable from: 1.23.5]
+libmd/stable 1.3.0 aarch64 [upgradable from: 1.2.0]
+libv4l/stable 1.32.0-1 aarch64 [upgradable from: 1.32.0]
+libzip/stable 1.12 aarch64 [upgradable from: 1.11.4-1]
+openssh-sftp-server/stable 10.6p1-1 aarch64 [upgradable from: 10.5p1]
+openssh/stable 10.6p1-1 aarch64 [upgradable from: 10.5p1]
+qt6-qt5compat/x11 6.12.0-1 aarch64 [upgradable from: 6.11.2-1]
+qt6-qtbase/x11 6.12.0 aarch64 [upgradable from: 6.11.2]
+
+===== END CHECK =====

@@ -1,0 +1,31 @@
+===== PMCA FINAL PROCESS CHECK =====
+Fri Oct  9 22:32:02 EET 2026
+
+===== ALL BRIDGE PROCESSES =====
+
+===== LOCK STATE =====
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir/pid = 18619
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock = ABSENT
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock/pid = 18619
+
+===== SCRIPT CHECKSUM =====
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== CURRENT BRIDGE LOG END =====
+[2026-10-08 03:49:36] TAPER_DATA RECEIVE_START
+[2026-10-08 03:49:36] TAPER_DATA RESPONSE_LENGTH=42
+[2026-10-08 03:49:36] TAPER_DATA RECEIVE_COMPLETE
+[2026-10-08 03:49:36] SENT operation_id=676b1689-a9a7-45cb-86d8-7f0f7fcd3154
+[2026-10-08 03:49:36] SENT status=SUCCESS
+[2026-10-08 03:49:36] SENT response=TERMUX_DATA_RECEIVED: termux-clipboard-get
+[2026-10-08 03:49:36] RESULT_WRITTEN=YES
+[2026-10-08 03:49:36] CLIPBOARD: AUTO_COPY RESPONSE length=42
+[2026-10-08 03:49:36] COMMAND COMPLETE
+[2026-10-08 11:51:51] RECEIVED operation_id=8e019904-332f-4a87-86dd-2889f3c9e519
+[2026-10-08 11:51:51] RECEIVED type=TAPER_DATA
+[2026-10-08 11:51:51] RECEIVED command=TAPER_DATA
+[2026-10-08 11:51:51] RECEIVED data_length=22
+[2026-10-08 11:51:51] RECEIVED data=⟦TAPER:CMD_ID:123⟧
+...
+
+===== END =====

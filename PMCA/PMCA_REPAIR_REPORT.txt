@@ -1,0 +1,27 @@
+===== PMCA REPAIR REPORT =====
+Fri Oct  9 22:50:27 EET 2026
+
+===== SYNTAX =====
+BASH_SYNTAX_EXIT=0
+
+===== SCRIPT CHECKSUM =====
+c2fc43079b819872a5f258dd2fd0f65e1cb440bae64dfb849b5d057b1049ad09  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== BACKUP CHECKSUM =====
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/PMCA/termux_bridge_daemon.pre_repair.sh
+
+===== LOCK CONFIGURATION =====
+6:LOCK="$BASE/.daemon.lock"
+50:cleanup() {
+58:trap cleanup EXIT
+59:trap 'exit 0' INT TERM
+137:%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+165:                        CLIPBOARD_DATA="$(timeout 3s termux-clipboard-get 2>/dev/null || true)"
+256:%s' "[AUTO_COPY][TERMUX][RESPONSE]" "$RESPONSE" | timeout 3s termux-clipboard-set
+
+===== BRIDGE FILES PRESERVED =====
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== ACTIVE DAEMON CHECK =====
+NO_ACTIVE_DAEMON

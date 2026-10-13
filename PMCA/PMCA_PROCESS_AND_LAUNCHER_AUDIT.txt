@@ -1,0 +1,77 @@
+===== PMCA PROCESS AND LAUNCHER AUDIT =====
+Fri Oct  9 22:34:26 EET 2026
+
+===== 1. POSSIBLE BRIDGE PROCESSES =====
+NO_MATCHING_PROCESSES
+
+===== 2. LAUNCHER REFERENCES =====
+/data/data/com.termux/files/home/PMCA/PMCA_BRIDGE_EXECUTION_CHECK.txt:18:-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_BRIDGE_EXECUTION_CHECK.txt:19:-rwx------. 1 u0_a338 u0_a338 4486 Oct  7 17:57 /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_SAFE_BRIDGE_DIAGNOSTICS.txt:6:-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:178:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:197:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:212:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:218:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:232:u0_a338  10816     1  1  2022 pts/38   00:00:45 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:236:u0_a338  11503     1  1  2022 pts/38   00:03:28 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:251:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_LOCK_EXIT_DIAGNOSTICS.txt:252:11503 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_FINAL_PROCESS_CHECK.txt:12:6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_BACKUP_AUTOSTART_CHECK.txt:6:6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/PMCA/PMCA_BACKUP_AUTOSTART_CHECK.txt:7:6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/PMCA/backups/termux_bridge_daemon.sh.backup
+/data/data/com.termux/files/home/TaperV6/apply_v6.sh:13:cp -f "$HOME/termux_bridge_daemon.sh" "$BACKUP/termux_bridge_daemon.sh" 2>/dev/null || true
+/data/data/com.termux/files/home/TaperV6/apply_v6.sh:17:cp -f "$PATCH_DIR/termux_bridge_daemon.sh" "$HOME/termux_bridge_daemon.sh"
+/data/data/com.termux/files/home/TaperV6/apply_v6.sh:18:chmod +x "$HOME/termux_bridge_daemon.sh"
+/data/data/com.termux/files/home/TaperV6/apply_v6.sh:20:pkill -9 -f termux_bridge_daemon.sh 2>/dev/null || true
+/data/data/com.termux/files/home/TaperV6/apply_v6.sh:28:nohup "$HOME/termux_bridge_daemon.sh" >/dev/null 2>&1 &
+/data/data/com.termux/files/home/TaperV6/bridge_source.txt:748:         * termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:546:/data/data/com.termux/files/home/AccessibilityTester3/backup_termux_final_20261007_014124/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:547:--- /data/data/com.termux/files/home/AccessibilityTester3/backup_termux_final_20261007_014124/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:713:/data/data/com.termux/files/home/AccessibilityTester3/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:714:--- /data/data/com.termux/files/home/AccessibilityTester3/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:856:/data/data/com.termux/files/home/AccessibilityTester3/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:857:--- /data/data/com.termux/files/home/AccessibilityTester3/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:993:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_final_20261007_014124/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:994:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_final_20261007_014124/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1160:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1161:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1303:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1304:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_TAPER_REAL_20261007_224028/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1440:/data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1441:--- /data/data/com.termux/files/home/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1621:/data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1622:--- /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1746:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_final_20261007_014124/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1747:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_final_20261007_014124/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1913:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:1914:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_bridge_v4_20261007_014731/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:2056:/data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/ui_bridge_source.txt:2057:--- /data/data/com.termux/files/home/AccessibilityTester3_BACKUP_20261007_222842/backup_termux_bridge_v6_20261007_110423/termux_bridge_daemon.sh ---
+/data/data/com.termux/files/home/TaperV6/install_single_daemon_lock.sh:5:DAEMON="$HOME/TaperV6/termux_bridge_daemon.sh"
+/data/data/com.termux/files/home/TaperV6/install_single_daemon_lock.sh:7:BACKUP="$HOME/TaperV6/termux_bridge_daemon.backup_lock_$(date +%Y%m%d_%H%M%S).sh"
+/data/data/com.termux/files/home/TaperV6/fix_single_daemon.sh:5:DAEMON="$HOME/TaperV6/termux_bridge_daemon.sh"
+/data/data/com.termux/files/home/TaperV6/install_daemon_lock.sh:5:DAEMON="$HOME/TaperV6/termux_bridge_daemon.sh"
+/data/data/com.termux/files/home/TaperV6/install_daemon_lock.sh:45:pgrep -af "TaperV6/termux_bridge_daemon.sh" || true
+/data/data/com.termux/files/home/TaperV6/final_daemon_check.log:4:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/bridge_implementation_check.log:156:         * termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/install_shell_mode.log:5:BACKUP=/data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh.backup_shell_20261008_005227
+/data/data/com.termux/files/home/TaperV6/check_shell_mode.log:46:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/check_shell_mode.log:47:11503 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log:5:u0_a338  10816     1  1  2022 pts/38   00:00:45 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log:9:u0_a338  11503     1  1  2022 pts/38   00:03:28 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log:24:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log:25:11503 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/remove_duplicate_daemon.log:5:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/remove_duplicate_daemon.log:6:11503 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/stop_old_daemon.log:13:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/restart_shell_daemon.log:6:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/restart_shell_daemon.log:12:10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/force_restart_shell.log:10:25401 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+/data/data/com.termux/files/home/TaperV6/chat_auto_inspection_v2.txt:1243:         * termux_bridge_daemon.sh
+
+===== 3. LOCK OWNERSHIP =====
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir/pid: 18619
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock: ABSENT
+/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock/pid: 18619
+
+===== END =====

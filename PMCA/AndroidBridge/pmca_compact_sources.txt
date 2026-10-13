@@ -1,0 +1,456 @@
+===== PMCA COMPACT SOURCES =====
+Sat Oct 10 03:10:04 EET 2026
+
+===== CONTROLLER =====
+package com.pmca.bridge.core;
+
+import android.content.Context;
+
+import com.pmca.bridge.clipboard.ClipboardCopyModule;
+import com.pmca.bridge.logging.PmcaLogger;
+import com.pmca.bridge.termux.TermuxBridgeAdapter;
+
+public final class PmcaController {
+    private final ClipboardCopyModule clipboard;
+    private final Context appContext;
+    private final TermuxBridgeAdapter termux;
+
+    public PmcaController(Context context) {
+        appContext = context.getApplicationContext();
+        clipboard = new ClipboardCopyModule(context);
+        termux = new TermuxBridgeAdapter(context);
+        PmcaLogger.log("Контроллер PMCA запущен");
+    }
+
+    public TermuxBridgeAdapter.Submission submitToTermux(String command) {
+        PmcaLogger.log("Контроллер: передача команды в Termux");
+        return termux.submitShellCommand(command);
+    }
+
+    public String waitForTermuxResult(String operationId, long timeoutMs) {
+        return termux.waitForResult(operationId, timeoutMs);
+    }
+
+    public boolean sendToTermux(String command) {
+        return termux.sendShellCommand(command);
+    }
+
+    public boolean copy(String text, String label) {
+        boolean ok = clipboard.copy(text, label);
+        PmcaLogger.log(ok
+                ? "Буфер: текст скопирован"
+                : "Буфер: копирование не удалось");
+        return ok;
+    }
+
+    public String readClipboard() {
+        String text = clipboard.read();
+        PmcaLogger.log(text.isEmpty()
+                ? "Буфер: пуст"
+                : "Буфер: текст прочитан");
+        return text;
+    }
+
+    public boolean runNativeCommand(String command) {
+        PmcaLogger.log("Контроллер: запуск через штатный RUN_COMMAND");
+        return termux.runNativeCommand(
+                clipboardContext(), command);
+    }
+
+    private Context clipboardContext() {
+        return appContext;
+    }
+
+}
+
+===== RESULT SERVICE =====
+package com.pmca.bridge.termux;
+
+import android.app.IntentService;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+
+import com.pmca.bridge.logging.PmcaLogger;
+
+import java.util.Locale;
+
+public final class TermuxResultService extends IntentService {
+
+    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+
+    private static final String RESULT_BUNDLE_KEY =
+            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+
+    public TermuxResultService() {
+        super("PMCA-TermuxResultService");
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        if (intent == null) return;
+
+        Bundle extras = null;
+        Bundle result = null;
+        String source = "не найден";
+
+        try {
+            extras = intent.getExtras();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+            if (result != null) source = "стандартный ключ";
+        } catch (Exception ignored) {
+        }
+
+        if (result == null && extras != null) {
+            for (String key : extras.keySet()) {
+                try {
+                    Object value = extras.get(key);
+                    if (value instanceof Bundle) {
+                        result = (Bundle) value;
+                        source = "вложенный Bundle: " + key;
+                        break;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        if (result == null && extras != null) {
+            result = extras;
+            source = "extras Intent";
+        }
+
+        StringBuilder text = new StringBuilder();
+        text.append("===== РЕЗУЛЬТАТ TERMUX =====\n")
+            .append("Источник: ").append(source).append("\n");
+
+        if (result == null) {
+            text.append("\nОШИБКА: Termux не передал Bundle результата.");
+            saveAndBroadcast(text.toString());
+            return;
+        }
+
+        String stdout = findString(result,
+                "STDOUT", "stdout", "standard_output");
+        String stderr = findString(result,
+                "STDERR", "stderr", "standard_error");
+        String errmsg = findString(result,
+                "ERRMSG", "errmsg", "error_message", "ERROR_MESSAGE");
+
+        int exitCode = findInt(result, -999,
+                "EXIT_CODE", "exit_code", "exitCode", "exitcode");
+        int errorCode = findInt(result, -999,
+                "EXTRA_PLUGIN_RESULT_BUNDLE_ERR",
+                "PLUGIN_RESULT_BUNDLE_ERR", "error_code", "errorCode");
+
+        text.append("\n===== STDOUT =====\n")
+            .append(stdout.isEmpty() ? "(пусто)" : stdout)
+            .append("\n\n===== STDERR =====\n")
+            .append(stderr.isEmpty() ? "(пусто)" : stderr)
+            .append("\n\nКод завершения: ").append(exitCode);
+
+        if (!errmsg.isEmpty()) {
+            text.append("\n\n===== ОШИБКА TERMUX =====\n").append(errmsg);
+        }
+
+        if (errorCode != -999) {
+            text.append("\nВнутренний код ошибки: ").append(errorCode);
+        }
+
+        saveAndBroadcast(text.toString());
+    }
+
+    private void saveAndBroadcast(String output) {
+        PmcaLogger.log("RUN_COMMAND RESULT: ответ получен");
+
+        SharedPreferences prefs =
+                getSharedPreferences("pmca_results", MODE_PRIVATE);
+        prefs.edit().putString("last_result", output).apply();
+
+        Intent update = new Intent(ACTION_RESULT);
+        update.setPackage(getPackageName());
+        update.putExtra("result_text", output);
+        sendBroadcast(update);
+    }
+
+    private static String findString(Bundle bundle, String... names) {
+        if (bundle == null) return "";
+
+        for (String key : bundle.keySet()) {
+            if (key == null || key.endsWith("_ORIGINAL_LENGTH")) continue;
+
+            String normalized = normalize(key);
+            boolean match = false;
+
+            for (String name : names) {
+                String expected = normalize(name);
+                if (normalized.equals(expected)
+                        || normalized.endsWith(expected)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) continue;
+
+            try {
+                Object value = bundle.get(key);
+                if (value instanceof String) return (String) value;
+                if (value instanceof CharSequence) return value.toString();
+            } catch (Exception ignored) {
+            }
+        }
+        return "";
+    }
+
+    private static int findInt(Bundle bundle, int fallback, String... names) {
+        if (bundle == null) return fallback;
+
+        for (String key : bundle.keySet()) {
+            if (key == null) continue;
+
+            String normalized = normalize(key);
+            boolean match = false;
+
+            for (String name : names) {
+                String expected = normalize(name);
+                if (normalized.equals(expected)
+                        || normalized.endsWith(expected)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) continue;
+
+            try {
+                Object value = bundle.get(key);
+
+                if (value instanceof Number) {
+                    return ((Number) value).intValue();
+                }
+
+                if (value instanceof String) {
+                    return Integer.parseInt(((String) value).trim());
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return fallback;
+    }
+
+    private static String normalize(String value) {
+        return value.toUpperCase(Locale.ROOT)
+                .replace("-", "")
+                .replace("_", "")
+                .replace(".", "");
+    }
+}
+
+===== MAIN ACTIVITY: BUTTON HANDLERS =====
+        logs.setTextColor(Color.rgb(40, 50, 60));
+        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+        logs.setBackgroundColor(Color.WHITE);
+        root.addView(logs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+
+        scroll.addView(root);
+        setContentView(scroll);
+
+        send.setOnClickListener(v -> {
+            hideKeyboard();
+            String command = input.getText().toString().trim();
+            if (command.isEmpty()) {
+                setStatus("НУЖНА КОМАНДА", false);
+                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            output.setText("Команда отправляется через штатный RUN_COMMAND…");
+            setStatus("ЗАПУСК TERMUX", false);
+            boolean ok = controller.runNativeCommand(command);
+
+            if (ok) {
+                output.setText("Команда передана непосредственно Termux.\n"
+                        + "Ожидается автоматический возврат результата…");
+                setStatus("КОМАНДА ЗАПУЩЕНА", true);
+                PmcaLogger.log("UI: RUN_COMMAND принят");
+            } else {
+                output.setText("Не удалось запустить команду через RUN_COMMAND.\n"
+                        + "Проверьте разрешение Termux для PMCA и настройку "
+                        + "allow-external-apps.");
+                setStatus("ЗАПУСК НЕ УДАЛСЯ", false);
+            }
+            refreshLogs();
+        });
+
+        paste.setOnClickListener(v -> {
+            // Сначала очищаем старый текст.
+            input.setText("");
+
+            // Затем читаем буфер и вставляем его содержимое.
+            String text = controller.readClipboard();
+
+            if (text != null && !text.isEmpty()) {
+                input.setText(text);
+                input.setSelection(input.length());
+                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+            } else {
+                setStatus("БУФЕР ПУСТ", false);
+            }
+
+            refreshLogs();
+        });
+
+        installApp.setOnClickListener(v -> installLatestApk());
+
+clear.setOnClickListener(v -> {
+            input.setText("");
+            output.setText("Ввод очищен.");
+            setStatus("ВВОД ОЧИЩЕН", true);
+            PmcaLogger.log("UI: поле ввода очищено");
+            refreshLogs();
+        });
+
+        copyResult.setOnClickListener(v -> {
+            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        refresh.setOnClickListener(v -> refreshLogs());
+
+        copyLog.setOnClickListener(v -> {
+            refreshLogs();
+            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+    }
+
+    private void setStatus(String text, boolean success) {
+        status.setText("● " + text);
+        status.setTextColor(success ? Color.rgb(20, 125, 70) : Color.rgb(155, 75, 35));
+    }
+
+    private void refreshLogs() {
+        if (logs != null) logs.setText(PmcaLogger.getText());
+    }
+
+    private void hideKeyboard() {
+        try {
+            InputMethodManager imm = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!resultReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(
+                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(termuxResultReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(termuxResultReceiver, filter);
+            }
+            resultReceiverRegistered = true;
+        }
+
+        // Восстанавливаем ответ, если callback пришёл,
+        // пока MainActivity была на паузе.
+        String savedResult = getSharedPreferences(
+                "pmca_results", MODE_PRIVATE)
+                .getString("last_result", "");
+
+        if (savedResult != null && !savedResult.isEmpty()) {
+            output.setText(savedResult);
+            setStatus("СОХРАНЁННЫЙ ОТВЕТ TERMUX", true);
+            refreshLogs();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (resultReceiverRegistered) {
+            try {
+                unregisterReceiver(termuxResultReceiver);
+            } catch (Exception ignored) {}
+            resultReceiverRegistered = false;
+        }
+        super.onPause();
+    }
+
+
+    private static final int PMCA_INSTALL_PERMISSION_REQUEST = 7401;
+    private static final int PMCA_INSTALL_STORAGE_REQUEST = 7402;
+
+    private void installLatestApk() {
+
+===== RESULT STORAGE AND BROADCAST =====
+app/src/main/java/com/pmca/bridge/core/PmcaController.java:34:    public boolean copy(String text, String label) {
+app/src/main/java/com/pmca/bridge/core/PmcaController.java:42:    public String readClipboard() {
+app/src/main/java/com/pmca/bridge/core/PmcaController.java:50:    public boolean runNativeCommand(String command) {
+app/src/main/java/com/pmca/bridge/core/PmcaController.java:52:        return termux.runNativeCommand(
+app/src/main/java/com/pmca/bridge/clipboard/ClipboardCopyModule.java:17:    public boolean copy(String text, String label) {
+app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:164:    public boolean runNativeCommand(Context context, String command) {
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:14:    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:106:        prefs.edit().putString("last_result", output).apply();
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:108:        Intent update = new Intent(ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:110:        update.putExtra("result_text", output);
+app/src/main/java/com/pmca/bridge/MainActivity.java:47:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java:112:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java:231:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java:252:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java:313:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java:326:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_014143:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_014143:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_014143:214:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_014143:231:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_014143:294:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:214:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:231:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:294:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608:307:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:218:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:235:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:298:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351:311:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:218:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:239:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:304:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939:317:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:218:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:239:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:304:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734:317:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:47:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:112:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:231:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:252:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:313:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:326:                .getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:47:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:112:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:231:            boolean ok = controller.runNativeCommand(command);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:252:            String text = controller.readClipboard();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:313:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911:326:                .getString("last_result", "");
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

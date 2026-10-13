@@ -1,0 +1,27 @@
+===== PMCA PRE-REPAIR CHECK =====
+Fri Oct  9 22:38:52 EET 2026
+
+===== 1. LOCK STATE =====
+FILE=/data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir/pid
+PID=18619
+
+FILE=/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock/pid
+PID=18619
+
+
+===== 2. LOCK DIRECTORIES =====
+drwxrws---. 2 u0_a201 media_rw 3452 Oct  8 03:00 /data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir
+drwxrws---. 2 u0_a201 media_rw 3452 Oct  8 03:00 /data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock
+
+===== 3. ACTIVE PROCESSES =====
+NO_ACTIVE_BRIDGE
+
+===== 4. CLIPBOARD TEST =====
+CLIPBOARD_SET_EXIT=124
+
+===== 5. SOURCE CHECKSUMS =====
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/PMCA/backups/termux_bridge_daemon.sh.backup
+a32f9c5eee8efd42ef02f1d5948de14cc3e72ed3a8e2842c6bcee271e6485f67  /data/data/com.termux/files/home/termux_bridge_daemon.sh
+
+===== END CHECK =====

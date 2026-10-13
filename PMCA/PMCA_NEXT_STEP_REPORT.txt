@@ -1,0 +1,136 @@
+===== 1. СОБРАННЫЙ APK =====
+-rw-------. 1 u0_a338 u0_a338 21K Oct 10 00:11 /data/data/com.termux/files/home/PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+APK В DOWNLOADS:
+-rw-rw----. 1 u0_a201 media_rw 21K Oct 10 00:12 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== 2. ПРОТОКОЛ МОСТА TERMUX =====
+Файл: /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+58-trap cleanup EXIT
+59-trap 'exit 0' INT TERM
+60-
+61:COMMAND="$BASE/command.json"
+62:RESULT="$BASE/result.json"
+63-
+64-log() {
+65-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"
+66-}
+67-
+68:COMMAND="$BASE/command.json"
+69:RESULT="$BASE/result.json"
+70-
+71-log "========================================"
+72-log "DAEMON START REAL BRIDGE V7"
+--
+132-            log "RECEIVED data=$DATA"
+133-
+134-            # AUTO CLIPBOARD: INCOMING DATA
+135:            # CLIPBOARD_GET must read the user's existing clipboard first.
+136:            if [ "$CMD" = "CLIPBOARD_GET" ]; then
+137:                log "CLIPBOARD: incoming auto-copy SKIPPED for CLIPBOARD_GET"
+138-            elif command -v termux-clipboard-set >/dev/null 2>&1; then
+139-                printf '%s\n%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+140-                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+--
+151-                    RESPONSE="TEST_OK:$DATA"
+152-                    ;;
+153-
+154:                TAPER_DATA)
+155:                    log "TAPER_DATA RECEIVE_START"
+156-
+157-                    RESPONSE="TERMUX_DATA_RECEIVED: $DATA"
+158-
+159:                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+160:                    log "TAPER_DATA RECEIVE_COMPLETE"
+161-                    ;;
+162-
+163:                CLIPBOARD_GET)
+164:                    log "CLIPBOARD_GET START"
+165-
+166-                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+167-                        CLIPBOARD_DATA="$(timeout 3s termux-clipboard-get 2>/dev/null || true)"
+168-
+169:                        RESPONSE="CLIPBOARD_GET_OK"
+170-                        if [ -n "$CLIPBOARD_DATA" ]; then
+171-                            RESPONSE="${RESPONSE}
+172-CLIPBOARD_DATA:
+--
+177-"
+178-                        fi
+179-
+180:                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+181-                    else
+182:                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+183:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+184-                    fi
+185-
+186:                    log "CLIPBOARD_GET COMPLETE"
+187-                    ;;
+188-
+189:                SHELL)
+190:                    log "SHELL EXECUTE_START"
+191:                    log "SHELL COMMAND_LENGTH=${#DATA}"
+192:                    log "SHELL COMMAND_BEGIN"
+193-                    log "$DATA"
+194:                    log "SHELL COMMAND_END"
+195-
+196:                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+197-
+198-                    if command -v timeout >/dev/null 2>&1; then
+199:                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+200:                        SHELL_EXIT=$?
+201-                    else
+202:                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+203:                        SHELL_EXIT=$?
+204-                    fi
+205-
+206:                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+207:                    rm -f "$SHELL_TMP"
+208-
+209:                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+210:                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+211-
+212:                    RESPONSE="SHELL_EXIT_CODE=$SHELL_EXIT"
+213-
+214:                    if [ -n "$SHELL_OUTPUT" ]; then
+215-                        RESPONSE="${RESPONSE}
+216:SHELL_OUTPUT:
+217:${SHELL_OUTPUT}"
+218-                    else
+219-                        RESPONSE="${RESPONSE}
+220:SHELL_OUTPUT:
+221-<EMPTY>"
+222-                    fi
+223-
+224:                    log "SHELL EXECUTE_COMPLETE"
+225-                    ;;
+226-
+227-                *)
+--
+236-
+237-obj = {
+238-    "operation_id": sys.argv[1],
+239:    "timestamp": int(time.time() * 1000),
+240-    "status": "SUCCESS",
+241:    "response": sys.argv[2]
+242-}
+243-
+244-print(json.dumps(obj, ensure_ascii=False))
+--
+249-
+250-                    log "SENT operation_id=$OPERATION_ID"
+251-                    log "SENT status=SUCCESS"
+252:                    log "SENT response=$RESPONSE"
+253-                    log "RESULT_WRITTEN=YES"
+254-
+255-                    # AUTO CLIPBOARD: RESPONSE
+
+===== 3. ИСХОДНИКИ PMCA =====
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/AndroidManifest.xml
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/clipboard/ClipboardCopyModule.java
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/logging/PmcaLogger.java
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/res/values/styles.xml
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

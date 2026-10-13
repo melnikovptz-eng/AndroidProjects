@@ -1,0 +1,6 @@
+===== PMCA SESSION TEST =====
+-rw-------. 1 u0_a338 u0_a338 2.3K Oct  9 12:23 /data/data/com.termux/files/home/PMCA/logs/session.typescript
+PMCA_TEST_1: OK
+PMCA_TEST_2: OK
+PMCA_TEST_3: OK
+===== END =====

@@ -1,0 +1,51 @@
+===== PMCA CONTINUE: DIAGNOSTIC =====
+DATE: Fri Oct  9 11:57:24 EET 2026
+
+===== 1. PROJECT FILES =====
+total 64
+drwx------.  9 u0_a338 u0_a338  3452 Oct  9 11:57 .
+drwx------. 70 u0_a338 u0_a338 20480 Oct  8 21:45 ..
+-rw-------.  1 u0_a338 u0_a338  5650 Oct  8 19:31 ARCHITECTURE.md
+-rw-------.  1 u0_a338 u0_a338  2469 Oct  8 19:29 PROJECT_CONTRACT.md
+-rw-------.  1 u0_a338 u0_a338  1032 Oct  8 18:08 PROJECT_STATUS.md
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 adapters
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 core
+-rw-------.  1 u0_a338 u0_a338   103 Oct  9 11:57 diagnostic_latest.txt
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 docs
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 modules
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 stubs
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 tests
+drwx------.  2 u0_a338 u0_a338  3452 Oct  8 18:07 tools
+
+===== 2. TERMUX TOOLS =====
+termux-clipboard-set     /data/data/com.termux/files/usr/bin/termux-clipboard-set
+termux-clipboard-get     /data/data/com.termux/files/usr/bin/termux-clipboard-get
+tmux                     NOT FOUND
+script                   /data/data/com.termux/files/usr/bin/script
+
+===== 3. EXTRA KEYS CONFIG =====
+1:extra-keys-style = default
+2:extra-keys-text-all-caps = false
+3-
+4:extra-keys = [ \
+5- ['ESC','/','-','HOME','UP','END','PGUP'], \
+6- ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN', \
+7-  {macro: "pmca_copy1 ENTER", display: "1с"}, \
+8-  {macro: "pmca_copy2 ENTER", display: "2с"}, \
+9-  {macro: "pmca_copy3 ENTER", display: "3с"}] \
+10-]
+
+===== 4. PMCA REFERENCES =====
+/data/data/com.termux/files/home/PMCA/diagnostic_latest.txt:21:termux-clipboard-set     /data/data/com.termux/files/usr/bin/termux-clipboard-set
+/data/data/com.termux/files/home/PMCA/diagnostic_latest.txt:22:termux-clipboard-get     /data/data/com.termux/files/usr/bin/termux-clipboard-get
+/data/data/com.termux/files/home/PMCA/diagnostic_latest.txt:27:1:extra-keys-style = default
+/data/data/com.termux/files/home/PMCA/diagnostic_latest.txt:28:2:extra-keys-text-all-caps = false
+/data/data/com.termux/files/home/PMCA/diagnostic_latest.txt:30:4:extra-keys = [ \
+/data/data/com.termux/files/home/.termux/termux.properties:1:extra-keys-style = default
+/data/data/com.termux/files/home/.termux/termux.properties:2:extra-keys-text-all-caps = false
+/data/data/com.termux/files/home/.termux/termux.properties:4:extra-keys = [ \
+
+===== 5. RUNNING PROCESSES =====
+
+===== DIAGNOSTIC COMPLETE =====
+===== SEND THIS RESULT =====

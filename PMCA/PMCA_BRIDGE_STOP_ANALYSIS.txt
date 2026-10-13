@@ -1,0 +1,147 @@
+===== PMCA BRIDGE STOP ANALYSIS =====
+Fri Oct  9 22:29:53 EET 2026
+
+===== 1. LOCK PID =====
+LOCK_PID=18619
+PID_STATE=PROCESS_NOT_FOUND
+
+===== 2. BRIDGE LOG TAIL =====
+
+--- /data/data/com.termux/files/home/storage/downloads/Taper/termux_bridge.log ---
+[2026-10-08 03:49:20] RECEIVED type=TAPER_DATA
+[2026-10-08 03:49:20] RECEIVED command=TAPER_DATA
+[2026-10-08 03:49:20] RECEIVED data_length=20
+[2026-10-08 03:49:20] RECEIVED data=termux-clipboard-get
+[2026-10-08 03:49:21] CLIPBOARD: AUTO_COPY RECEIVED_DATA length=20
+[2026-10-08 03:49:21] TAPER_DATA RECEIVE_START
+[2026-10-08 03:49:21] TAPER_DATA RESPONSE_LENGTH=42
+[2026-10-08 03:49:21] TAPER_DATA RECEIVE_COMPLETE
+[2026-10-08 03:49:21] SENT operation_id=6e781f08-4ecc-4656-94f5-7e641d22a22f
+[2026-10-08 03:49:21] SENT status=SUCCESS
+[2026-10-08 03:49:21] SENT response=TERMUX_DATA_RECEIVED: termux-clipboard-get
+[2026-10-08 03:49:21] RESULT_WRITTEN=YES
+[2026-10-08 03:49:21] CLIPBOARD: AUTO_COPY RESPONSE length=42
+[2026-10-08 03:49:21] COMMAND COMPLETE
+[2026-10-08 03:49:36] RECEIVED operation_id=676b1689-a9a7-45cb-86d8-7f0f7fcd3154
+[2026-10-08 03:49:36] RECEIVED type=TAPER_DATA
+[2026-10-08 03:49:36] RECEIVED command=TAPER_DATA
+[2026-10-08 03:49:36] RECEIVED data_length=20
+[2026-10-08 03:49:36] RECEIVED data=termux-clipboard-get
+[2026-10-08 03:49:36] CLIPBOARD: AUTO_COPY RECEIVED_DATA length=20
+[2026-10-08 03:49:36] TAPER_DATA RECEIVE_START
+[2026-10-08 03:49:36] TAPER_DATA RESPONSE_LENGTH=42
+[2026-10-08 03:49:36] TAPER_DATA RECEIVE_COMPLETE
+[2026-10-08 03:49:36] SENT operation_id=676b1689-a9a7-45cb-86d8-7f0f7fcd3154
+[2026-10-08 03:49:36] SENT status=SUCCESS
+[2026-10-08 03:49:36] SENT response=TERMUX_DATA_RECEIVED: termux-clipboard-get
+[2026-10-08 03:49:36] RESULT_WRITTEN=YES
+[2026-10-08 03:49:36] CLIPBOARD: AUTO_COPY RESPONSE length=42
+[2026-10-08 03:49:36] COMMAND COMPLETE
+[2026-10-08 11:51:51] RECEIVED operation_id=8e019904-332f-4a87-86dd-2889f3c9e519
+[2026-10-08 11:51:51] RECEIVED type=TAPER_DATA
+[2026-10-08 11:51:51] RECEIVED command=TAPER_DATA
+[2026-10-08 11:51:51] RECEIVED data_length=22
+[2026-10-08 11:51:51] RECEIVED data=⟦TAPER:CMD_ID:123⟧
+...
+
+--- /data/data/com.termux/files/home/storage/downloads/Taper/daemon_stdout.log ---
+
+--- /data/data/com.termux/files/home/TaperV6/bridge_status.log ---
+===== TERMUX BRIDGE STATUS =====
+DAEMON_COUNT=4
+[AUTO_COPY][TERMUX][RECEIVED_DATA]
+[AUTO_COPY][TERMUX][RESPONSE]
+STATUS: SINGLE_DAEMON_OK
+
+--- /data/data/com.termux/files/home/TaperV6/single_daemon_status.log ---
+===== SINGLE DAEMON PROTECTION =====
+DAEMON_COUNT=5
+LOCK=/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock
+STATUS=ERROR_MULTIPLE_DAEMONS
+
+===== 3. DAEMON STARTUP LOGIC =====
+3:# === INTERNAL SINGLE DAEMON LOCK ===
+4:INTERNAL_LOCKDIR="$HOME/storage/downloads/Taper/.daemon_internal.lockdir"
+5:if ! mkdir "$INTERNAL_LOCKDIR" 2>/dev/null; then
+6:    OLD_PID=$(cat "$INTERNAL_LOCKDIR/pid" 2>/dev/null || true)
+7:    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+8:        echo "DAEMON_ALREADY_RUNNING PID=$OLD_PID"
+9:        exit 0
+11:    rm -rf "$INTERNAL_LOCKDIR"
+12:    mkdir "$INTERNAL_LOCKDIR" || exit 1
+14:echo "$$" > "$INTERNAL_LOCKDIR/pid"
+15:trap 'rm -rf "$INTERNAL_LOCKDIR"' EXIT INT TERM
+16:# === END INTERNAL SINGLE DAEMON LOCK ===
+19:# ===== SINGLE DAEMON LOCK =====
+20:LOCK_FILE="/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock"
+22:if [ -f "$LOCK_FILE" ]; then
+23:    OLD_PID="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+25:    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+26:        echo "DAEMON BLOCKED: already running PID=$OLD_PID"
+27:        exit 0
+30:    rm -f "$LOCK_FILE"
+33:echo "$$" > "$LOCK_FILE"
+36:    if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+37:        rm -f "$LOCK_FILE"
+41:trap cleanup_daemon_lock EXIT INT TERM
+42:# ===== END SINGLE DAEMON LOCK =====
+48:LOCK="$BASE/.daemon.lock"
+51:mkdir -p "$BASE"
+53:if ! mkdir "$LOCK" 2>/dev/null; then
+54:    if [ -f "$LOCK/pid" ]; then
+55:        OLD_PID="$(cat "$LOCK/pid" 2>/dev/null || true)"
+57:        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+58:            echo "TERMUX BRIDGE ALREADY RUNNING PID=$OLD_PID"
+59:            exit 0
+63:    rm -rf "$LOCK"
+65:    if ! mkdir "$LOCK" 2>/dev/null; then
+66:        echo "ERROR: LOCK"
+67:        exit 1
+71:echo "$$" > "$LOCK/pid"
+74:    rm -rf "$LOCK"
+77:trap cleanup EXIT INT TERM
+83:COMMAND="$BASE/command.json"
+84:RESULT="$BASE/result.json"
+86:log "========================================"
+87:log "DAEMON START REAL BRIDGE V7"
+88:log "BASE=$BASE"
+89:log "========================================"
+91:while true; do
+143:            log "RECEIVED operation_id=$OPERATION_ID"
+144:            log "RECEIVED type=$TYPE"
+145:            log "RECEIVED command=$CMD"
+146:            log "RECEIVED data_length=${#DATA}"
+147:            log "RECEIVED data=$DATA"
+152:                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+154:                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+167:                    log "TAPER_DATA RECEIVE_START"
+171:                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+172:                    log "TAPER_DATA RECEIVE_COMPLETE"
+176:                    log "CLIPBOARD_GET START"
+192:                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+195:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+198:                    log "CLIPBOARD_GET COMPLETE"
+202:                    log "SHELL EXECUTE_START"
+203:                    log "SHELL COMMAND_LENGTH=${#DATA}"
+204:                    log "SHELL COMMAND_BEGIN"
+205:                    log "$DATA"
+206:                    log "SHELL COMMAND_END"
+221:                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+222:                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+236:                    log "SHELL EXECUTE_COMPLETE"
+262:                    log "SENT operation_id=$OPERATION_ID"
+263:                    log "SENT status=SUCCESS"
+264:                    log "SENT response=$RESPONSE"
+265:                    log "RESULT_WRITTEN=YES"
+270:                        log "CLIPBOARD: AUTO_COPY RESPONSE length=${#RESPONSE}"
+272:                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+277:                    log "COMMAND COMPLETE"
+281:                    log "ERROR RESULT_EMPTY"
+287:                log "ERROR RESULT_WRITE_FAILED"
+293:    sleep 0.1
+
+===== 4. JSON TIMESTAMPS =====
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== END =====

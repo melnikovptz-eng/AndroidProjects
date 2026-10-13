@@ -1,0 +1,16 @@
+===== PMCA DUPLICATE GUARD TEST =====
+Sat Oct 10 13:49:02 EET 2026
+
+===== JAVAC / JAVA =====
+1. Первичная команда: PASS
+2. Повтор активной команды блокируется: PASS
+3. Другая команда разрешена: PASS
+4. Повтор после освобождения разрешён: PASS
+JAVA_TEST_EXIT=0
+
+===== SOURCE CHECK =====
+app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:171:        String guardToken = DuplicateGuard.begin(command);
+app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:180:            resultIntent.putExtra(DuplicateGuard.EXTRA_TOKEN, guardToken);
+app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:210:            DuplicateGuard.finish(guardToken);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:28:        String guardToken = intent.getStringExtra(DuplicateGuard.EXTRA_TOKEN);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:120:            DuplicateGuard.finish(guardToken);

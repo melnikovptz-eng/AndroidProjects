@@ -1,0 +1,28 @@
+===== PMCA SHELL BRIDGE TEST =====
+Fri Oct  9 23:27:31 EET 2026
+
+===== 1. PRECHECK =====
+Предыдущий результат сохранён.
+
+===== 2. SEND SHELL THROUGH BRIDGE =====
+{"operation_id": "PMCA_SHELL_20261009_232731_31573", "timestamp": 1791581251764, "type": "SHELL", "command": "SHELL", "data": "printf 'PMCA_SHELL_EXEC_OK\\n'; date; printf 'PWD='; pwd"}
+
+===== 3. WAIT FOR BRIDGE RESPONSE =====
+
+===== 4. RESPONSE =====
+{"operation_id": "PMCA_SHELL_20261009_232731_31573", "timestamp": 1791581252813, "status": "SUCCESS", "response": "SHELL_EXIT_CODE=0\nSHELL_OUTPUT:\nPMCA_SHELL_EXEC_OK\nFri Oct  9 23:27:32 EET 2026\nPWD=/data/data/com.termux/files/home/PMCA"}
+
+OPERATION_ID_MATCH: True
+STATUS_SUCCESS: True
+SHELL_EXIT_CODE_ZERO: True
+OUTPUT_MARKER_FOUND: True
+SHELL_BRIDGE_TEST: PASS
+
+===== 5. AUTO-COPY LOG =====
+[2026-10-09 23:27:32] RECEIVED operation_id=PMCA_SHELL_20261009_232731_31573
+[2026-10-09 23:27:32] SENT operation_id=PMCA_SHELL_20261009_232731_31573
+[2026-10-09 23:17:57] CLIPBOARD: AUTO_COPY RESPONSE length=44
+[2026-10-09 23:23:53] CLIPBOARD: AUTO_COPY RESPONSE length=42
+[2026-10-09 23:27:32] CLIPBOARD: AUTO_COPY RESPONSE length=121
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

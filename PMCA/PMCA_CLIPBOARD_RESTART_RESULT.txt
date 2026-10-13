@@ -1,0 +1,46 @@
+===== PMCA CONTROLLED RESTART =====
+Fri Oct  9 23:32:22 EET 2026
+
+===== 1. PRECHECK =====
+Текущие PID:
+25864
+Количество: 1
+Сохраняю PID старого демона: 25864
+
+===== 2. STOP ONLY THE KNOWN DAEMON =====
+Старый процесс завершён.
+
+===== 3. START PATCHED DAEMON =====
+PID запуска: 8970
+
+===== 4. SINGLE INSTANCE CHECK =====
+8970
+Количество демонов: 1
+
+===== 5. PATCH LOG CHECK =====
+269-   269	
+270-   270	                fi
+271-   271	
+272-   272	            else
+273-   273	
+274-   274	                log "ERROR RESULT_WRITE_FAILED"
+275-   275	
+276-   276	            fi
+277-   277	        fi
+278-   278	    fi
+279-   279	
+280-   280	    sleep 0.1
+281-   281	done
+[2026-10-09 23:29:07] RESULT_WRITTEN=YES
+[2026-10-09 23:29:08] CLIPBOARD: AUTO_COPY RESPONSE length=6407
+[2026-10-09 23:29:08] COMMAND COMPLETE
+[2026-10-09 23:32:22] ========================================
+[2026-10-09 23:32:22] DAEMON START REAL BRIDGE V7
+[2026-10-09 23:32:22] BASE=/data/data/com.termux/files/home/storage/downloads/Taper
+[2026-10-09 23:32:22] ========================================
+
+RESTART_STATUS: PASS
+CLIPBOARD_GET_PATCH: PRESENT
+DAEMON_COUNT: 1
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

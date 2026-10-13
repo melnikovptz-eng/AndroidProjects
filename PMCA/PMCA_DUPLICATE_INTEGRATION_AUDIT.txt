@@ -1,0 +1,823 @@
+===== PMCA DUPLICATE INTEGRATION AUDIT =====
+Sat Oct 10 13:30:09 EET 2026
+
+===== 1. PMCA CONTROLLER =====
+     1	package com.pmca.bridge.core;
+     2	
+     3	import android.content.Context;
+     4	
+     5	import com.pmca.bridge.clipboard.ClipboardCopyModule;
+     6	import com.pmca.bridge.logging.PmcaLogger;
+     7	import com.pmca.bridge.termux.TermuxBridgeAdapter;
+     8	
+     9	public final class PmcaController {
+    10	    private final ClipboardCopyModule clipboard;
+    11	    private final Context appContext;
+    12	    private final TermuxBridgeAdapter termux;
+    13	
+    14	    public PmcaController(Context context) {
+    15	        appContext = context.getApplicationContext();
+    16	        clipboard = new ClipboardCopyModule(context);
+    17	        termux = new TermuxBridgeAdapter(context);
+    18	        PmcaLogger.log("Контроллер PMCA запущен");
+    19	    }
+    20	
+    21	    public TermuxBridgeAdapter.Submission submitToTermux(String command) {
+    22	        PmcaLogger.log("Контроллер: передача команды в Termux");
+    23	        return termux.submitShellCommand(command);
+    24	    }
+    25	
+    26	    public String waitForTermuxResult(String operationId, long timeoutMs) {
+    27	        return termux.waitForResult(operationId, timeoutMs);
+    28	    }
+    29	
+    30	    public boolean sendToTermux(String command) {
+    31	        return termux.sendShellCommand(command);
+    32	    }
+    33	
+    34	    public boolean copy(String text, String label) {
+    35	        boolean ok = clipboard.copy(text, label);
+    36	        PmcaLogger.log(ok
+    37	                ? "Буфер: текст скопирован"
+    38	                : "Буфер: копирование не удалось");
+    39	        return ok;
+    40	    }
+    41	
+    42	    public String readClipboard() {
+    43	        String text = clipboard.read();
+    44	        PmcaLogger.log(text.isEmpty()
+    45	                ? "Буфер: пуст"
+    46	                : "Буфер: текст прочитан");
+    47	        return text;
+    48	    }
+    49	
+    50	    public boolean runNativeCommand(String command) {
+    51	        PmcaLogger.log("Контроллер: запуск через штатный RUN_COMMAND");
+    52	        return termux.runNativeCommand(
+    53	                clipboardContext(), command);
+    54	    }
+    55	
+    56	    private Context clipboardContext() {
+    57	        return appContext;
+    58	    }
+    59	
+    60	}
+
+===== 2. TERMUX BRIDGE ADAPTER =====
+     1	package com.pmca.bridge.termux;
+     2	
+     3	import android.content.Context;
+     4	import android.content.Intent;
+     5	import android.app.PendingIntent;
+     6	import android.os.Build;
+     7	import android.os.Environment;
+     8	
+     9	import com.pmca.bridge.logging.PmcaLogger;
+    10	
+    11	import org.json.JSONObject;
+    12	
+    13	import java.io.File;
+    14	import java.io.FileOutputStream;
+    15	import java.nio.charset.StandardCharsets;
+    16	import java.util.UUID;
+    17	
+    18	public final class TermuxBridgeAdapter {
+    19	    private final File bridgeDir;
+    20	
+    21	    public TermuxBridgeAdapter(Context context) {
+    22	        File downloads = Environment.getExternalStoragePublicDirectory(
+    23	                Environment.DIRECTORY_DOWNLOADS);
+    24	        bridgeDir = new File(downloads, "Taper");
+    25	    }
+    26	
+    27	    public static final class Submission {
+    28	        public final boolean accepted;
+    29	        public final String operationId;
+    30	        public final String message;
+    31	
+    32	        Submission(boolean accepted, String operationId, String message) {
+    33	            this.accepted = accepted;
+    34	            this.operationId = operationId;
+    35	            this.message = message;
+    36	        }
+    37	    }
+    38	
+    39	    public Submission submitShellCommand(String command) {
+    40	        if (command == null || command.trim().isEmpty()) {
+    41	            return new Submission(false, "", "Пустая команда");
+    42	        }
+    43	
+    44	        File commandFile = new File(bridgeDir, "command.json");
+    45	        File tempFile = new File(
+    46	                bridgeDir, "command.pmca_" + UUID.randomUUID() + ".tmp");
+    47	
+    48	        String operationId = UUID.randomUUID().toString();
+    49	
+    50	        try {
+    51	            if (!bridgeDir.isDirectory() && !bridgeDir.mkdirs()) {
+    52	                return new Submission(false, operationId,
+    53	                        "Папка моста недоступна");
+    54	            }
+    55	
+    56	            // Не затираем команду, которую ещё обрабатывает демон.
+    57	            if (commandFile.exists()) {
+    58	                PmcaLogger.log(
+    59	                        "Termux: предыдущая команда ещё не обработана");
+    60	                return new Submission(false, operationId,
+    61	                        "Предыдущая команда ещё обрабатывается");
+    62	            }
+    63	
+    64	            JSONObject json = new JSONObject();
+    65	            json.put("operation_id", operationId);
+    66	            json.put("type", "PMCA");
+    67	            json.put("command", "SHELL");
+    68	            json.put("data", command);
+    69	
+    70	            byte[] bytes = json.toString().getBytes(StandardCharsets.UTF_8);
+    71	
+    72	            try (FileOutputStream out = new FileOutputStream(tempFile, false)) {
+    73	                out.write(bytes);
+    74	                out.getFD().sync();
+    75	            }
+    76	
+    77	            // Повторная проверка перед передачей команды.
+    78	            if (commandFile.exists()) {
+    79	                return new Submission(false, operationId,
+    80	                        "Мост занят другой командой");
+    81	            }
+    82	
+    83	            if (!tempFile.renameTo(commandFile)) {
+    84	                return new Submission(false, operationId,
+    85	                        "Не удалось передать команду мосту");
+    86	            }
+    87	
+    88	            PmcaLogger.log("Termux: команда отправлена, ID=" + operationId);
+    89	            return new Submission(true, operationId, "Команда передана");
+    90	
+    91	        } catch (Exception e) {
+    92	            PmcaLogger.log("Termux: ошибка отправки: "
+    93	                    + e.getClass().getSimpleName());
+    94	            return new Submission(false, operationId,
+    95	                    "Ошибка отправки: " + e.getClass().getSimpleName());
+    96	        } finally {
+    97	            // Удаляем только собственный временный файл.
+    98	            if (tempFile.exists()) {
+    99	                // Оставляем его при ошибке для диагностики.
+   100	            }
+   101	        }
+   102	    }
+   103	
+   104	    public String waitForResult(String operationId, long timeoutMs) {
+   105	        if (operationId == null || operationId.isEmpty()) {
+   106	            return "ОШИБКА: отсутствует ID команды";
+   107	        }
+   108	
+   109	        File resultFile = new File(bridgeDir, "result.json");
+   110	        long deadline = System.currentTimeMillis() + timeoutMs;
+   111	
+   112	        while (System.currentTimeMillis() < deadline) {
+   113	            try {
+   114	                if (resultFile.isFile() && resultFile.length() > 0) {
+   115	                    byte[] bytes = java.nio.file.Files.readAllBytes(
+   116	                            resultFile.toPath());
+   117	
+   118	                    JSONObject result = new JSONObject(
+   119	                            new String(bytes, StandardCharsets.UTF_8));
+   120	
+   121	                    String resultId = result.optString("operation_id", "");
+   122	
+   123	                    // Старый ответ не принимается.
+   124	                    if (operationId.equals(resultId)) {
+   125	                        String status = result.optString("status", "UNKNOWN");
+   126	                        String response = result.optString(
+   127	                                "response", "Ответ пуст");
+   128	
+   129	                        PmcaLogger.log(
+   130	                                "Termux: получен ответ для ID=" + operationId);
+   131	
+   132	                        return "Статус: " + status + "\n"
+   133	                                + "ID: " + operationId + "\n\n"
+   134	                                + response;
+   135	                    }
+   136	                }
+   137	            } catch (Exception ignored) {
+   138	                // Демон может ещё записывать JSON. Повторяем чтение.
+   139	            }
+   140	
+   141	            try {
+   142	                Thread.sleep(300);
+   143	            } catch (InterruptedException e) {
+   144	                Thread.currentThread().interrupt();
+   145	                return "ОЖИДАНИЕ ПРЕРВАНО";
+   146	            }
+   147	        }
+   148	
+   149	        PmcaLogger.log("Termux: тайм-аут ожидания ID=" + operationId);
+   150	        return "ТАЙМ-АУТ: ответ пока не получен.\n"
+   151	                + "Команда могла выполниться; проверь журнал Termux.\n"
+   152	                + "ID: " + operationId;
+   153	    }
+   154	
+   155	    // Совместимость с прежним интерфейсом контроллера.
+   156	    public synchronized boolean sendShellCommand(String command) {
+   157	        return submitShellCommand(command).accepted;
+   158	    }
+   159	
+   160	    /**
+   161	     * Запускает команду через штатный Termux RUN_COMMAND API.
+   162	     * Результат возвращается в TermuxResultService.
+   163	     */
+   164	    public boolean runNativeCommand(Context context, String command) {
+   165	        if (command == null || command.trim().isEmpty()) {
+   166	            PmcaLogger.log("RUN_COMMAND: пустая команда");
+   167	            return false;
+   168	        }
+   169	
+   170	        try {
+   171	            Intent resultIntent = new Intent(context, TermuxResultService.class);
+   172	            int requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+   173	
+   174	            int flags = PendingIntent.FLAG_ONE_SHOT;
+   175	            if (Build.VERSION.SDK_INT >= 31) {
+   176	                flags |= PendingIntent.FLAG_MUTABLE;
+   177	            }
+   178	
+   179	            PendingIntent pendingIntent = PendingIntent.getService(
+   180	                    context, requestCode, resultIntent, flags);
+   181	
+   182	            Intent run = new Intent();
+   183	            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+   184	            run.setAction("com.termux.RUN_COMMAND");
+   185	            run.putExtra("com.termux.RUN_COMMAND_PATH",
+   186	                    "/data/data/com.termux/files/usr/bin/bash");
+   187	            run.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
+   188	                    new String[]{"-lc", command});
+   189	            run.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+   190	                    "/data/data/com.termux/files/home");
+   191	            run.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
+   192	            run.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pendingIntent);
+   193	            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+   194	            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+   195	                    "Команда запущена из PMCA");
+   196	
+   197	            context.startService(run);
+   198	            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+   199	            return true;
+   200	        } catch (Exception e) {
+   201	            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+   202	                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+   203	            return false;
+   204	        }
+   205	    }
+   206	
+   207	}
+
+===== 3. MAIN ACTIVITY COMMAND SUBMISSION =====
+   200	        Button copyLog = makeButton("Скопировать лог");
+   201	        root.addView(copyLog, new LinearLayout.LayoutParams(
+   202	                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+   203	
+   204	        addGap(root, 16);
+   205	        root.addView(makeLabel("Результат"));
+   206	        addGap(root, 6);
+   207	
+   208	        output = new TextView(this);
+   209	        output.setText("Здесь появятся сообщения о действиях PMCA.");
+   210	        output.setTextSize(14);
+   211	        output.setTextColor(Color.rgb(35, 45, 55));
+   212	        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+   213	        output.setBackgroundColor(Color.WHITE);
+   214	        root.addView(output, new LinearLayout.LayoutParams(
+   215	                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+   216	
+   217	
+   218	        addGap(root, 16);
+   219	        LinearLayout logHeader = row();
+   220	        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+   221	        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+   222	                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+   223	        Button refresh = makeButton("Обновить");
+   224	        refresh.setMinHeight(dp(44));
+   225	        logHeader.addView(refresh);
+   226	        root.addView(logHeader);
+   227	
+   228	        addGap(root, 6);
+   229	        logs = new TextView(this);
+   230	        logs.setTextSize(12);
+   231	        logs.setTextColor(Color.rgb(40, 50, 60));
+   232	        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+   233	        logs.setBackgroundColor(Color.WHITE);
+   234	        root.addView(logs, new LinearLayout.LayoutParams(
+   235	                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+   236	
+   237	
+   238	        scroll.addView(root);
+   239	        screen.addView(scroll, new LinearLayout.LayoutParams(
+   240	                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+   241	        setContentView(screen);
+   242	
+   243	        send.setOnClickListener(v -> {
+   244	            hideKeyboard();
+   245	            String command = input.getText().toString().trim();
+   246	            if (command.isEmpty()) {
+   247	                setStatus("НУЖНА КОМАНДА", false);
+   248	                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+   249	                return;
+   250	            }
+   251	
+   252	            output.setText("Команда отправляется через штатный RUN_COMMAND…");
+   253	            setStatus("ЗАПУСК TERMUX", false);
+   254	            boolean ok = controller.runNativeCommand(command);
+   255	
+   256	            if (ok) {
+   257	                output.setText("Команда передана непосредственно Termux.\n"
+   258	                        + "Ожидается автоматический возврат результата…");
+   259	                setStatus("КОМАНДА ЗАПУЩЕНА", true);
+   260	                PmcaLogger.log("UI: RUN_COMMAND принят");
+   261	            } else {
+   262	                output.setText("Не удалось запустить команду через RUN_COMMAND.\n"
+   263	                        + "Проверьте разрешение Termux для PMCA и настройку "
+   264	                        + "allow-external-apps.");
+   265	                setStatus("ЗАПУСК НЕ УДАЛСЯ", false);
+   266	            }
+   267	            refreshLogs();
+   268	        });
+   269	
+   270	        paste.setOnClickListener(v -> {
+   271	            // Сначала очищаем старый текст.
+   272	            input.setText("");
+   273	
+   274	            // Затем читаем буфер и вставляем его содержимое.
+   275	            String text = controller.readClipboard();
+   276	
+   277	            if (text != null && !text.isEmpty()) {
+   278	                input.setText(text);
+   279	                input.setSelection(input.length());
+   280	                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+   281	            } else {
+   282	                setStatus("БУФЕР ПУСТ", false);
+   283	            }
+   284	
+   285	            refreshLogs();
+   286	        });
+   287	
+   288	        installApp.setOnClickListener(v -> installLatestApk());
+   289	
+   290	clear.setOnClickListener(v -> {
+
+--- RESULT RECEIVER AND LIFECYCLE ---
+     1	package com.pmca.bridge;
+     2	
+     3	
+     4	import android.Manifest;
+     5	import android.app.PendingIntent;
+     6	import android.content.pm.PackageInstaller;
+     7	import android.content.pm.PackageManager;
+     8	import android.net.Uri;
+     9	import android.os.Build;
+    10	import android.os.Environment;
+    11	import android.provider.Settings;
+    12	import java.io.File;
+    13	import java.io.FileInputStream;
+    14	import java.io.OutputStream;
+    15	import android.app.Activity;
+    16	import android.os.Bundle;
+    17	import android.graphics.Typeface;
+    18	import android.graphics.Color;
+    19	import android.view.View;
+    20	import android.view.ViewGroup;
+    21	import android.view.inputmethod.InputMethodManager;
+    22	import android.content.Context;
+    23	import android.content.IntentFilter;
+    24	import android.content.Intent;
+    25	import android.content.BroadcastReceiver;
+    26	import android.widget.Button;
+    27	import android.widget.EditText;
+    28	import android.widget.LinearLayout;
+    29	import android.widget.ScrollView;
+    30	import android.widget.TextView;
+    31	import android.widget.Toast;
+    32	
+    33	import com.pmca.bridge.core.PmcaController;
+    34	import com.pmca.bridge.logging.PmcaLogger;
+    35	
+    36	public class MainActivity extends Activity {
+    37	    private PmcaController controller;
+    38	    private EditText input;
+    39	    private TextView status;
+    40	    private TextView output;
+    41	    private TextView logs;
+    42	
+    43	    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+    44	        @Override
+    45	        public void onReceive(Context context, Intent intent) {
+    46	            if (intent == null) return;
+    47	            String result = intent.getStringExtra("result_text");
+    48	            if (result != null) {
+    49	                output.setText(result);
+    50	                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+    51	                refreshLogs();
+    52	            }
+    53	        }
+    54	    };
+    55	    private boolean resultReceiverRegistered = false;
+    56	
+    57	
+    58	    private int dp(float value) {
+    59	        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    60	    }
+    61	
+    62	    private LinearLayout column() {
+    63	        LinearLayout layout = new LinearLayout(this);
+    64	        layout.setOrientation(LinearLayout.VERTICAL);
+    65	        return layout;
+    66	    }
+    67	
+    68	    private LinearLayout row() {
+    69	        LinearLayout layout = new LinearLayout(this);
+    70	        layout.setOrientation(LinearLayout.HORIZONTAL);
+    71	        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    72	        return layout;
+    73	    }
+    74	
+    75	    private void addGap(LinearLayout parent, int heightDp) {
+    76	        View gap = new View(this);
+    77	        parent.addView(gap, new LinearLayout.LayoutParams(
+    78	                ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)));
+    79	    }
+    80	
+    81	    private Button makeButton(String text) {
+    82	        Button button = new Button(this);
+    83	        button.setText(text);
+    84	        button.setTextSize(15);
+    85	        button.setAllCaps(false);
+    86	        button.setMinHeight(dp(52));
+    87	        return button;
+    88	    }
+    89	
+    90	    private void addButton(LinearLayout parent, Button button, float weight) {
+    91	        LinearLayout.LayoutParams params =
+    92	                new LinearLayout.LayoutParams(0, dp(54), weight);
+    93	        params.setMargins(dp(4), 0, dp(4), 0);
+    94	        parent.addView(button, params);
+    95	    }
+    96	
+    97	    private TextView makeLabel(String text) {
+    98	        TextView view = new TextView(this);
+    99	        view.setText(text);
+   100	        view.setTextSize(16);
+   340	    }
+   341	
+   342	    private void refreshLogs() {
+   343	        if (logs != null) logs.setText(PmcaLogger.getText());
+   344	    }
+   345	
+   346	    private void hideKeyboard() {
+   347	        try {
+   348	            InputMethodManager imm = (InputMethodManager)
+   349	                    getSystemService(Context.INPUT_METHOD_SERVICE);
+   350	            if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+   351	        } catch (Exception ignored) {}
+   352	    }
+   353	
+   354	    @Override
+   355	    protected void onResume() {
+   356	        super.onResume();
+   357	        if (!resultReceiverRegistered) {
+   358	            IntentFilter filter = new IntentFilter(
+   359	                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+   360	            if (android.os.Build.VERSION.SDK_INT >= 33) {
+   361	                registerReceiver(termuxResultReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+   362	            } else {
+   363	                registerReceiver(termuxResultReceiver, filter);
+   364	            }
+   365	            resultReceiverRegistered = true;
+   366	        }
+   367	
+   368	        // Восстанавливаем ответ, если callback пришёл,
+   369	        // пока MainActivity была на паузе.
+   370	        String savedResult = getSharedPreferences(
+   371	                "pmca_results", MODE_PRIVATE)
+   372	                .getString("last_result", "");
+   373	
+   374	        if (savedResult != null && !savedResult.isEmpty()) {
+   375	            output.setText(savedResult);
+   376	            setStatus("СОХРАНЁННЫЙ ОТВЕТ TERMUX", true);
+   377	            refreshLogs();
+   378	        }
+   379	    }
+   380	
+   381	    @Override
+   382	    protected void onPause() {
+   383	        if (resultReceiverRegistered) {
+   384	            try {
+   385	                unregisterReceiver(termuxResultReceiver);
+   386	            } catch (Exception ignored) {}
+   387	            resultReceiverRegistered = false;
+   388	        }
+   389	        super.onPause();
+   390	    }
+   391	
+   392	
+   393	    private static final int PMCA_INSTALL_PERMISSION_REQUEST = 7401;
+   394	    private static final int PMCA_INSTALL_STORAGE_REQUEST = 7402;
+   395	
+   396	    private void installLatestApk() {
+   397	        if (Build.VERSION.SDK_INT >= 23
+   398	                && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+   399	                != PackageManager.PERMISSION_GRANTED) {
+   400	            requestPermissions(
+   401	                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+   402	                    PMCA_INSTALL_STORAGE_REQUEST);
+   403	            setStatus("НУЖЕН ДОСТУП К APK", false);
+   404	            return;
+   405	        }
+   406	
+   407	        continueLatestApkInstall();
+   408	    }
+   409	
+   410	    @Override
+
+===== 4. TERMUX RESULT SERVICE =====
+     1	package com.pmca.bridge.termux;
+     2	
+     3	import android.app.IntentService;
+     4	import android.content.Intent;
+     5	import android.content.SharedPreferences;
+     6	import android.os.Bundle;
+     7	
+     8	import com.pmca.bridge.logging.PmcaLogger;
+     9	
+    10	import java.util.Locale;
+    11	
+    12	public final class TermuxResultService extends IntentService {
+    13	
+    14	    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+    15	
+    16	    private static final String RESULT_BUNDLE_KEY =
+    17	            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+    18	
+    19	    public TermuxResultService() {
+    20	        super("PMCA-TermuxResultService");
+    21	    }
+    22	
+    23	    @Override
+    24	    protected void onHandleIntent(Intent intent) {
+    25	        if (intent == null) return;
+    26	
+    27	        Bundle extras = null;
+    28	        Bundle result = null;
+    29	        String source = "не найден";
+    30	
+    31	        try {
+    32	            extras = intent.getExtras();
+    33	        } catch (Exception ignored) {
+    34	        }
+    35	
+    36	        try {
+    37	            result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+    38	            if (result != null) source = "стандартный ключ";
+    39	        } catch (Exception ignored) {
+    40	        }
+    41	
+    42	        if (result == null && extras != null) {
+    43	            for (String key : extras.keySet()) {
+    44	                try {
+    45	                    Object value = extras.get(key);
+    46	                    if (value instanceof Bundle) {
+    47	                        result = (Bundle) value;
+    48	                        source = "вложенный Bundle: " + key;
+    49	                        break;
+    50	                    }
+    51	                } catch (Exception ignored) {
+    52	                }
+    53	            }
+    54	        }
+    55	
+    56	        if (result == null && extras != null) {
+    57	            result = extras;
+    58	            source = "extras Intent";
+    59	        }
+    60	
+    61	        StringBuilder text = new StringBuilder();
+    62	        text.append("===== РЕЗУЛЬТАТ TERMUX =====\n")
+    63	            .append("Источник: ").append(source).append("\n");
+    64	
+    65	        if (result == null) {
+    66	            text.append("\nОШИБКА: Termux не передал Bundle результата.");
+    67	            saveAndBroadcast(text.toString());
+    68	            return;
+    69	        }
+    70	
+    71	        String stdout = findString(result,
+    72	                "STDOUT", "stdout", "standard_output");
+    73	        String stderr = findString(result,
+    74	                "STDERR", "stderr", "standard_error");
+    75	        String errmsg = findString(result,
+    76	                "ERRMSG", "errmsg", "error_message", "ERROR_MESSAGE");
+    77	
+    78	        int exitCode = findInt(result, -999,
+    79	                "EXIT_CODE", "exit_code", "exitCode", "exitcode");
+    80	        int errorCode = findInt(result, -999,
+    81	                "EXTRA_PLUGIN_RESULT_BUNDLE_ERR",
+    82	                "PLUGIN_RESULT_BUNDLE_ERR", "error_code", "errorCode");
+    83	
+    84	        text.append("\n===== STDOUT =====\n")
+    85	            .append(stdout.isEmpty() ? "(пусто)" : stdout)
+    86	            .append("\n\n===== STDERR =====\n")
+    87	            .append(stderr.isEmpty() ? "(пусто)" : stderr)
+    88	            .append("\n\nКод завершения: ").append(exitCode);
+    89	
+    90	        if (!errmsg.isEmpty()) {
+    91	            text.append("\n\n===== ОШИБКА TERMUX =====\n").append(errmsg);
+    92	        }
+    93	
+    94	        if (errorCode != -999) {
+    95	            text.append("\nВнутренний код ошибки: ").append(errorCode);
+    96	        }
+    97	
+    98	        saveAndBroadcast(text.toString());
+    99	    }
+   100	
+   101	    private void saveAndBroadcast(String output) {
+   102	        PmcaLogger.log("RUN_COMMAND RESULT: ответ получен");
+   103	
+   104	        SharedPreferences prefs =
+   105	                getSharedPreferences("pmca_results", MODE_PRIVATE);
+   106	        prefs.edit()
+   107	                .putString("last_result", output)
+   108	                .putInt("compact_state", 3)
+   109	                .apply();
+   110	
+   111	        Intent update = new Intent(ACTION_RESULT);
+   112	        update.setPackage(getPackageName());
+   113	        update.putExtra("result_text", output);
+   114	        sendBroadcast(update);
+   115	    }
+   116	
+   117	    private static String findString(Bundle bundle, String... names) {
+   118	        if (bundle == null) return "";
+   119	
+   120	        for (String key : bundle.keySet()) {
+   121	            if (key == null || key.endsWith("_ORIGINAL_LENGTH")) continue;
+   122	
+   123	            String normalized = normalize(key);
+   124	            boolean match = false;
+   125	
+   126	            for (String name : names) {
+   127	                String expected = normalize(name);
+   128	                if (normalized.equals(expected)
+   129	                        || normalized.endsWith(expected)) {
+   130	                    match = true;
+   131	                    break;
+   132	                }
+   133	            }
+   134	
+   135	            if (!match) continue;
+   136	
+   137	            try {
+   138	                Object value = bundle.get(key);
+   139	                if (value instanceof String) return (String) value;
+   140	                if (value instanceof CharSequence) return value.toString();
+   141	            } catch (Exception ignored) {
+   142	            }
+   143	        }
+   144	        return "";
+   145	    }
+   146	
+   147	    private static int findInt(Bundle bundle, int fallback, String... names) {
+   148	        if (bundle == null) return fallback;
+   149	
+   150	        for (String key : bundle.keySet()) {
+   151	            if (key == null) continue;
+   152	
+   153	            String normalized = normalize(key);
+   154	            boolean match = false;
+   155	
+   156	            for (String name : names) {
+   157	                String expected = normalize(name);
+   158	                if (normalized.equals(expected)
+   159	                        || normalized.endsWith(expected)) {
+   160	                    match = true;
+   161	                    break;
+   162	                }
+   163	            }
+   164	
+   165	            if (!match) continue;
+   166	
+   167	            try {
+   168	                Object value = bundle.get(key);
+   169	
+   170	                if (value instanceof Number) {
+   171	                    return ((Number) value).intValue();
+   172	                }
+   173	
+   174	                if (value instanceof String) {
+   175	                    return Integer.parseInt(((String) value).trim());
+   176	                }
+   177	            } catch (Exception ignored) {
+   178	            }
+   179	        }
+   180	        return fallback;
+   181	    }
+   182	
+   183	    private static String normalize(String value) {
+   184	        return value.toUpperCase(Locale.ROOT)
+   185	                .replace("-", "")
+   186	                .replace("_", "")
+   187	                .replace(".", "");
+   188	    }
+   189	}
+
+===== 5. FLOATING PANEL COMMAND PATH =====
+   390	            Toast.makeText(
+   391	                    this,
+   392	                    "Android запретил чтение буфера в фоне",
+   393	                    Toast.LENGTH_LONG
+   394	            ).show();
+   395	            PmcaLogger.log(
+   396	                    "Чтение буфера запрещено Android: "
+   397	                            + e.getClass().getSimpleName()
+   398	            );
+   399	        } catch (Exception e) {
+   400	            updateState(READY);
+   401	            Toast.makeText(
+   402	                    this,
+   403	                    "Ошибка чтения буфера",
+   404	                    Toast.LENGTH_LONG
+   405	            ).show();
+   406	            PmcaLogger.log(
+   407	                    "Ошибка чтения буфера: "
+   408	                            + e.getClass().getSimpleName()
+   409	            );
+   410	        }
+   411	    }
+   412	
+   413	    private void runCommand() {
+   414	        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+   415	        String command = prefs.getString(KEY_COMMAND, "");
+   416	
+   417	        if (command == null || command.trim().isEmpty()) {
+   418	            Toast.makeText(this, "Сначала нажмите 📋", Toast.LENGTH_LONG).show();
+   419	            updateState(READY);
+   420	            return;
+   421	        }
+   422	
+   423	        updateState(WAITING);
+   424	
+   425	        boolean ok;
+   426	        try {
+   427	            ok = controller.runNativeCommand(command);
+   428	        } catch (Exception e) {
+   429	            ok = false;
+   430	            PmcaLogger.log("Ошибка запуска Termux: " + e.getMessage());
+   431	        }
+   432	
+   433	        if (!ok) {
+   434	            updateState(PASTED);
+   435	            Toast.makeText(
+   436	                    this,
+   437	                    "Termux не принял команду. Проверьте RUN_COMMAND.",
+   438	                    Toast.LENGTH_LONG
+   439	            ).show();
+   440	            PmcaLogger.log("Команда не принята Termux");
+   441	        } else {
+   442	            PmcaLogger.log("Команда отправлена в Termux");
+   443	        }
+   444	    }
+   445	
+   446	    private void runClipboardCommand() {
+   447	        // Читаем буфер в активном прозрачном Activity.
+   448	        // Основное окно PMCA не запускаем.
+   449	        try {
+   450	            Intent intent = new Intent(
+   451	                    FloatingPanelService.this,
+   452	                    ClipboardPasteActivity.class
+   453	            );
+   454	
+   455	            intent.addFlags(
+   456	                    Intent.FLAG_ACTIVITY_NEW_TASK
+   457	                    | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+   458	                    | Intent.FLAG_ACTIVITY_NO_ANIMATION
+   459	            );
+   460	
+   461	            startActivity(intent);
+   462	
+   463	            PmcaLogger.log(
+   464	                    "Панель: запущено активное окно для чтения буфера"
+   465	            );
+
+===== 6. CURRENT GUARD CLASS CHECK =====
+
+===== 7. BUILD CONFIGURATION =====
+--- AndroidBridge/app/build.gradle ---
+6:    namespace 'com.pmca.bridge'
+7:    compileSdk 35
+10:        applicationId 'com.pmca.bridge'
+11:        minSdk 23
+12:        targetSdk 28
+--- AndroidBridge/build.gradle ---
+--- AndroidBridge/settings.gradle ---
+
+===== AUDIT COMPLETE =====
+Режим: только чтение исходников; изменения не выполнялись.

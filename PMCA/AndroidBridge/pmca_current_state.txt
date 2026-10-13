@@ -1,0 +1,31 @@
+===== PMCA: ТЕКУЩЕЕ СОСТОЯНИЕ =====
+Sat Oct 10 02:47:26 EET 2026
+
+===== ФЛАГ PENDING INTENT =====
+452-            callback.setAction("com.pmca.bridge.INSTALL_STATUS");
+453-
+454:            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+455-            if (Build.VERSION.SDK_INT >= 23) {
+456-                flags |= PendingIntent.FLAG_IMMUTABLE;
+457-            }
+458-            PendingIntent statusIntent =
+459-                    PendingIntent.getBroadcast(this, sessionId, callback, flags);
+460-
+461-            try (PackageInstaller.Session commitSession =
+462-                         installer.openSession(sessionId)) {
+
+===== ВРЕМЯ И РАЗМЕР APK =====
+-rw-rw----. 1 u0_a201 media_rw 31K 2026-10-10 02:38 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+3edd12e5872052af81ab8866fe7eb033368d626307e60dc35d5d328c4847ec39  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== ПОСЛЕДНИЕ РЕЗЕРВНЫЕ КОПИИ =====
+-rw-------. 1 u0_a338 u0_a338 18825 Oct 10 02:29 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918
+-rw-------. 1 u0_a338 u0_a338 12727 Oct 10 02:27 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734
+-rw-------. 1 u0_a338 u0_a338 12727 Oct 10 02:09 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939
+-rw-------. 1 u0_a338 u0_a338 12506 Oct 10 01:56 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351
+-rw-------. 1 u0_a338 u0_a338 12334 Oct 10 01:41 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608
+
+===== ПОСЛЕДНИЙ ОТЧЁТ СБОРКИ =====
+Отчёт исправления ещё не создан.
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

@@ -1,0 +1,37 @@
+===== PMCA CLIPBOARD FIX =====
+Fri Oct  9 23:30:09 EET 2026
+
+===== 1. SAFETY CHECK =====
+Резервная копия: /data/data/com.termux/files/home/PMCA/termux_bridge_daemon.pre_clipboard_fix_20261009_233009.sh
+
+===== 2. PATCH ONE BLOCK =====
+PATCH_APPLIED: изменён только блок входящего автокопирования.
+
+===== 3. SYNTAX CHECK =====
+BASH_SYNTAX: PASS
+
+===== 4. VERIFY PATCH =====
+132-            log "RECEIVED data=$DATA"
+133-
+134:            # AUTO CLIPBOARD: INCOMING DATA
+135-            # CLIPBOARD_GET must read the user's existing clipboard first.
+136-            if [ "$CMD" = "CLIPBOARD_GET" ]; then
+137-                log "CLIPBOARD: incoming auto-copy SKIPPED for CLIPBOARD_GET"
+138-            elif command -v termux-clipboard-set >/dev/null 2>&1; then
+139-                printf '%s\n%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+140-                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+141-            else
+142-                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+143-            fi
+144-
+145-            STATUS="SUCCESS"
+146-            RESPONSE=""
+
+===== 5. DEMON STATUS =====
+25864 bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+Файл исправлен, но работающий демон пока использует старый код.
+Для применения потребуется контролируемый перезапуск.
+Перезапуск автоматически не выполняется.
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

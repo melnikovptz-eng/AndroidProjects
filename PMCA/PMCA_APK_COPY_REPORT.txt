@@ -1,0 +1,10 @@
+===== PMCA APK UPDATE =====
+Sat Oct 10 13:41:55 EET 2026
+Предыдущая версия сохранена: /data/data/com.termux/files/home/storage/downloads/PMCA_previous.apk
+
+===== НОВЫЙ APK =====
+-rw-rw----. 1 u0_a201 media_rw 49K Oct 10 13:41 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+bd0a03ae4557d1cfa86623ee37e8af4714293c53b05cbafd567a12471856d7db  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== ПРОВЕРКА =====
+SUCCESS: APK в Download совпадает со сборкой

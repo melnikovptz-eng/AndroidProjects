@@ -1,0 +1,80 @@
+===== PMCA PRE-START CHECK =====
+Fri Oct  9 23:14:26 EET 2026
+
+===== 1. SCRIPT EXISTS =====
+-rwxr--r--. 1 u0_a338 u0_a338 7.4K Oct  9 22:50 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== 2. BASH SYNTAX =====
+SYNTAX_OK
+
+===== 3. LOCK REFERENCES =====
+6:LOCK="$BASE/.daemon.lock"
+50:cleanup() {
+58:trap cleanup EXIT
+59:trap 'exit 0' INT TERM
+
+===== 4. CLIPBOARD TIMEOUTS =====
+135:            if command -v termux-clipboard-set >/dev/null 2>&1; then
+137:%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+140:                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+164:                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+165:                        CLIPBOARD_DATA="$(timeout 3s termux-clipboard-get 2>/dev/null || true)"
+180:                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+181:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+196:                    if command -v timeout >/dev/null 2>&1; then
+197:                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+254:                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+256:%s' "[AUTO_COPY][TERMUX][RESPONSE]" "$RESPONSE" | timeout 3s termux-clipboard-set
+259:                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+
+===== 5. COMMAND HANDLERS =====
+61:COMMAND="$BASE/command.json"
+62:RESULT="$BASE/result.json"
+68:COMMAND="$BASE/command.json"
+69:RESULT="$BASE/result.json"
+148:                TEST)
+149:                    RESPONSE="TEST_OK:$DATA"
+152:                TAPER_DATA)
+153:                    log "TAPER_DATA RECEIVE_START"
+157:                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+158:                    log "TAPER_DATA RECEIVE_COMPLETE"
+161:                CLIPBOARD_GET)
+162:                    log "CLIPBOARD_GET START"
+167:                        RESPONSE="CLIPBOARD_GET_OK"
+178:                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+180:                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+181:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+184:                    log "CLIPBOARD_GET COMPLETE"
+187:                SHELL)
+188:                    log "SHELL EXECUTE_START"
+189:                    log "SHELL COMMAND_LENGTH=${#DATA}"
+190:                    log "SHELL COMMAND_BEGIN"
+192:                    log "SHELL COMMAND_END"
+194:                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+197:                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+198:                        SHELL_EXIT=$?
+200:                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+201:                        SHELL_EXIT=$?
+204:                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+205:                    rm -f "$SHELL_TMP"
+207:                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+208:                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+210:                    RESPONSE="SHELL_EXIT_CODE=$SHELL_EXIT"
+212:                    if [ -n "$SHELL_OUTPUT" ]; then
+214:SHELL_OUTPUT:
+215:${SHELL_OUTPUT}"
+218:SHELL_OUTPUT:
+222:                    log "SHELL EXECUTE_COMPLETE"
+
+===== 6. CURRENT DAEMON =====
+NO_ACTIVE_DAEMON
+
+===== 7. LOCK STATUS =====
+ABSENT: .daemon.lock
+ABSENT: .daemon_internal.lockdir
+
+===== 8. BRIDGE JSON FILES =====
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

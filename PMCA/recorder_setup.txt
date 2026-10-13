@@ -1,0 +1,7 @@
+===== PMCA RECORDER CREATED =====
+-rwx------. 1 u0_a338 u0_a338 421 Oct  9 12:05 /data/data/com.termux/files/home/PMCA/bin/pmca_session.sh
+
+Проверка синтаксиса:
+SYNTAX=OK
+
+===== END =====

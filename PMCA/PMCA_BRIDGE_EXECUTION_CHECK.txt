@@ -1,0 +1,28 @@
+===== PMCA BRIDGE EXECUTION CHECK =====
+Fri Oct  9 20:38:58 EET 2026
+
+===== TERMUX COMMANDS =====
+termux-open             /data/data/com.termux/files/usr/bin/termux-open
+termux-open-url         /data/data/com.termux/files/usr/bin/termux-open-url
+termux-clipboard-get    /data/data/com.termux/files/usr/bin/termux-clipboard-get
+termux-clipboard-set    /data/data/com.termux/files/usr/bin/termux-clipboard-set
+termux-wake-lock        /data/data/com.termux/files/usr/bin/termux-wake-lock
+timeout                 /data/data/com.termux/files/usr/bin/timeout
+python                  /data/data/com.termux/files/usr/bin/python
+gradle                  /data/data/com.termux/files/usr/bin/gradle
+java                    /data/data/com.termux/files/usr/lib/jvm/java-21-openjdk/bin/java
+
+===== TERMUX APP / API PACKAGES =====
+
+===== EXISTING BRIDGE FILES =====
+-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+-rwx------. 1 u0_a338 u0_a338 4486 Oct  7 17:57 /data/data/com.termux/files/home/termux_bridge_daemon.sh
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== ACCESSIBILITY TESTER PROJECT STATUS =====
+НАЙДЕН: /data/data/com.termux/files/home/AccessibilityTester3/settings.gradle
+НАЙДЕН: /data/data/com.termux/files/home/AccessibilityTester3/app/build.gradle
+НАЙДЕН: /data/data/com.termux/files/home/AccessibilityTester3/app/src/main/AndroidManifest.xml
+
+===== END =====

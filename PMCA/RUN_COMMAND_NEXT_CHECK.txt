@@ -1,0 +1,162 @@
+===== PMCA RUN_COMMAND: NEXT CHECK =====
+Sat Oct 10 01:03:39 EET 2026
+
+===== 1. ПОЛНАЯ ПЕРЕДАЧА КОМАНДЫ =====
+    // Совместимость с прежним интерфейсом контроллера.
+    public synchronized boolean sendShellCommand(String command) {
+        return submitShellCommand(command).accepted;
+    }
+
+    /**
+     * Запускает команду через штатный Termux RUN_COMMAND API.
+     * Результат возвращается в TermuxResultService.
+     */
+    public boolean runNativeCommand(Context context, String command) {
+        if (command == null || command.trim().isEmpty()) {
+            PmcaLogger.log("RUN_COMMAND: пустая команда");
+            return false;
+        }
+
+        try {
+            Intent resultIntent = new Intent(context, TermuxResultService.class);
+            int requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+
+            int flags = PendingIntent.FLAG_ONE_SHOT;
+            if (Build.VERSION.SDK_INT >= 31) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getService(
+                    context, requestCode, resultIntent, flags);
+
+            Intent run = new Intent();
+            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+            run.setAction("com.termux.RUN_COMMAND");
+            run.putExtra("com.termux.RUN_COMMAND_PATH",
+                    "/data/data/com.termux/files/usr/bin/bash");
+            run.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
+                    new String[]{"-lc", command});
+            run.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+                    "/data/data/com.termux/files/home");
+            run.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
+            run.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pendingIntent);
+            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+                    "Команда запущена из PMCA");
+
+            context.startService(run);
+            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+            return true;
+        } catch (Exception e) {
+            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+}
+
+===== 2. СЕРВИС ПОЛУЧЕНИЯ РЕЗУЛЬТАТА =====
+package com.pmca.bridge.termux;
+
+import android.app.IntentService;
+import android.content.Intent;
+import android.os.Bundle;
+import android.content.SharedPreferences;
+
+public final class TermuxResultService extends IntentService {
+    public static final String ACTION_RESULT =
+            "com.pmca.bridge.TERMUX_RESULT";
+
+    private static final String RESULT_BUNDLE_KEY =
+            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+
+    public TermuxResultService() {
+        super("PMCA-TermuxResultService");
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        if (intent == null) return;
+
+        Bundle result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+
+        if (result == null && intent.getExtras() != null) {
+            Bundle extras = intent.getExtras();
+            for (String key : extras.keySet()) {
+                Object value = extras.get(key);
+                if (key != null
+                        && key.contains("PLUGIN_RESULT_BUNDLE")
+                        && value instanceof Bundle) {
+                    result = (Bundle) value;
+                    break;
+                }
+            }
+        }
+
+        StringBuilder text = new StringBuilder();
+
+        if (result == null) {
+            text.append("ОШИБКА: Termux не вернул пакет результата.\n")
+                .append("Проверь разрешение RUN_COMMAND и версию Termux.");
+        } else {
+            String stdout = findString(result, "STDOUT");
+            String stderr = findString(result, "STDERR");
+            String errmsg = findString(result, "ERRMSG");
+            int exitCode = findInt(result, "EXIT_CODE", -999);
+            int errorCode = findInt(result, "EXTRA_PLUGIN_RESULT_BUNDLE_ERR", -1);
+
+            text.append("===== РЕЗУЛЬТАТ TERMUX =====\n")
+                .append("Код завершения: ").append(exitCode).append("\n\n")
+                .append("===== STDOUT =====\n")
+                .append(stdout.isEmpty() ? "(пусто)\n" : stdout)
+                .append("\n\n===== STDERR =====\n")
+                .append(stderr.isEmpty() ? "(пусто)\n" : stderr);
+
+            if (!errmsg.isEmpty()) {
+                text.append("\n\n===== ОШИБКА TERMUX =====\n").append(errmsg);
+            }
+
+            if (errorCode != -1 && errorCode != -999) {
+                text.append("\n\nВнутренний код Termux: ").append(errorCode);
+            }
+        }
+
+        String output = text.toString();
+
+        SharedPreferences prefs = getSharedPreferences("pmca_results", MODE_PRIVATE);
+        prefs.edit().putString("last_result", output).apply();
+
+        Intent update = new Intent(ACTION_RESULT);
+        update.setPackage(getPackageName());
+        update.putExtra("result_text", output);
+        sendBroadcast(update);
+    }
+
+    private static String findString(Bundle bundle, String ending) {
+        for (String key : bundle.keySet()) {
+            if (key != null && key.endsWith(ending)
+                    && !key.endsWith("_ORIGINAL_LENGTH")) {
+                Object value = bundle.get(key);
+                if (value instanceof String) return (String) value;
+            }
+        }
+        return "";
+    }
+
+    private static int findInt(Bundle bundle, String ending, int fallback) {
+        for (String key : bundle.keySet()) {
+            if (key != null && key.endsWith(ending)) {
+                Object value = bundle.get(key);
+                if (value instanceof Integer) return (Integer) value;
+            }
+        }
+        return fallback;
+    }
+}
+
+===== 3. НАСТРОЙКИ СБОРКИ =====
+app/build.gradle:6:    namespace 'com.pmca.bridge'
+app/build.gradle:10:        applicationId 'com.pmca.bridge'
+app/build.gradle:11:        minSdk 23
+app/build.gradle:12:        targetSdk 28

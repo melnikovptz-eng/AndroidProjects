@@ -1,0 +1,28 @@
+===== PMCA BRIDGE STATUS =====
+Fri Oct  9 23:19:12 EET 2026
+
+===== 1. DAEMON PROCESS =====
+25864 bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+===== 2. DAEMON LOG =====
+0 /data/data/com.termux/files/home/PMCA/PMCA_DAEMON_20261009_231756.log
+
+===== 3. LOCK STATUS =====
+EXISTS: .daemon.lock
+total 4
+-rw-rw----. 1 u0_a201 media_rw 6 Oct  9 23:17 pid
+ABSENT: .daemon_internal.lockdir
+
+===== 4. BRIDGE FILES =====
+ls: cannot access '/data/data/com.termux/files/home/storage/downloads/Taper/command.json': No such file or directory
+-rw-rw----. 1 u0_a201 media_rw 171 Oct  9 23:17 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== 5. RESULT JSON =====
+{"operation_id": "8e019904-332f-4a87-86dd-2889f3c9e519", "timestamp": 1791580677023, "status": "SUCCESS", "response": "TERMUX_DATA_RECEIVED: ⟦TAPER:CMD_ID:123⟧\n..."}
+
+
+===== 6. JSON BACKUPS =====
+-rw-rw----. 1 u0_a338 u0_a338 161 Oct  8 11:51 /data/data/com.termux/files/home/PMCA/command_20261009_231756.json
+-rw-rw----. 1 u0_a338 u0_a338 164 Oct  8 03:49 /data/data/com.termux/files/home/PMCA/result_20261009_231756.json
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

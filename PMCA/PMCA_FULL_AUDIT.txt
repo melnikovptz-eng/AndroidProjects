@@ -1,0 +1,140 @@
+===== PMCA FULL AUDIT =====
+Fri Oct  9 22:36:19 EET 2026
+MODE=READ_ONLY
+Демон не запускается. Файлы не удаляются и не изменяются, кроме отчёта.
+
+===== 1. ENVIRONMENT =====
+HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+bash                     /data/data/com.termux/files/usr/bin/bash
+python                   /data/data/com.termux/files/usr/bin/python
+timeout                  /data/data/com.termux/files/usr/bin/timeout
+sha256sum                /data/data/com.termux/files/usr/bin/sha256sum
+termux-clipboard-set     /data/data/com.termux/files/usr/bin/termux-clipboard-set
+termux-clipboard-get     /data/data/com.termux/files/usr/bin/termux-clipboard-get
+
+===== 2. BRIDGE SOURCE AND BACKUP =====
+-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/PMCA/backups/termux_bridge_daemon.sh.backup
+6167d7f963b31bd59687d2f32d75e94444cf234103699f158e831b59c731d578  /data/data/com.termux/files/home/PMCA/backups/termux_bridge_daemon.sh.backup
+-rwx------. 1 u0_a338 u0_a338 4486 Oct  7 17:57 /data/data/com.termux/files/home/termux_bridge_daemon.sh
+a32f9c5eee8efd42ef02f1d5948de14cc3e72ed3a8e2842c6bcee271e6485f67  /data/data/com.termux/files/home/termux_bridge_daemon.sh
+
+===== 3. BACKUP COMPARISON =====
+SOURCE_EQUALS_BACKUP=YES
+
+===== 4. SHELL SYNTAX =====
+SYNTAX_OK: /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+SYNTAX_OK: /data/data/com.termux/files/home/PMCA/backups/termux_bridge_daemon.sh.backup
+SYNTAX_OK: /data/data/com.termux/files/home/termux_bridge_daemon.sh
+
+===== 5. ACTIVE BRIDGE PROCESSES =====
+NO_ACTIVE_BRIDGE
+
+===== 6. OTHER POSSIBLE DAEMONS =====
+NO_OTHER_MATCHING_DAEMONS
+
+===== 7. LOCK FILES =====
+FILE: /data/data/com.termux/files/home/storage/downloads/Taper/.daemon_internal.lockdir/pid
+CONTENT: 18619
+
+DIRECTORY: /data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock
+FILE: /data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock/pid
+CONTENT: 18619
+
+
+===== 8. LOCK PID VALIDATION =====
+PID_18619=NOT_RUNNING
+
+===== 9. LOCKS AND TRAPS IN SOURCE =====
+4:INTERNAL_LOCKDIR="$HOME/storage/downloads/Taper/.daemon_internal.lockdir"
+5:if ! mkdir "$INTERNAL_LOCKDIR" 2>/dev/null; then
+6:    OLD_PID=$(cat "$INTERNAL_LOCKDIR/pid" 2>/dev/null || true)
+7:    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+11:    rm -rf "$INTERNAL_LOCKDIR"
+12:    mkdir "$INTERNAL_LOCKDIR" || exit 1
+14:echo "$$" > "$INTERNAL_LOCKDIR/pid"
+15:trap 'rm -rf "$INTERNAL_LOCKDIR"' EXIT INT TERM
+20:LOCK_FILE="/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock"
+22:if [ -f "$LOCK_FILE" ]; then
+23:    OLD_PID="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+25:    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+30:    rm -f "$LOCK_FILE"
+33:echo "$$" > "$LOCK_FILE"
+36:    if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+37:        rm -f "$LOCK_FILE"
+41:trap cleanup_daemon_lock EXIT INT TERM
+48:LOCK="$BASE/.daemon.lock"
+57:        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+63:    rm -rf "$LOCK"
+74:    rm -rf "$LOCK"
+77:trap cleanup EXIT INT TERM
+
+===== 10. LOOP AND CLIPBOARD CALLS =====
+83:COMMAND="$BASE/command.json"
+84:RESULT="$BASE/result.json"
+91:while true; do
+150:            if command -v termux-clipboard-set >/dev/null 2>&1; then
+151:                printf '%s\n%s'                     "[AUTO_COPY][TERMUX][RECEIVED_DATA]"                     "$DATA" | termux-clipboard-set
+154:                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+178:                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+179:                        CLIPBOARD_DATA="$(termux-clipboard-get 2>/dev/null || true)"
+194:                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+195:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+268:                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+269:                        printf '%s\n%s'                             "[AUTO_COPY][TERMUX][RESPONSE]"                             "$RESPONSE" | termux-clipboard-set
+272:                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+293:    sleep 0.1
+
+===== 11. AUTOSTART LOCATIONS =====
+--- /data/data/com.termux/files/home/.bashrc
+NO_MATCH
+ABSENT: /data/data/com.termux/files/home/.profile
+--- /data/data/com.termux/files/usr/etc/bash.bashrc
+NO_MATCH
+DIRECTORY_ABSENT: /data/data/com.termux/files/home/.termux/boot
+DIRECTORY_ABSENT: /data/data/com.termux/files/home/.shortcuts
+
+===== 12. BRIDGE FILES =====
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+--- FIRST 40 LINES: /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+{"operation_id":"8e019904-332f-4a87-86dd-2889f3c9e519","timestamp":1791453110566,"type":"TAPER_DATA","command":"TAPER_DATA","data":"⟦TAPER:CMD_ID:123⟧\n..."}-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+--- FIRST 40 LINES: /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+{"operation_id": "676b1689-a9a7-45cb-86d8-7f0f7fcd3154", "timestamp": 1791424176549, "status": "SUCCESS", "response": "TERMUX_DATA_RECEIVED: termux-clipboard-get"}
+
+===== 13. RECENT BRIDGE LOGS =====
+--- /data/data/com.termux/files/home/TaperV6/bridge_status.log
+===== TERMUX BRIDGE STATUS =====
+DAEMON_COUNT=4
+[AUTO_COPY][TERMUX][RECEIVED_DATA]
+[AUTO_COPY][TERMUX][RESPONSE]
+STATUS: SINGLE_DAEMON_OK
+--- /data/data/com.termux/files/home/TaperV6/single_daemon_status.log
+===== SINGLE DAEMON PROTECTION =====
+DAEMON_COUNT=5
+LOCK=/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock
+STATUS=ERROR_MULTIPLE_DAEMONS
+--- /data/data/com.termux/files/home/TaperV6/final_daemon_check.log
+===== FINAL DAEMON CHECK =====
+LOCK_PID=13931
+
+10816 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+
+COUNT=1
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====
+
+===== 14. PMCA REPORT FILES =====
+PMCA_BACKUP_AUTOSTART_CHECK.txt | 786 bytes
+PMCA_BRIDGE_EXECUTION_CHECK.txt | 1639 bytes
+PMCA_FINAL_PROCESS_CHECK.txt | 1368 bytes
+PMCA_FULL_AUDIT.txt | 6436 bytes
+PMCA_LOCK_EXIT_DIAGNOSTICS.txt | 7791 bytes
+PMCA_PROCESS_AND_LAUNCHER_AUDIT.txt | 11551 bytes
+PMCA_SAFE_BRIDGE_DIAGNOSTICS.txt | 1991 bytes
+
+===== AUDIT COMPLETE =====
+REPORT=/data/data/com.termux/files/home/PMCA/PMCA_FULL_AUDIT.txt
+===== END OF REPORT =====
+CLIPBOARD_COPY=FAILED_OR_TIMEOUT

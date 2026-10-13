@@ -1,0 +1,88 @@
+===== PMCA DUPLICATE GUARD PATCH =====
+Sat Oct 10 13:32:19 EET 2026
+
+===== 1. PRECHECK =====
+OK: исходники найдены
+
+===== 2. BACKUP =====
+Резервные копии:
+total 24K
+-rw-------. 1 u0_a338 u0_a338 2.0K Oct 10 00:53 PmcaController.java
+-rw-------. 1 u0_a338 u0_a338 8.4K Oct 10 00:53 TermuxBridgeAdapter.java
+-rw-------. 1 u0_a338 u0_a338 6.0K Oct 10 03:12 TermuxResultService.java
+
+===== 3. APPLY PATCH =====
+OK: DuplicateGuard.java создан
+OK: защита подключена в TermuxBridgeAdapter
+OK: блокировка снимается при ошибке запуска
+OK: блокировка снимается после обработки результата
+
+===== 4. STATIC CHECK =====
+OK: точки интеграции обнаружены
+
+===== 5. BUILD DEBUG APK =====
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+WARNING: The option setting 'android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2' is experimental.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :app:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 53s
+32 actionable tasks: 4 executed, 28 up-to-date
+
+===== 6. BUILD OUTPUT =====
+-rw-------. 1 u0_a338 u0_a338 49K Oct 10 13:33 /data/data/com.termux/files/home/PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+bd0a03ae4557d1cfa86623ee37e8af4714293c53b05cbafd567a12471856d7db  /data/data/com.termux/files/home/PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+
+OK: сборка успешна
+Существующий ~/storage/downloads/PMCA.apk не изменён.
+Установка на устройство не выполнялась.
+
+Резервные копии: /data/data/com.termux/files/home/PMCA/passport_backups/DUPLICATE_GUARD_20261010_133219
+===== PATCH COMPLETE =====

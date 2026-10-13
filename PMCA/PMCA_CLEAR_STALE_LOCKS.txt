@@ -1,0 +1,24 @@
+===== PMCA: SAFE STALE LOCK CLEANUP =====
+Fri Oct  9 22:53:18 EET 2026
+
+===== 1. ACTIVE DAEMON CHECK =====
+Активный демон не найден.
+
+===== 2. VERIFY STALE LOCKS =====
+--- .daemon.lock
+Проверка пройдена: устаревшая блокировка.
+--- .daemon_internal.lockdir
+Проверка пройдена: устаревшая блокировка.
+
+===== 3. REMOVE ONLY VERIFIED LOCKS =====
+Удалена устаревшая блокировка: .daemon.lock
+Удалена устаревшая блокировка: .daemon_internal.lockdir
+
+===== 4. PRESERVE BRIDGE DATA =====
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+
+===== RESULT =====
+Устаревшие блокировки обработаны.
+Демон не запускался. JSON-файлы не изменялись.
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

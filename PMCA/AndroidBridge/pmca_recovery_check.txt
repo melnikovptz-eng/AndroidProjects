@@ -1,0 +1,22 @@
+===== PMCA: ПРОВЕРКА ПОСЛЕ ОШИБКИ =====
+
+--- Кнопки MainActivity.java ---
+156:        Button copyInput = makeButton("Скопировать ввод");
+162:        Button copyResult = makeButton("Скопировать результат");
+200:        Button copyLog = makeButton("Скопировать лог");
+
+--- InstallStatusReceiver.java ---
+Файл отсутствует
+
+--- Разрешение установки в Manifest ---
+
+--- Последняя резервная копия MainActivity ---
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020351
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_015608
+
+--- Текущий APK ---
+-rw-rw----. 1 u0_a201 media_rw 28K Oct 10 02:10 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== ПРОВЕРКА ЗАВЕРШЕНА =====
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

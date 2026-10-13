@@ -1,0 +1,192 @@
+===== PMCA CLIPBOARD FIX: INSPECTION =====
+Fri Oct  9 23:29:06 EET 2026
+
+===== 1. SAFE PRECHECK =====
+Демон обнаружен.
+Файл демона существует.
+Ожидающей команды нет.
+
+===== 2. PRESERVE PREVIOUS RESULT =====
+Предыдущий результат сохранён.
+
+===== 3. SEND INSPECTION THROUGH PMCA BRIDGE =====
+OPERATION_ID: PMCA_CLIPBOARD_INSPECT_20261009_232906_31573
+TYPE: SHELL
+PAYLOAD: просмотр кода обработки буфера
+
+===== 4. WAIT FOR RESPONSE =====
+
+===== 5. BRIDGE RESPONSE =====
+OPERATION_ID_MATCH: True
+STATUS: SUCCESS
+----- COMMAND OUTPUT -----
+SHELL_EXIT_CODE=0
+SHELL_OUTPUT:
+91-    91	    print("")
+92-    92	' 2>/dev/null || true
+93-    93	            )"
+94-    94	
+95-    95	            TYPE="$(
+96-    96	                printf '%s' "$RAW" |
+97-    97	                python -c '
+98-    98	import json,sys
+99-    99	try:
+100-   100	    print(json.load(sys.stdin).get("type",""))
+101-   101	except:
+102-   102	    print("")
+103-   103	' 2>/dev/null || true
+104-   104	            )"
+105-   105	
+106:   106	            CMD="$(
+107-   107	                printf '%s' "$RAW" |
+108-   108	                python -c '
+109-   109	import json,sys
+110-   110	try:
+111-   111	    print(json.load(sys.stdin).get("command",""))
+112-   112	except:
+113-   113	    print("")
+114-   114	' 2>/dev/null || true
+115-   115	            )"
+116-   116	
+117-   117	            DATA="$(
+118-   118	                printf '%s' "$RAW" |
+119-   119	                python -c '
+120-   120	import json,sys
+121-   121	try:
+122-   122	    print(json.load(sys.stdin).get("data",""))
+123-   123	except:
+124-   124	    print("")
+125-   125	' 2>/dev/null || true
+126-   126	            )"
+127-   127	
+128-   128	            log "RECEIVED operation_id=$OPERATION_ID"
+129-   129	            log "RECEIVED type=$TYPE"
+130-   130	            log "RECEIVED command=$CMD"
+131-   131	            log "RECEIVED data_length=${#DATA}"
+132-   132	            log "RECEIVED data=$DATA"
+133-   133	
+134-   134	            # AUTO CLIPBOARD: INCOMING DATA
+135-   135	            if command -v termux-clipboard-set >/dev/null 2>&1; then
+136-   136	                printf '%s
+137:   137	%s' "[AUTO_COPY][TERMUX][RECEIVED_DATA]" "$DATA" | timeout 3s termux-clipboard-set
+138:   138	                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+139-   139	            else
+140-   140	                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+141-   141	            fi
+142-   142	
+143-   143	            STATUS="SUCCESS"
+144-   144	            RESPONSE=""
+145-   145	
+146-   146	            case "$CMD" in
+147-   147	
+148-   148	                TEST)
+149-   149	                    RESPONSE="TEST_OK:$DATA"
+150-   150	                    ;;
+151-   151	
+152-   152	                TAPER_DATA)
+153-   153	                    log "TAPER_DATA RECEIVE_START"
+154-   154	
+155-   155	                    RESPONSE="TERMUX_DATA_RECEIVED: $DATA"
+156-   156	
+157-   157	                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+158-   158	                    log "TAPER_DATA RECEIVE_COMPLETE"
+159-   159	                    ;;
+160-   160	
+161:   161	                CLIPBOARD_GET)
+162:   162	                    log "CLIPBOARD_GET START"
+163-   163	
+164-   164	                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+165-   165	                        CLIPBOARD_DATA="$(timeout 3s termux-clipboard-get 2>/dev/null || true)"
+166-   166	
+167:   167	                        RESPONSE="CLIPBOARD_GET_OK"
+168-   168	                        if [ -n "$CLIPBOARD_DATA" ]; then
+169-   169	                            RESPONSE="${RESPONSE}
+170-   170	CLIPBOARD_DATA:
+171-   171	${CLIPBOARD_DATA}"
+172-   172	                        else
+173-   173	                            RESPONSE="${RESPONSE}
+174-   174	CLIPBOARD_DATA:
+175-   175	"
+176-   176	                        fi
+177-   177	
+178:   178	                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+179-   179	                    else
+180:   180	                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+181:   181	                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+182-   182	                    fi
+183-   183	
+184:   184	                    log "CLIPBOARD_GET COMPLETE"
+185-   185	                    ;;
+186-   186	
+187-   187	                SHELL)
+188-   188	                    log "SHELL EXECUTE_START"
+189-   189	                    log "SHELL COMMAND_LENGTH=${#DATA}"
+190-   190	                    log "SHELL COMMAND_BEGIN"
+191-   191	                    log "$DATA"
+192-   192	                    log "SHELL COMMAND_END"
+193-   193	
+194-   194	                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+195-   195	
+196-   196	                    if command -v timeout >/dev/null 2>&1; then
+197-   197	                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+198-   198	                        SHELL_EXIT=$?
+199-   199	                    else
+200-   200	                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+201-   201	                        SHELL_EXIT=$?
+202-   202	                    fi
+203-   203	
+204-   204	                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+205-   205	                    rm -f "$SHELL_TMP"
+206-   206	
+207-   207	                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+208-   208	                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+209-   209	
+--
+241-   241	
+242-   242	print(json.dumps(obj, ensure_ascii=False))
+243-   243	PY
+244-   244	            then
+245-   245	
+246-   246	                if [ -s "$RESULT" ]; then
+247-   247	
+248-   248	                    log "SENT operation_id=$OPERATION_ID"
+249-   249	                    log "SENT status=SUCCESS"
+250-   250	                    log "SENT response=$RESPONSE"
+251-   251	                    log "RESULT_WRITTEN=YES"
+252-   252	
+253-   253	                    # AUTO CLIPBOARD: RESPONSE
+254-   254	                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+255-   255	                        printf '%s
+256:   256	%s' "[AUTO_COPY][TERMUX][RESPONSE]" "$RESPONSE" | timeout 3s termux-clipboard-set
+257:   257	                        log "CLIPBOARD: AUTO_COPY RESPONSE length=${#RESPONSE}"
+258-   258	                    else
+259-   259	                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+260-   260	                    fi
+261-   261	
+262-   262	                    rm -f "$COMMAND"
+263-   263	
+264-   264	                    log "COMMAND COMPLETE"
+265-   265	
+266-   266	                else
+267-   267	
+268-   268	                    log "ERROR RESULT_EMPTY"
+269-   269	
+270-   270	                fi
+271-   271	
+272-   272	            else
+273-   273	
+274-   274	                log "ERROR RESULT_WRITE_FAILED"
+275-   275	
+276-   276	            fi
+277-   277	        fi
+278-   278	    fi
+279-   279	
+280-   280	    sleep 0.1
+281-   281	done
+----- END COMMAND OUTPUT -----
+
+===== 6. RECENT BRIDGE LOG =====
+[2026-10-09 23:29:07] RECEIVED operation_id=PMCA_CLIPBOARD_INSPECT_20261009_232906_31573
+[2026-10-09 23:29:07] SENT operation_id=PMCA_CLIPBOARD_INSPECT_20261009_232906_31573
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

@@ -1,0 +1,63 @@
+===== PMCA: ИСПРАВЛЕНИЕ ОБМЕНА =====
+Резервные копии: /data/data/com.termux/files/home/PMCA/backups/bridge_fix_20261010_001821
+
+===== ПРОВЕРКА ИЗМЕНЕНИЙ =====
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:36:    public Submission submitShellCommand(String command) {
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:62:            json.put("operation_id", operationId);
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:101:    public String waitForResult(String operationId, long timeoutMs) {
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:118:                    String resultId = result.optString("operation_id", "");
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:154:        return submitShellCommand(command).accepted;
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:21:        return termux.submitShellCommand(command);
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:25:        return termux.waitForResult(operationId, timeoutMs);
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:28:    public boolean sendToTermux(String command) {
+
+===== СБОРКА APK =====
+Starting a Gradle Daemon, 1 incompatible Daemon could not be reused, use --status for details
+
+> Configure project :app
+WARNING: The option setting 'android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2' is experimental.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 1m 1s
+32 actionable tasks: 4 executed, 28 up-to-date

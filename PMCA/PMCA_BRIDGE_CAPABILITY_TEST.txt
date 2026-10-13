@@ -1,0 +1,65 @@
+===== PMCA BRIDGE: CAPABILITY TEST =====
+Fri Oct  9 20:40:21 EET 2026
+
+===== ANDROID SHARED STORAGE =====
+DOWNLOADS_ACCESS=OK
+lrwxrwxrwx. 1 u0_a338 u0_a338 28 Oct  5 11:31 /data/data/com.termux/files/home/storage/downloads -> /storage/emulated/0/Download
+
+===== TERMUX API COMMANDS =====
+termux-clipboard-get=FOUND
+termux-clipboard-set=FOUND
+termux-notification=FOUND
+
+===== EXISTING BRIDGE SCRIPT FEATURES =====
+4:INTERNAL_LOCKDIR="$HOME/storage/downloads/Taper/.daemon_internal.lockdir"
+84:RESULT="$BASE/result.json"
+104:    print(json.load(sys.stdin).get("operation_id",""))
+143:            log "RECEIVED operation_id=$OPERATION_ID"
+150:            if command -v termux-clipboard-set >/dev/null 2>&1; then
+151:                printf '%s\n%s'                     "[AUTO_COPY][TERMUX][RECEIVED_DATA]"                     "$DATA" | termux-clipboard-set
+154:                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+166:                TAPER_DATA)
+167:                    log "TAPER_DATA RECEIVE_START"
+171:                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+172:                    log "TAPER_DATA RECEIVE_COMPLETE"
+175:                CLIPBOARD_GET)
+176:                    log "CLIPBOARD_GET START"
+181:                        RESPONSE="CLIPBOARD_GET_OK"
+192:                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+194:                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+195:                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+198:                    log "CLIPBOARD_GET COMPLETE"
+201:                SHELL)
+202:                    log "SHELL EXECUTE_START"
+203:                    log "SHELL COMMAND_LENGTH=${#DATA}"
+204:                    log "SHELL COMMAND_BEGIN"
+206:                    log "SHELL COMMAND_END"
+208:                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+211:                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+212:                        SHELL_EXIT=$?
+214:                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+215:                        SHELL_EXIT=$?
+218:                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+219:                    rm -f "$SHELL_TMP"
+221:                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+222:                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+224:                    RESPONSE="SHELL_EXIT_CODE=$SHELL_EXIT"
+226:                    if [ -n "$SHELL_OUTPUT" ]; then
+228:SHELL_OUTPUT:
+229:${SHELL_OUTPUT}"
+232:SHELL_OUTPUT:
+236:                    log "SHELL EXECUTE_COMPLETE"
+250:    "operation_id": sys.argv[1],
+262:                    log "SENT operation_id=$OPERATION_ID"
+268:                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+269:                        printf '%s\n%s'                             "[AUTO_COPY][TERMUX][RESPONSE]"                             "$RESPONSE" | termux-clipboard-set
+272:                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+
+===== CURRENT BRIDGE PROCESSES =====
+Активные известные демоны не обнаружены
+
+===== EXISTING PROJECT DIRECTORIES =====
+ABSENT: /data/data/com.termux/files/home/PMCA/AndroidBridge
+EXISTS: /data/data/com.termux/files/home/AccessibilityTester3
+
+===== END =====

@@ -1,0 +1,484 @@
+===== PMCA STAGE 2: SAFE DIAGNOSTIC =====
+Sat Oct 10 13:16:49 EET 2026
+Режим: ТОЛЬКО ЧТЕНИЕ И СОЗДАНИЕ ОТЧЁТА
+Исходники, APK и мост не изменяются.
+
+===== 1. PROJECT FILES =====
+OK: AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java |   532 21133
+OK: AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java |   60 2001
+OK: AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java |  207 8510
+OK: AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java |  189 6064
+OK: AndroidBridge/app/src/main/AndroidManifest.xml |   36 1614
+OK: MODULE_REGISTRY.md |  107 8104
+OK: IMPLEMENTATION_MAP.md |   261 14365
+OK: CURRENT_STATE.md |  157 9489
+OK: PROJECT_STATUS.md |  152 7933
+
+===== 2. MAINACTIVITY: RECEIVER REGISTRATION =====
+39-    private TextView status;
+40-    private TextView output;
+41-    private TextView logs;
+42-
+43:    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+44-        @Override
+45:        public void onReceive(Context context, Intent intent) {
+46-            if (intent == null) return;
+47:            String result = intent.getStringExtra("result_text");
+48-            if (result != null) {
+49-                output.setText(result);
+50-                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+51-                refreshLogs();
+--
+108-        super.onCreate(state);
+109-        controller = new PmcaController(this);
+110-        buildScreen();
+111-        refreshLogs();
+112:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+113-        if (!lastResult.isEmpty()) output.setText(lastResult);
+114-        setStatus("ГОТОВ К РАБОТЕ", false);
+115-    }
+116-
+--
+357-        if (!resultReceiverRegistered) {
+358-            IntentFilter filter = new IntentFilter(
+359-                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+360-            if (android.os.Build.VERSION.SDK_INT >= 33) {
+361:                registerReceiver(termuxResultReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+362-            } else {
+363:                registerReceiver(termuxResultReceiver, filter);
+364-            }
+365-            resultReceiverRegistered = true;
+366-        }
+367-
+368-        // Восстанавливаем ответ, если callback пришёл,
+369-        // пока MainActivity была на паузе.
+370-        String savedResult = getSharedPreferences(
+371-                "pmca_results", MODE_PRIVATE)
+372:                .getString("last_result", "");
+373-
+374-        if (savedResult != null && !savedResult.isEmpty()) {
+375-            output.setText(savedResult);
+376-            setStatus("СОХРАНЁННЫЙ ОТВЕТ TERMUX", true);
+--
+381-    @Override
+382-    protected void onPause() {
+383-        if (resultReceiverRegistered) {
+384-            try {
+385:                unregisterReceiver(termuxResultReceiver);
+386-            } catch (Exception ignored) {}
+387-            resultReceiverRegistered = false;
+388-        }
+389-        super.onPause();
+
+===== 3. CONTROLLER: ROUTING AND DUPLICATE GUARD =====
+18-        PmcaLogger.log("Контроллер PMCA запущен");
+19-    }
+20-
+21:    public TermuxBridgeAdapter.Submission submitToTermux(String command) {
+22-        PmcaLogger.log("Контроллер: передача команды в Termux");
+23-        return termux.submitShellCommand(command);
+24-    }
+25-
+26:    public String waitForTermuxResult(String operationId, long timeoutMs) {
+27-        return termux.waitForResult(operationId, timeoutMs);
+28-    }
+29-
+30:    public boolean sendToTermux(String command) {
+31-        return termux.sendShellCommand(command);
+32-    }
+33-
+--
+47-        return text;
+48-    }
+49-
+50:    public boolean runNativeCommand(String command) {
+51-        PmcaLogger.log("Контроллер: запуск через штатный RUN_COMMAND");
+52:        return termux.runNativeCommand(
+53-                clipboardContext(), command);
+54-    }
+55-
+
+===== 4. ADAPTER: EXECUTION AND ERROR HANDLING =====
+2-
+3-import android.content.Context;
+4-import android.content.Intent;
+5:import android.app.PendingIntent;
+6-import android.os.Build;
+7-import android.os.Environment;
+8-
+--
+62-            }
+63-
+64-            JSONObject json = new JSONObject();
+65:            json.put("operation_id", operationId);
+66-            json.put("type", "PMCA");
+67-            json.put("command", "SHELL");
+68-            json.put("data", command);
+--
+101-        }
+102-    }
+103-
+104:    public String waitForResult(String operationId, long timeoutMs) {
+105-        if (operationId == null || operationId.isEmpty()) {
+106-            return "ОШИБКА: отсутствует ID команды";
+107-        }
+108-
+109-        File resultFile = new File(bridgeDir, "result.json");
+110:        long deadline = System.currentTimeMillis() + timeoutMs;
+111-
+112-        while (System.currentTimeMillis() < deadline) {
+113-            try {
+--
+118-                    JSONObject result = new JSONObject(
+119-                            new String(bytes, StandardCharsets.UTF_8));
+120-
+121:                    String resultId = result.optString("operation_id", "");
+122-
+123-                    // Старый ответ не принимается.
+124-                    if (operationId.equals(resultId)) {
+--
+158-    }
+159-
+160-    /**
+161:     * Запускает команду через штатный Termux RUN_COMMAND API.
+162-     * Результат возвращается в TermuxResultService.
+163-     */
+164:    public boolean runNativeCommand(Context context, String command) {
+165-        if (command == null || command.trim().isEmpty()) {
+166:            PmcaLogger.log("RUN_COMMAND: пустая команда");
+167-            return false;
+168-        }
+169-
+--
+171-            Intent resultIntent = new Intent(context, TermuxResultService.class);
+172-            int requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+173-
+174:            int flags = PendingIntent.FLAG_ONE_SHOT;
+175-            if (Build.VERSION.SDK_INT >= 31) {
+176:                flags |= PendingIntent.FLAG_MUTABLE;
+177-            }
+178-
+179:            PendingIntent pendingIntent = PendingIntent.getService(
+180-                    context, requestCode, resultIntent, flags);
+181-
+182-            Intent run = new Intent();
+183-            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+184:            run.setAction("com.termux.RUN_COMMAND");
+185:            run.putExtra("com.termux.RUN_COMMAND_PATH",
+186-                    "/data/data/com.termux/files/usr/bin/bash");
+187:            run.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
+188-                    new String[]{"-lc", command});
+189:            run.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+190-                    "/data/data/com.termux/files/home");
+191:            run.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
+192:            run.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pendingIntent);
+193:            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+194:            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+195-                    "Команда запущена из PMCA");
+196-
+197:            context.startService(run);
+198:            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+199-            return true;
+200-        } catch (Exception e) {
+201:            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+202-                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+203-            return false;
+204-        }
+
+===== 5. RESULT SERVICE: PARSING AND DELIVERY =====
+2-
+3-import android.app.IntentService;
+4-import android.content.Intent;
+5-import android.content.SharedPreferences;
+6:import android.os.Bundle;
+7-
+8-import com.pmca.bridge.logging.PmcaLogger;
+9-
+10-import java.util.Locale;
+11-
+12-public final class TermuxResultService extends IntentService {
+13-
+14:    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+15-
+16-    private static final String RESULT_BUNDLE_KEY =
+17-            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+18-
+--
+20-        super("PMCA-TermuxResultService");
+21-    }
+22-
+23-    @Override
+24:    protected void onHandleIntent(Intent intent) {
+25-        if (intent == null) return;
+26-
+27:        Bundle extras = null;
+28:        Bundle result = null;
+29-        String source = "не найден";
+30-
+31-        try {
+32-            extras = intent.getExtras();
+33-        } catch (Exception ignored) {
+34-        }
+35-
+36-        try {
+37:            result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+38-            if (result != null) source = "стандартный ключ";
+39-        } catch (Exception ignored) {
+40-        }
+41-
+42-        if (result == null && extras != null) {
+43-            for (String key : extras.keySet()) {
+44-                try {
+45-                    Object value = extras.get(key);
+46:                    if (value instanceof Bundle) {
+47:                        result = (Bundle) value;
+48:                        source = "вложенный Bundle: " + key;
+49-                        break;
+50-                    }
+51-                } catch (Exception ignored) {
+52-                }
+--
+62-        text.append("===== РЕЗУЛЬТАТ TERMUX =====\n")
+63-            .append("Источник: ").append(source).append("\n");
+64-
+65-        if (result == null) {
+66:            text.append("\nОШИБКА: Termux не передал Bundle результата.");
+67:            saveAndBroadcast(text.toString());
+68-            return;
+69-        }
+70-
+71-        String stdout = findString(result,
+72:                "STDOUT", "stdout", "standard_output");
+73-        String stderr = findString(result,
+74:                "STDERR", "stderr", "standard_error");
+75-        String errmsg = findString(result,
+76-                "ERRMSG", "errmsg", "error_message", "ERROR_MESSAGE");
+77-
+78-        int exitCode = findInt(result, -999,
+79:                "EXIT_CODE", "exit_code", "exitCode", "exitcode");
+80-        int errorCode = findInt(result, -999,
+81-                "EXTRA_PLUGIN_RESULT_BUNDLE_ERR",
+82-                "PLUGIN_RESULT_BUNDLE_ERR", "error_code", "errorCode");
+83-
+84:        text.append("\n===== STDOUT =====\n")
+85-            .append(stdout.isEmpty() ? "(пусто)" : stdout)
+86:            .append("\n\n===== STDERR =====\n")
+87-            .append(stderr.isEmpty() ? "(пусто)" : stderr)
+88-            .append("\n\nКод завершения: ").append(exitCode);
+89-
+90-        if (!errmsg.isEmpty()) {
+--
+94-        if (errorCode != -999) {
+95-            text.append("\nВнутренний код ошибки: ").append(errorCode);
+96-        }
+97-
+98:        saveAndBroadcast(text.toString());
+99-    }
+100-
+101:    private void saveAndBroadcast(String output) {
+102-        PmcaLogger.log("RUN_COMMAND RESULT: ответ получен");
+103-
+104-        SharedPreferences prefs =
+105-                getSharedPreferences("pmca_results", MODE_PRIVATE);
+106-        prefs.edit()
+107:                .putString("last_result", output)
+108:                .putInt("compact_state", 3)
+109-                .apply();
+110-
+111:        Intent update = new Intent(ACTION_RESULT);
+112:        update.setPackage(getPackageName());
+113-        update.putExtra("result_text", output);
+114:        sendBroadcast(update);
+115-    }
+116-
+117:    private static String findString(Bundle bundle, String... names) {
+118-        if (bundle == null) return "";
+119-
+120-        for (String key : bundle.keySet()) {
+121-            if (key == null || key.endsWith("_ORIGINAL_LENGTH")) continue;
+--
+143-        }
+144-        return "";
+145-    }
+146-
+147:    private static int findInt(Bundle bundle, int fallback, String... names) {
+148-        if (bundle == null) return fallback;
+149-
+150-        for (String key : bundle.keySet()) {
+151-            if (key == null) continue;
+
+===== 6. MANIFEST: RECEIVER AND SERVICE =====
+1-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+2-    <uses-permission android:name="android.permission.INTERNET" />
+3-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+4:    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+5:    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+6:    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+7-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+8-
+9-    <application
+10-        android:allowBackup="false"
+11-        android:label="PMCA"
+12-        android:theme="@style/AppTheme">
+13:        <receiver
+14-            android:name=".InstallStatusReceiver"
+15:            android:exported="false" />
+16:        <service android:name=".termux.TermuxResultService" android:exported="false" />
+17:        <service
+18-            android:name=".overlay.FloatingPanelService"
+19:            android:exported="false" />
+20-        <activity
+21:            android:name=".MainActivity"
+22:            android:exported="true">
+23-            <intent-filter>
+24-                <action android:name="android.intent.action.MAIN" />
+25-                <category android:name="android.intent.category.LAUNCHER" />
+26-            </intent-filter>
+27-        </activity>
+28-        <activity
+29-            android:name=".overlay.ClipboardPasteActivity"
+30:            android:exported="false"
+31-            android:excludeFromRecents="true"
+32-            android:taskAffinity=""
+33-            android:launchMode="singleTask"
+34-            android:theme="@style/ClipboardPasteTheme" />
+
+===== 7. RESULT PERSISTENCE AND EMPTY OUTPUT =====
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:44:        PmcaLogger.log(text.isEmpty()
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:40:        if (command == null || command.trim().isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:105:        if (operationId == null || operationId.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:165:        if (command == null || command.trim().isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:74:                "STDERR", "stderr", "standard_error");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:79:                "EXIT_CODE", "exit_code", "exitCode", "exitcode");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:85:            .append(stdout.isEmpty() ? "(пусто)" : stdout)
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:86:            .append("\n\n===== STDERR =====\n")
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:87:            .append(stderr.isEmpty() ? "(пусто)" : stderr)
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:90:        if (!errmsg.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:105:                getSharedPreferences("pmca_results", MODE_PRIVATE);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:107:                .putString("last_result", output)
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:113:        update.putExtra("result_text", output);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:175:                    return Integer.parseInt(((String) value).trim());
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:47:            String result = intent.getStringExtra("result_text");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:112:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:113:        if (!lastResult.isEmpty()) output.setText(lastResult);
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:245:            String command = input.getText().toString().trim();
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:246:            if (command.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:277:            if (text != null && !text.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:371:                "pmca_results", MODE_PRIVATE)
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:372:                .getString("last_result", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:374:        if (savedResult != null && !savedResult.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:36:    private static final String PREFS = "pmca_results";
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:70:                String result = intent.getStringExtra("result_text");
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:71:                if (result != null && !result.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:73:                            .putString("last_result", result)
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:365:            if (command.trim().isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:417:        if (command == null || command.trim().isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:482:        String result = prefs.getString("last_result", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:484:        if (result == null || result.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/ClipboardPasteActivity.java:41:            if (text == null || text.trim().isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/ClipboardPasteActivity.java:54:            getSharedPreferences("pmca_results", MODE_PRIVATE)
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/ClipboardPasteActivity.java:117:        getSharedPreferences("pmca_results", MODE_PRIVATE)
+
+===== 8. DUPLICATE GUARD SEARCH =====
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:26:    public String waitForTermuxResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:27:        return termux.waitForResult(operationId, timeoutMs);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:29:        public final String operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:32:        Submission(boolean accepted, String operationId, String message) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:34:            this.operationId = operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:48:        String operationId = UUID.randomUUID().toString();
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:52:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:60:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:65:            json.put("operation_id", operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:79:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:84:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:88:            PmcaLogger.log("Termux: команда отправлена, ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:89:            return new Submission(true, operationId, "Команда передана");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:94:            return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:104:    public String waitForResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:105:        if (operationId == null || operationId.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:121:                    String resultId = result.optString("operation_id", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:124:                    if (operationId.equals(resultId)) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:130:                                "Termux: получен ответ для ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:133:                                + "ID: " + operationId + "\n\n"
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:149:        PmcaLogger.log("Termux: тайм-аут ожидания ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:152:                + "ID: " + operationId;
+
+===== 9. DOCUMENTATION STATUS =====
+--- MODULE_REGISTRY.md ---
+7:- `PLANNED` — функция запланирована; реализация не подтверждена.
+8:- `PRESENT` — компонент найден в исходном коде, но полная интеграция не подтверждена.
+9:- `ACTIVE` — единственная активная реализация функции подтверждена.
+10:- `VERIFIED` — конкретный сценарий успешно проверен; рядом обязательно указывается сценарий.
+22:| PMCA-PARSE-001 | Parser | Разбор входных данных | PLANNED | Отдельная интеграция не подтверждена |
+23:| PMCA-DUP-001 | Duplicate Guard | Защита от повторной обработки и циклов | PLANNED | Интеграция не подтверждена |
+24:| PMCA-GATE-001 | Processing Gate | Контроль допуска к обработке | PLANNED | Интеграция не подтверждена |
+25:| PMCA-QUEUE-001 | Queue | Очередь операций | PLANNED | Интеграция не подтверждена |
+26:| PMCA-ROUTER-001 | Router | Выбор маршрута и модуля | PLANNED | Интеграция не подтверждена |
+39:| PMCA-INSTALL-001 | InstallStatusReceiver | Обработка события установки пакета | PRESENT | Исходный файл найден |
+41:## 4. Фактически подтверждённый тест
+53:Это не означает, что весь мост, все варианты команд или все функции Android-приложения проверены.
+74:операциями пока не подтверждена.
+78:Parser, Duplicate Guard, Processing Gate, Queue и Router нельзя считать
+83:1. `PRESENT` подтверждается наличием соответствующего исходного компонента.
+84:2. `ACTIVE` требует подтверждения реального подключения и единственности реализации.
+86:4. Если проверен только один сценарий, нельзя распространять его статус на все остальные.
+--- IMPLEMENTATION_MAP.md ---
+6:известные связи между компонентами и степень подтверждения реализации.
+9:что функция полностью интегрирована или проверена на устройстве.
+29:| ACTIVE | Участие в рабочем сценарии подтверждено |
+30:| VERIFIED | Конкретный сценарий успешно проверен |
+31:| PLANNED | Функция предусмотрена планом, реализация не подтверждена |
+71:интерфейса. Пока не подтверждено, что абсолютно все операции проходят
+175:**Файл:** `AndroidBridge/app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java`
+197:Эти связи подтверждены наличием соответствующих вызовов в исходном коде.
+205:| Центральный контроллер | Класс присутствует; единая точка управления не подтверждена |
+206:| Парсер входных команд | Наличие отдельного интегрированного модуля не подтверждено |
+207:| Защита от дубликатов и циклов | Интеграция не подтверждена этим аудитом |
+208:| Очередь команд | Интеграция не подтверждена этим аудитом |
+209:| Маршрутизатор | Интеграция не подтверждена этим аудитом |
+214:| Контроль здоровья модулей | Интеграция не подтверждена этим аудитом |
+229:подтверждением работоспособности всех функций PMCA.
+--- CURRENT_STATE.md ---
+11:активен или успешно проверен на устройстве.
+27:- `InstallStatusReceiver.java` — обработчик события установки пакета.
+36:Файлы обнаружены при аудите. Их наличие само по себе не подтверждает
+48:Единая точка управления всеми операциями пока не подтверждена.
+57:Наличие отдельных интегрированных компонентов Parser, Duplicate Guard,
+58:Processing Gate, Queue и Router не подтверждено проведённым аудитом.
+79:Наличие файла моста не является подтверждением работоспособности всех
+82:## 5. Подтверждённый сценарий возврата результата
+91:Этот результат подтверждает только проверенный сценарий выполнения
+111:Наличие файла и контрольной суммы не подтверждает правильность всех функций
+128:Непроверенные функции нельзя обозначать как работающие только на основании
+139:- подтверждён один конкретный сценарий возврата результата из Termux;
+147:4. Не менять работающий код без необходимости и подтверждённой причины.
+--- PROJECT_STATUS.md ---
+10:0.1.0
+13:DOCUMENTATION_ALIGNMENT
+18:message routing, duplicate protection, logging, and verifiable execution
+31:- Duplicate Guard
+54:должно подтверждаться проверкой реализации, а не только документацией.
+71:- InstallStatusReceiver.java
+80:Наличие файла подтверждает его обнаружение, но не доказывает, что
+85:Подтверждён один конкретный сценарий передачи тестовой команды в
+93:Проверка подтверждает только этот сценарий. Она не доказывает
+97:- Не подтверждено, что все операции проходят через один экземпляр
+99:- Не подтверждено, что ClipboardCopyModule является единственным
+101:- Parser не подтверждён как отдельный интегрированный компонент.
+102:- Duplicate Guard не подтверждён как отдельный интегрированный компонент.
+103:- Processing Gate не подтверждён как отдельный интегрированный компонент.
+104:- Queue не подтверждена как отдельный интегрированный компонент.
+105:- Router не подтверждён как отдельный интегрированный компонент.
+108:- Статический анализ исходников сам по себе не подтверждает поведение
+129:- документы отражают проверенное состояние проекта;
+131:- подтверждённые сценарии перечислены с указанием их границ;
+144:- Отделять успешный единичный тест от подтверждения всей системы.
+
+===== 10. APK INFORMATION =====
+-rw-rw----. 1 u0_a201 media_rw 49K Oct 10 12:07 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+c77688d1c75e019cff692ef409df119c25e6f6661a70e063d90c40fa127dab3d  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== DIAGNOSTIC COMPLETE =====
+Исходники и APK не изменялись.
+Отчёт: /data/data/com.termux/files/home/PMCA/PMCA_STAGE2_SAFE_DIAGNOSTIC.txt
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

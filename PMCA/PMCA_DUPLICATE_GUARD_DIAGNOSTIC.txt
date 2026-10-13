@@ -1,0 +1,115 @@
+===== PMCA DUPLICATE GUARD DIAGNOSTIC =====
+Sat Oct 10 13:34:57 EET 2026
+
+===== 1. GUARD FILES =====
+/data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/DuplicateGuard.java
+
+===== 2. EXISTING GUARD SOURCE =====
+
+--- /data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/core/DuplicateGuard.java ---
+package com.pmca.bridge.core;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Защищает от одновременного повторного запуска одинаковой команды.
+ * Это не является глобальной защитой от циклов сообщений.
+ */
+public final class DuplicateGuard {
+    public static final String EXTRA_TOKEN =
+            "com.pmca.bridge.DUPLICATE_GUARD_TOKEN";
+
+    private static final long STALE_AFTER_MS = 120_000L;
+
+    private static final Map<String, Entry> ACTIVE = new HashMap<>();
+    private static final Map<String, String> TOKEN_TO_COMMAND =
+            new HashMap<>();
+
+    private DuplicateGuard() {}
+
+    private static final class Entry {
+        final String token;
+        final long startedAt;
+
+        Entry(String token, long startedAt) {
+            this.token = token;
+            this.startedAt = startedAt;
+        }
+    }
+
+    /**
+     * Возвращает токен для новой активной команды.
+     * Возвращает null, если такая команда уже выполняется.
+     */
+    public static synchronized String begin(String command) {
+        pruneExpired();
+
+        if (command == null || command.trim().isEmpty()) {
+            return null;
+        }
+
+        String key = command.trim();
+
+        if (ACTIVE.containsKey(key)) {
+            return null;
+        }
+
+        String token = UUID.randomUUID().toString();
+        ACTIVE.put(key, new Entry(token, System.currentTimeMillis()));
+        TOKEN_TO_COMMAND.put(token, key);
+
+        return token;
+    }
+
+    /**
+     * Освобождает блокировку по токену операции.
+     */
+    public static synchronized void finish(String token) {
+        if (token == null || token.isEmpty()) {
+            return;
+        }
+
+        String command = TOKEN_TO_COMMAND.remove(token);
+        if (command == null) {
+            return;
+        }
+
+        Entry entry = ACTIVE.get(command);
+        if (entry != null && token.equals(entry.token)) {
+            ACTIVE.remove(command);
+        }
+    }
+
+    private static void pruneExpired() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<String, Entry>> iterator =
+                ACTIVE.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, Entry> item = iterator.next();
+            Entry entry = item.getValue();
+
+            if (now - entry.startedAt >= STALE_AFTER_MS) {
+                TOKEN_TO_COMMAND.remove(entry.token);
+                iterator.remove();
+            }
+        }
+    }
+}
+
+===== 3. PREVIOUS PATCH REPORT =====
+===== PMCA DUPLICATE GUARD V2 =====
+Sat Oct 10 13:34:27 EET 2026
+
+===== 1. PRECHECK =====
+STOP: DuplicateGuard.java уже существует.
+Автоматическая перезапись запрещена.
+
+===== 4. CURRENT APK =====
+-rw-rw----. 1 u0_a201 media_rw 49K Oct 10 12:07 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+c77688d1c75e019cff692ef409df119c25e6f6661a70e063d90c40fa127dab3d  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== DIAGNOSTIC COMPLETE =====

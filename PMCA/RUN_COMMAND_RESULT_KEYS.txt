@@ -1,0 +1,275 @@
+===== PMCA RESULT KEYS CHECK =====
+Sat Oct 10 01:10:03 EET 2026
+
+===== 1. РАЗБОР BUNDLE =====
+package com.pmca.bridge.termux;
+
+import android.app.IntentService;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.os.Parcelable;
+
+import com.pmca.bridge.logging.PmcaLogger;
+
+import java.util.ArrayList;
+
+public final class TermuxResultService extends IntentService {
+
+    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+
+    private static final String RESULT_BUNDLE_KEY =
+            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+
+    public TermuxResultService() {
+        super("PMCA-TermuxResultService");
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        if (intent == null) return;
+
+        Bundle extras;
+        try {
+            extras = intent.getExtras();
+        } catch (Exception e) {
+            extras = null;
+        }
+
+        Bundle result = null;
+        String source = "не найден";
+
+        // Способ 1: стандартный ключ Termux.
+        try {
+            result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+            if (result != null) source = "стандартный ключ Termux";
+        } catch (Exception ignored) {
+        }
+
+        // Способ 2: поиск вложенного Bundle по имени ключа.
+        if (result == null && extras != null) {
+            for (String key : extras.keySet()) {
+                try {
+                    Object value = extras.get(key);
+
+                    if (value instanceof Bundle) {
+                        Bundle candidate = (Bundle) value;
+
+                        if (containsResultFields(candidate)) {
+                            result = candidate;
+                            source = "вложенный Bundle: " + key;
+                            break;
+                        }
+                    }
+
+                    // Дополнительная проверка, если результат пришёл как Parcelable.
+                    if (value instanceof Parcelable && value instanceof Intent) {
+                        Bundle nested = ((Intent) value).getExtras();
+
+                        if (nested != null && containsResultFields(nested)) {
+                            result = nested;
+                            source = "вложенный Intent: " + key;
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        // Способ 3: некоторые варианты ответа могут находиться прямо в extras.
+        if (result == null && extras != null && containsResultFields(extras)) {
+            result = extras;
+            source = "непосредственные extras Intent";
+        }
+
+        StringBuilder text = new StringBuilder();
+
+        if (result == null) {
+            text.append("ОШИБКА: пакет результата Termux не найден.\n\n")
+                .append("Action: ").append(intent.getAction()).append("\n")
+                .append("Component: ").append(intent.getComponent()).append("\n")
+                .append("Ключи полученного Intent:\n");
+
+            if (extras == null || extras.isEmpty()) {
+                text.append("(дополнительных полей нет)");
+            } else {
+                for (String key : extras.keySet()) {
+                    Object value;
+                    try {
+                        value = extras.get(key);
+                    } catch (Exception e) {
+                        value = null;
+                    }
+
+                    text.append("• ").append(key)
+                        .append(" [")
+                        .append(value == null ? "null" :
+                                value.getClass().getSimpleName())
+                        .append("]\n");
+                }
+            }
+
+            text.append("\nПроверь разрешение RUN_COMMAND, ")
+                .append("allow-external-apps и версию Termux.");
+        } else {
+            String stdout = findString(result, "STDOUT");
+            String stderr = findString(result, "STDERR");
+            String errmsg = findString(result, "ERRMSG");
+
+            int exitCode = findInt(result, "EXIT_CODE", -999);
+            int errorCode = findInt(result, "EXTRA_PLUGIN_RESULT_BUNDLE_ERR", -999);
+
+            text.append("===== РЕЗУЛЬТАТ TERMUX =====\n")
+                .append("Источник: ").append(source).append("\n")
+                .append("Код завершения: ").append(exitCode).append("\n\n")
+                .append("===== STDOUT =====\n")
+                .append(stdout.isEmpty() ? "(пусто)" : stdout)
+                .append("\n\n===== STDERR =====\n")
+                .append(stderr.isEmpty() ? "(пусто)" : stderr);
+
+            if (!errmsg.isEmpty()) {
+                text.append("\n\n===== ОШИБКА TERMUX =====\n").append(errmsg);
+            }
+
+            if (errorCode != -999) {
+                text.append("\n\nВнутренний код Termux: ").append(errorCode);
+            }
+
+            if (exitCode == -999) {
+                text.append("\n\nПРЕДУПРЕЖДЕНИЕ: поле EXIT_CODE не найдено.");
+            }
+        }
+
+        String output = text.toString();
+
+        PmcaLogger.log("RUN_COMMAND RESULT: " + source);
+
+        getSharedPreferences("pmca_results", MODE_PRIVATE)
+                .edit()
+                .putString("last_result", output)
+                .apply();
+
+        Intent update = new Intent(ACTION_RESULT);
+        update.setPackage(getPackageName());
+        update.putExtra("result_text", output);
+        sendBroadcast(update);
+    }
+
+    private static boolean containsResultFields(Bundle bundle) {
+        if (bundle == null) return false;
+
+        for (String key : bundle.keySet()) {
+            if (key == null) continue;
+
+            String upper = key.toUpperCase(java.util.Locale.ROOT);
+
+            if (upper.endsWith("STDOUT")
+                    || upper.endsWith("STDERR")
+                    || upper.endsWith("EXIT_CODE")
+                    || upper.endsWith("ERRMSG")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static String findString(Bundle bundle, String ending) {
+        if (bundle == null) return "";
+
+        for (String key : bundle.keySet()) {
+            if (key == null
+                    || !key.endsWith(ending)
+                    || key.endsWith("_ORIGINAL_LENGTH")) {
+                continue;
+            }
+
+            try {
+                Object value = bundle.get(key);
+                if (value instanceof String) return (String) value;
+            } catch (Exception ignored) {
+            }
+        }
+
+        return "";
+    }
+
+    private static int findInt(Bundle bundle, String ending, int fallback) {
+        if (bundle == null) return fallback;
+
+        for (String key : bundle.keySet()) {
+            if (key == null || !key.endsWith(ending)) continue;
+
+            try {
+                Object value = bundle.get(key);
+                if (value instanceof Integer) return (Integer) value;
+            } catch (Exception ignored) {
+            }
+        }
+
+        return fallback;
+    }
+}
+
+===== 2. СОХРАНЕНИЕ И ВЫВОД РЕЗУЛЬТАТА =====
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-11-import java.util.ArrayList;
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-12-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-13-public final class TermuxResultService extends IntentService {
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-14-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:15:    public static final String ACTION_RESULT = "com.pmca.bridge.TERMUX_RESULT";
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-16-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-17-    private static final String RESULT_BUNDLE_KEY =
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-18-            "com.termux.app.shell.TermuxService.EXTRA_PLUGIN_RESULT_BUNDLE";
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-19-
+--
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-138-        }
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-139-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-140-        String output = text.toString();
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-141-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:142:        PmcaLogger.log("RUN_COMMAND RESULT: " + source);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-143-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-144-        getSharedPreferences("pmca_results", MODE_PRIVATE)
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-145-                .edit()
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:146:                .putString("last_result", output)
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-147-                .apply();
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-148-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:149:        Intent update = new Intent(ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-150-        update.setPackage(getPackageName());
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:151:        update.putExtra("result_text", output);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-152-        sendBroadcast(update);
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-153-    }
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-154-
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java-155-    private static boolean containsResultFields(Bundle bundle) {
+--
+app/src/main/java/com/pmca/bridge/MainActivity.java-31-    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+app/src/main/java/com/pmca/bridge/MainActivity.java-32-        @Override
+app/src/main/java/com/pmca/bridge/MainActivity.java-33-        public void onReceive(Context context, Intent intent) {
+app/src/main/java/com/pmca/bridge/MainActivity.java-34-            if (intent == null) return;
+app/src/main/java/com/pmca/bridge/MainActivity.java:35:            String result = intent.getStringExtra("result_text");
+app/src/main/java/com/pmca/bridge/MainActivity.java-36-            if (result != null) {
+app/src/main/java/com/pmca/bridge/MainActivity.java-37-                output.setText(result);
+app/src/main/java/com/pmca/bridge/MainActivity.java-38-                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+app/src/main/java/com/pmca/bridge/MainActivity.java-39-                refreshLogs();
+--
+app/src/main/java/com/pmca/bridge/MainActivity.java-96-        super.onCreate(state);
+app/src/main/java/com/pmca/bridge/MainActivity.java-97-        controller = new PmcaController(this);
+app/src/main/java/com/pmca/bridge/MainActivity.java-98-        buildScreen();
+app/src/main/java/com/pmca/bridge/MainActivity.java-99-        refreshLogs();
+app/src/main/java/com/pmca/bridge/MainActivity.java:100:        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+app/src/main/java/com/pmca/bridge/MainActivity.java-101-        if (!lastResult.isEmpty()) output.setText(lastResult);
+app/src/main/java/com/pmca/bridge/MainActivity.java-102-        setStatus("ГОТОВ К РАБОТЕ", false);
+app/src/main/java/com/pmca/bridge/MainActivity.java-103-    }
+app/src/main/java/com/pmca/bridge/MainActivity.java-104-
+--
+app/src/main/java/com/pmca/bridge/MainActivity.java-290-    protected void onResume() {
+app/src/main/java/com/pmca/bridge/MainActivity.java-291-        super.onResume();
+app/src/main/java/com/pmca/bridge/MainActivity.java-292-        if (!resultReceiverRegistered) {
+app/src/main/java/com/pmca/bridge/MainActivity.java-293-            IntentFilter filter = new IntentFilter(
+app/src/main/java/com/pmca/bridge/MainActivity.java:294:                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+app/src/main/java/com/pmca/bridge/MainActivity.java-295-            if (android.os.Build.VERSION.SDK_INT >= 33) {
+app/src/main/java/com/pmca/bridge/MainActivity.java-296-                registerReceiver(termuxResultReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+app/src/main/java/com/pmca/bridge/MainActivity.java-297-            } else {
+app/src/main/java/com/pmca/bridge/MainActivity.java-298-                registerReceiver(termuxResultReceiver, filter);
+
+===== 3. ВЕРСИЯ TERMUX =====

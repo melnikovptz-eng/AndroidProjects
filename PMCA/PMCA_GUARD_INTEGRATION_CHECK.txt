@@ -1,0 +1,264 @@
+===== PMCA GUARD INTEGRATION CHECK =====
+Sat Oct 10 13:35:56 EET 2026
+
+
+===== FILE: AndroidBridge/app/src/main/java/com/pmca/bridge/core/DuplicateGuard.java =====
+--- DuplicateGuard / token / command / callback ---
+8-/**
+9- * Защищает от одновременного повторного запуска одинаковой команды.
+10- * Это не является глобальной защитой от циклов сообщений.
+11- */
+12:public final class DuplicateGuard {
+13:    public static final String EXTRA_TOKEN =
+14-            "com.pmca.bridge.DUPLICATE_GUARD_TOKEN";
+15-
+16-    private static final long STALE_AFTER_MS = 120_000L;
+17-
+18-    private static final Map<String, Entry> ACTIVE = new HashMap<>();
+19-    private static final Map<String, String> TOKEN_TO_COMMAND =
+20-            new HashMap<>();
+21-
+22:    private DuplicateGuard() {}
+23-
+24-    private static final class Entry {
+25-        final String token;
+26-        final long startedAt;
+--
+34-    /**
+35-     * Возвращает токен для новой активной команды.
+36-     * Возвращает null, если такая команда уже выполняется.
+37-     */
+38:    public static synchronized String begin(String command) {
+39-        pruneExpired();
+40-
+41-        if (command == null || command.trim().isEmpty()) {
+42-            return null;
+--
+57-
+58-    /**
+59-     * Освобождает блокировку по токену операции.
+60-     */
+61:    public static synchronized void finish(String token) {
+62-        if (token == null || token.isEmpty()) {
+63-            return;
+64-        }
+65-
+
+===== FILE: AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java =====
+--- DuplicateGuard / token / command / callback ---
+1-package com.pmca.bridge.termux;
+2-
+3-import android.content.Context;
+4-import android.content.Intent;
+5:import android.app.PendingIntent;
+6-import android.os.Build;
+7-import android.os.Environment;
+8-
+9-import com.pmca.bridge.logging.PmcaLogger;
+10:import com.pmca.bridge.core.DuplicateGuard;
+11-
+12-import org.json.JSONObject;
+13-
+14-import java.io.File;
+--
+88-
+89-            PmcaLogger.log("Termux: команда отправлена, ID=" + operationId);
+90-            return new Submission(true, operationId, "Команда передана");
+91-
+92:        } catch (Exception e) {
+93-            PmcaLogger.log("Termux: ошибка отправки: "
+94-                    + e.getClass().getSimpleName());
+95-            return new Submission(false, operationId,
+96-                    "Ошибка отправки: " + e.getClass().getSimpleName());
+--
+134-                                + "ID: " + operationId + "\n\n"
+135-                                + response;
+136-                    }
+137-                }
+138:            } catch (Exception ignored) {
+139-                // Демон может ещё записывать JSON. Повторяем чтение.
+140-            }
+141-
+142-            try {
+143-                Thread.sleep(300);
+144:            } catch (InterruptedException e) {
+145-                Thread.currentThread().interrupt();
+146-                return "ОЖИДАНИЕ ПРЕРВАНО";
+147-            }
+148-        }
+--
+161-    /**
+162-     * Запускает команду через штатный Termux RUN_COMMAND API.
+163-     * Результат возвращается в TermuxResultService.
+164-     */
+165:    public boolean runNativeCommand(Context context, String command) {
+166-        if (command == null || command.trim().isEmpty()) {
+167-            PmcaLogger.log("RUN_COMMAND: пустая команда");
+168-            return false;
+169-        }
+170-
+171:        String guardToken = DuplicateGuard.begin(command);
+172-        if (guardToken == null) {
+173-            PmcaLogger.log(
+174:                    "DuplicateGuard: повторная активная команда заблокирована");
+175-            return false;
+176-        }
+177-
+178-        try {
+179-            Intent resultIntent = new Intent(context, TermuxResultService.class);
+180:            resultIntent.putExtra(DuplicateGuard.EXTRA_TOKEN, guardToken);
+181-            int requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+182-
+183:            int flags = PendingIntent.FLAG_ONE_SHOT;
+184-            if (Build.VERSION.SDK_INT >= 31) {
+185:                flags |= PendingIntent.FLAG_MUTABLE;
+186-            }
+187-
+188:            PendingIntent pendingIntent = PendingIntent.getService(
+189-                    context, requestCode, resultIntent, flags);
+190-
+191-            Intent run = new Intent();
+192-            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+--
+202-            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+203-            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+204-                    "Команда запущена из PMCA");
+205-
+206:            context.startService(run);
+207-            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+208-            return true;
+209:        } catch (Exception e) {
+210:            DuplicateGuard.finish(guardToken);
+211-            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+212-                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+213-            return false;
+214-        }
+
+===== FILE: AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java =====
+--- DuplicateGuard / token / command / callback ---
+5-import android.content.SharedPreferences;
+6-import android.os.Bundle;
+7-
+8-import com.pmca.bridge.logging.PmcaLogger;
+9:import com.pmca.bridge.core.DuplicateGuard;
+10-
+11-import java.util.Locale;
+12-
+13-public final class TermuxResultService extends IntentService {
+--
+21-        super("PMCA-TermuxResultService");
+22-    }
+23-
+24-    @Override
+25:    protected void onHandleIntent(Intent intent) {
+26-        if (intent == null) return;
+27-
+28:        String guardToken = intent.getStringExtra(DuplicateGuard.EXTRA_TOKEN);
+29-
+30-        Bundle extras = null;
+31-        Bundle result = null;
+32-        String source = "не найден";
+33-
+34-        try {
+35-            extras = intent.getExtras();
+36:        } catch (Exception ignored) {
+37-        }
+38-
+39-        try {
+40-            result = intent.getBundleExtra(RESULT_BUNDLE_KEY);
+41-            if (result != null) source = "стандартный ключ";
+42:        } catch (Exception ignored) {
+43-        }
+44-
+45-        if (result == null && extras != null) {
+46-            for (String key : extras.keySet()) {
+--
+50-                        result = (Bundle) value;
+51-                        source = "вложенный Bundle: " + key;
+52-                        break;
+53-                    }
+54:                } catch (Exception ignored) {
+55-                }
+56-            }
+57-        }
+58-
+--
+66-            .append("Источник: ").append(source).append("\n");
+67-
+68-        if (result == null) {
+69-            text.append("\nОШИБКА: Termux не передал Bundle результата.");
+70:            saveAndBroadcast(text.toString(), guardToken);
+71-            return;
+72-        }
+73-
+74-        String stdout = findString(result,
+--
+97-        if (errorCode != -999) {
+98-            text.append("\nВнутренний код ошибки: ").append(errorCode);
+99-        }
+100-
+101:        saveAndBroadcast(text.toString(), guardToken);
+102-    }
+103-
+104:    private void saveAndBroadcast(String output, String guardToken) {
+105-        try {
+106-            PmcaLogger.log("RUN_COMMAND RESULT: ответ получен");
+107-
+108-            SharedPreferences prefs =
+--
+116-            update.setPackage(getPackageName());
+117-            update.putExtra("result_text", output);
+118-            sendBroadcast(update);
+119-        } finally {
+120:            DuplicateGuard.finish(guardToken);
+121-        }
+122-    }
+123-
+124-    private static String findString(Bundle bundle, String... names) {
+--
+144-            try {
+145-                Object value = bundle.get(key);
+146-                if (value instanceof String) return (String) value;
+147-                if (value instanceof CharSequence) return value.toString();
+148:            } catch (Exception ignored) {
+149-            }
+150-        }
+151-        return "";
+152-    }
+--
+180-
+181-                if (value instanceof String) {
+182-                    return Integer.parseInt(((String) value).trim());
+183-                }
+184:            } catch (Exception ignored) {
+185-            }
+186-        }
+187-        return fallback;
+188-    }
+
+===== FILE: AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java =====
+--- DuplicateGuard / token / command / callback ---
+46-                : "Буфер: текст прочитан");
+47-        return text;
+48-    }
+49-
+50:    public boolean runNativeCommand(String command) {
+51-        PmcaLogger.log("Контроллер: запуск через штатный RUN_COMMAND");
+52:        return termux.runNativeCommand(
+53-                clipboardContext(), command);
+54-    }
+55-
+56-    private Context clipboardContext() {
+
+===== BUILD CONFIG =====
+6:    namespace 'com.pmca.bridge'
+7:    compileSdk 35
+10:        applicationId 'com.pmca.bridge'
+11:        minSdk 23
+12:        targetSdk 28
+
+===== APK — READ ONLY =====
+-rw-rw----. 1 u0_a201 media_rw 49849 Oct 10 12:07 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+c77688d1c75e019cff692ef409df119c25e6f6661a70e063d90c40fa127dab3d  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== CHECK COMPLETE =====

@@ -1,0 +1,359 @@
+===== PMCA RUN_COMMAND SOURCES =====
+
+===== ANDROID MANIFEST =====
+app/src/main/AndroidManifest.xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <application
+        android:allowBackup="false"
+        android:label="PMCA"
+        android:theme="@style/AppTheme">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+===== MAIN ACTIVITY =====
+package com.pmca.bridge;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.graphics.Typeface;
+import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.pmca.bridge.core.PmcaController;
+import com.pmca.bridge.logging.PmcaLogger;
+
+public class MainActivity extends Activity {
+    private PmcaController controller;
+    private EditText input;
+    private TextView status;
+    private TextView output;
+    private TextView logs;
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private LinearLayout column() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        return layout;
+    }
+
+    private LinearLayout row() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        return layout;
+    }
+
+    private void addGap(LinearLayout parent, int heightDp) {
+        View gap = new View(this);
+        parent.addView(gap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)));
+    }
+
+    private Button makeButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setTextSize(15);
+        button.setAllCaps(false);
+        button.setMinHeight(dp(52));
+        return button;
+    }
+
+    private void addButton(LinearLayout parent, Button button, float weight) {
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(0, dp(54), weight);
+        params.setMargins(dp(4), 0, dp(4), 0);
+        parent.addView(button, params);
+    }
+
+    private TextView makeLabel(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(16);
+        view.setTypeface(null, Typeface.BOLD);
+        view.setTextColor(Color.rgb(30, 45, 60));
+        return view;
+    }
+
+    @Override
+    public void onCreate(Bundle state) {
+        super.onCreate(state);
+        controller = new PmcaController(this);
+        buildScreen();
+        refreshLogs();
+        setStatus("ГОТОВ К РАБОТЕ", false);
+    }
+
+    private void buildScreen() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout root = column();
+        root.setPadding(dp(16), dp(12), dp(16), dp(16));
+        root.setBackgroundColor(Color.rgb(244, 247, 250));
+
+        TextView title = makeLabel("PMCA");
+        title.setTextSize(25);
+        root.addView(title);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Portable Modular Controller Architecture");
+        subtitle.setTextSize(12);
+        subtitle.setTextColor(Color.DKGRAY);
+        root.addView(subtitle);
+
+        addGap(root, 12);
+        status = makeLabel("");
+        root.addView(status);
+
+        addGap(root, 14);
+        root.addView(makeLabel("Команда / текст"));
+        addGap(root, 6);
+
+        input = new EditText(this);
+        input.setHint("Введите команду для Termux…");
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        input.setTextSize(16);
+        input.setMinLines(3);
+        input.setMaxLines(7);
+        input.setPadding(dp(12), dp(10), dp(12), dp(10));
+        input.setBackgroundColor(Color.WHITE);
+        root.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addGap(root, 8);
+        LinearLayout firstRow = row();
+        Button send = makeButton("Выполнить в Termux");
+        Button paste = makeButton("Вставить из буфера");
+        addButton(firstRow, send, 1.15f);
+        addButton(firstRow, paste, 1f);
+        root.addView(firstRow);
+
+        addGap(root, 8);
+        LinearLayout secondRow = row();
+        Button copyInput = makeButton("Скопировать ввод");
+        Button clear = makeButton("Очистить ввод");
+        addButton(secondRow, copyInput, 1f);
+        addButton(secondRow, clear, 1f);
+        root.addView(secondRow);
+
+        addGap(root, 16);
+        root.addView(makeLabel("Результат"));
+        addGap(root, 6);
+
+        output = new TextView(this);
+        output.setText("Здесь появятся сообщения о действиях PMCA.");
+        output.setTextSize(14);
+        output.setTextColor(Color.rgb(35, 45, 55));
+        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+        output.setBackgroundColor(Color.WHITE);
+        root.addView(output, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addGap(root, 8);
+        Button copyResult = makeButton("Скопировать результат");
+        root.addView(copyResult, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 16);
+        LinearLayout logHeader = row();
+        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        Button refresh = makeButton("Обновить");
+        refresh.setMinHeight(dp(44));
+        logHeader.addView(refresh);
+        root.addView(logHeader);
+
+        addGap(root, 6);
+        logs = new TextView(this);
+        logs.setTextSize(12);
+        logs.setTextColor(Color.rgb(40, 50, 60));
+        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+        logs.setBackgroundColor(Color.WHITE);
+        root.addView(logs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+        addGap(root, 8);
+        Button copyLog = makeButton("Скопировать лог");
+        root.addView(copyLog, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        scroll.addView(root);
+        setContentView(scroll);
+
+        send.setOnClickListener(v -> {
+            hideKeyboard();
+            String command = input.getText().toString().trim();
+            if (command.isEmpty()) {
+                setStatus("НУЖНА КОМАНДА", false);
+                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            boolean ok = controller.sendToTermux(command);
+            if (ok) {
+                output.setText("Команда передана мосту Termux.\n"
+                        + "Ответ пока не подтверждён. Здесь не показывается старый result.json.");
+                setStatus("КОМАНДА ПЕРЕДАНА", true);
+            } else {
+                output.setText("Команда не передана.\n"
+                        + "Проверьте журнал и убедитесь, что предыдущая команда обработана.");
+                setStatus("ОТПРАВКА НЕ УДАЛАСЬ", false);
+            }
+            refreshLogs();
+        });
+
+        paste.setOnClickListener(v -> {
+            String text = controller.readClipboard();
+            if (!text.isEmpty()) {
+                input.setText(text);
+                input.setSelection(input.length());
+                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+            } else {
+                setStatus("БУФЕР ПУСТ", false);
+            }
+            refreshLogs();
+        });
+
+        copyInput.setOnClickListener(v -> {
+            boolean ok = controller.copy(input.getText().toString(), "PMCA ввод");
+            setStatus(ok ? "ВВОД СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        clear.setOnClickListener(v -> {
+            input.setText("");
+            output.setText("Ввод очищен.");
+            setStatus("ВВОД ОЧИЩЕН", true);
+            PmcaLogger.log("UI: поле ввода очищено");
+            refreshLogs();
+        });
+
+        copyResult.setOnClickListener(v -> {
+            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        refresh.setOnClickListener(v -> refreshLogs());
+
+        copyLog.setOnClickListener(v -> {
+            refreshLogs();
+            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+    }
+
+    private void setStatus(String text, boolean success) {
+        status.setText("● " + text);
+        status.setTextColor(success ? Color.rgb(20, 125, 70) : Color.rgb(155, 75, 35));
+    }
+
+    private void refreshLogs() {
+        if (logs != null) logs.setText(PmcaLogger.getText());
+    }
+
+    private void hideKeyboard() {
+        try {
+            InputMethodManager imm = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+        } catch (Exception ignored) {}
+
+===== CONTROLLER =====
+package com.pmca.bridge.core;
+
+import android.content.Context;
+
+import com.pmca.bridge.clipboard.ClipboardCopyModule;
+import com.pmca.bridge.logging.PmcaLogger;
+import com.pmca.bridge.termux.TermuxBridgeAdapter;
+
+public final class PmcaController {
+    private final ClipboardCopyModule clipboard;
+    private final TermuxBridgeAdapter termux;
+
+    public PmcaController(Context context) {
+        clipboard = new ClipboardCopyModule(context);
+        termux = new TermuxBridgeAdapter(context);
+        PmcaLogger.log("Контроллер PMCA запущен");
+    }
+
+    public TermuxBridgeAdapter.Submission submitToTermux(String command) {
+        PmcaLogger.log("Контроллер: передача команды в Termux");
+        return termux.submitShellCommand(command);
+    }
+
+    public String waitForTermuxResult(String operationId, long timeoutMs) {
+        return termux.waitForResult(operationId, timeoutMs);
+    }
+
+    public boolean sendToTermux(String command) {
+        return termux.sendShellCommand(command);
+    }
+
+    public boolean copy(String text, String label) {
+        boolean ok = clipboard.copy(text, label);
+        PmcaLogger.log(ok
+                ? "Буфер: текст скопирован"
+                : "Буфер: копирование не удалось");
+        return ok;
+    }
+
+    public String readClipboard() {
+        String text = clipboard.read();
+        PmcaLogger.log(text.isEmpty()
+                ? "Буфер: пуст"
+                : "Буфер: текст прочитан");
+        return text;
+    }
+}
+
+===== GRADLE CONFIG =====
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.pmca.bridge'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pmca.bridge'
+        minSdk 23
+        targetSdk 28
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+===== END =====

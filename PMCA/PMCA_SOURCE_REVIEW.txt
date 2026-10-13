@@ -1,0 +1,486 @@
+===== PMCA SOURCE REVIEW =====
+Fri Oct  9 22:37:48 EET 2026
+
+===== 1. MAIN SCRIPT: LINES 1-120 =====
+     1	#!/data/data/com.termux/files/usr/bin/bash
+     2	
+     3	# === INTERNAL SINGLE DAEMON LOCK ===
+     4	INTERNAL_LOCKDIR="$HOME/storage/downloads/Taper/.daemon_internal.lockdir"
+     5	if ! mkdir "$INTERNAL_LOCKDIR" 2>/dev/null; then
+     6	    OLD_PID=$(cat "$INTERNAL_LOCKDIR/pid" 2>/dev/null || true)
+     7	    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+     8	        echo "DAEMON_ALREADY_RUNNING PID=$OLD_PID"
+     9	        exit 0
+    10	    fi
+    11	    rm -rf "$INTERNAL_LOCKDIR"
+    12	    mkdir "$INTERNAL_LOCKDIR" || exit 1
+    13	fi
+    14	echo "$$" > "$INTERNAL_LOCKDIR/pid"
+    15	trap 'rm -rf "$INTERNAL_LOCKDIR"' EXIT INT TERM
+    16	# === END INTERNAL SINGLE DAEMON LOCK ===
+    17	
+    18	
+    19	# ===== SINGLE DAEMON LOCK =====
+    20	LOCK_FILE="/data/data/com.termux/files/home/storage/downloads/Taper/.daemon.lock"
+    21	
+    22	if [ -f "$LOCK_FILE" ]; then
+    23	    OLD_PID="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+    24	
+    25	    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    26	        echo "DAEMON BLOCKED: already running PID=$OLD_PID"
+    27	        exit 0
+    28	    fi
+    29	
+    30	    rm -f "$LOCK_FILE"
+    31	fi
+    32	
+    33	echo "$$" > "$LOCK_FILE"
+    34	
+    35	cleanup_daemon_lock() {
+    36	    if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+    37	        rm -f "$LOCK_FILE"
+    38	    fi
+    39	}
+    40	
+    41	trap cleanup_daemon_lock EXIT INT TERM
+    42	# ===== END SINGLE DAEMON LOCK =====
+    43	
+    44	
+    45	set -u
+    46	
+    47	BASE="$HOME/storage/downloads/Taper"
+    48	LOCK="$BASE/.daemon.lock"
+    49	LOG="$BASE/termux_bridge.log"
+    50	
+    51	mkdir -p "$BASE"
+    52	
+    53	if ! mkdir "$LOCK" 2>/dev/null; then
+    54	    if [ -f "$LOCK/pid" ]; then
+    55	        OLD_PID="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    56	
+    57	        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    58	            echo "TERMUX BRIDGE ALREADY RUNNING PID=$OLD_PID"
+    59	            exit 0
+    60	        fi
+    61	    fi
+    62	
+    63	    rm -rf "$LOCK"
+    64	
+    65	    if ! mkdir "$LOCK" 2>/dev/null; then
+    66	        echo "ERROR: LOCK"
+    67	        exit 1
+    68	    fi
+    69	fi
+    70	
+    71	echo "$$" > "$LOCK/pid"
+    72	
+    73	cleanup() {
+    74	    rm -rf "$LOCK"
+    75	}
+    76	
+    77	trap cleanup EXIT INT TERM
+    78	
+    79	log() {
+    80	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"
+    81	}
+    82	
+    83	COMMAND="$BASE/command.json"
+    84	RESULT="$BASE/result.json"
+    85	
+    86	log "========================================"
+    87	log "DAEMON START REAL BRIDGE V7"
+    88	log "BASE=$BASE"
+    89	log "========================================"
+    90	
+    91	while true; do
+    92	
+    93	    if [ -f "$COMMAND" ]; then
+    94	
+    95	        RAW="$(cat "$COMMAND" 2>/dev/null || true)"
+    96	
+    97	        if [ -n "$RAW" ]; then
+    98	
+    99	            OPERATION_ID="$(
+   100	                printf '%s' "$RAW" |
+   101	                python -c '
+   102	import json,sys
+   103	try:
+   104	    print(json.load(sys.stdin).get("operation_id",""))
+   105	except:
+   106	    print("")
+   107	' 2>/dev/null || true
+   108	            )"
+   109	
+   110	            TYPE="$(
+   111	                printf '%s' "$RAW" |
+   112	                python -c '
+   113	import json,sys
+   114	try:
+   115	    print(json.load(sys.stdin).get("type",""))
+   116	except:
+   117	    print("")
+   118	' 2>/dev/null || true
+   119	            )"
+   120	
+
+===== 2. MAIN SCRIPT: LINES 121-310 =====
+   121	            CMD="$(
+   122	                printf '%s' "$RAW" |
+   123	                python -c '
+   124	import json,sys
+   125	try:
+   126	    print(json.load(sys.stdin).get("command",""))
+   127	except:
+   128	    print("")
+   129	' 2>/dev/null || true
+   130	            )"
+   131	
+   132	            DATA="$(
+   133	                printf '%s' "$RAW" |
+   134	                python -c '
+   135	import json,sys
+   136	try:
+   137	    print(json.load(sys.stdin).get("data",""))
+   138	except:
+   139	    print("")
+   140	' 2>/dev/null || true
+   141	            )"
+   142	
+   143	            log "RECEIVED operation_id=$OPERATION_ID"
+   144	            log "RECEIVED type=$TYPE"
+   145	            log "RECEIVED command=$CMD"
+   146	            log "RECEIVED data_length=${#DATA}"
+   147	            log "RECEIVED data=$DATA"
+   148	
+   149	            # AUTO CLIPBOARD: INCOMING DATA
+   150	            if command -v termux-clipboard-set >/dev/null 2>&1; then
+   151	                printf '%s\n%s'                     "[AUTO_COPY][TERMUX][RECEIVED_DATA]"                     "$DATA" | termux-clipboard-set
+   152	                log "CLIPBOARD: AUTO_COPY RECEIVED_DATA length=${#DATA}"
+   153	            else
+   154	                log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+   155	            fi
+   156	
+   157	            STATUS="SUCCESS"
+   158	            RESPONSE=""
+   159	
+   160	            case "$CMD" in
+   161	
+   162	                TEST)
+   163	                    RESPONSE="TEST_OK:$DATA"
+   164	                    ;;
+   165	
+   166	                TAPER_DATA)
+   167	                    log "TAPER_DATA RECEIVE_START"
+   168	
+   169	                    RESPONSE="TERMUX_DATA_RECEIVED: $DATA"
+   170	
+   171	                    log "TAPER_DATA RESPONSE_LENGTH=${#RESPONSE}"
+   172	                    log "TAPER_DATA RECEIVE_COMPLETE"
+   173	                    ;;
+   174	
+   175	                CLIPBOARD_GET)
+   176	                    log "CLIPBOARD_GET START"
+   177	
+   178	                    if command -v termux-clipboard-get >/dev/null 2>&1; then
+   179	                        CLIPBOARD_DATA="$(termux-clipboard-get 2>/dev/null || true)"
+   180	
+   181	                        RESPONSE="CLIPBOARD_GET_OK"
+   182	                        if [ -n "$CLIPBOARD_DATA" ]; then
+   183	                            RESPONSE="${RESPONSE}
+   184	CLIPBOARD_DATA:
+   185	${CLIPBOARD_DATA}"
+   186	                        else
+   187	                            RESPONSE="${RESPONSE}
+   188	CLIPBOARD_DATA:
+   189	"
+   190	                        fi
+   191	
+   192	                        log "CLIPBOARD_GET LENGTH=${#CLIPBOARD_DATA}"
+   193	                    else
+   194	                        RESPONSE="CLIPBOARD_GET_ERROR: termux-clipboard-get NOT FOUND"
+   195	                        log "CLIPBOARD_GET ERROR termux-clipboard-get NOT FOUND"
+   196	                    fi
+   197	
+   198	                    log "CLIPBOARD_GET COMPLETE"
+   199	                    ;;
+   200	
+   201	                SHELL)
+   202	                    log "SHELL EXECUTE_START"
+   203	                    log "SHELL COMMAND_LENGTH=${#DATA}"
+   204	                    log "SHELL COMMAND_BEGIN"
+   205	                    log "$DATA"
+   206	                    log "SHELL COMMAND_END"
+   207	
+   208	                    SHELL_TMP="$BASE/.shell_output_${OPERATION_ID}.tmp"
+   209	
+   210	                    if command -v timeout >/dev/null 2>&1; then
+   211	                        timeout 60s bash -c "$DATA" >"$SHELL_TMP" 2>&1
+   212	                        SHELL_EXIT=$?
+   213	                    else
+   214	                        bash -c "$DATA" >"$SHELL_TMP" 2>&1
+   215	                        SHELL_EXIT=$?
+   216	                    fi
+   217	
+   218	                    SHELL_OUTPUT="$(cat "$SHELL_TMP" 2>/dev/null || true)"
+   219	                    rm -f "$SHELL_TMP"
+   220	
+   221	                    log "SHELL EXIT_CODE=$SHELL_EXIT"
+   222	                    log "SHELL OUTPUT_LENGTH=${#SHELL_OUTPUT}"
+   223	
+   224	                    RESPONSE="SHELL_EXIT_CODE=$SHELL_EXIT"
+   225	
+   226	                    if [ -n "$SHELL_OUTPUT" ]; then
+   227	                        RESPONSE="${RESPONSE}
+   228	SHELL_OUTPUT:
+   229	${SHELL_OUTPUT}"
+   230	                    else
+   231	                        RESPONSE="${RESPONSE}
+   232	SHELL_OUTPUT:
+   233	<EMPTY>"
+   234	                    fi
+   235	
+   236	                    log "SHELL EXECUTE_COMPLETE"
+   237	                    ;;
+   238	
+   239	                *)
+   240	                    RESPONSE="COMMAND_OK:$CMD:$DATA"
+   241	                    ;;
+   242	            esac
+   243	
+   244	            if python - "$OPERATION_ID" "$RESPONSE" > "$RESULT" <<'PY'
+   245	import json
+   246	import sys
+   247	import time
+   248	
+   249	obj = {
+   250	    "operation_id": sys.argv[1],
+   251	    "timestamp": int(time.time() * 1000),
+   252	    "status": "SUCCESS",
+   253	    "response": sys.argv[2]
+   254	}
+   255	
+   256	print(json.dumps(obj, ensure_ascii=False))
+   257	PY
+   258	            then
+   259	
+   260	                if [ -s "$RESULT" ]; then
+   261	
+   262	                    log "SENT operation_id=$OPERATION_ID"
+   263	                    log "SENT status=SUCCESS"
+   264	                    log "SENT response=$RESPONSE"
+   265	                    log "RESULT_WRITTEN=YES"
+   266	
+   267	                    # AUTO CLIPBOARD: RESPONSE
+   268	                    if command -v termux-clipboard-set >/dev/null 2>&1; then
+   269	                        printf '%s\n%s'                             "[AUTO_COPY][TERMUX][RESPONSE]"                             "$RESPONSE" | termux-clipboard-set
+   270	                        log "CLIPBOARD: AUTO_COPY RESPONSE length=${#RESPONSE}"
+   271	                    else
+   272	                        log "CLIPBOARD: ERROR termux-clipboard-set NOT FOUND"
+   273	                    fi
+   274	
+   275	                    rm -f "$COMMAND"
+   276	
+   277	                    log "COMMAND COMPLETE"
+   278	
+   279	                else
+   280	
+   281	                    log "ERROR RESULT_EMPTY"
+   282	
+   283	                fi
+   284	
+   285	            else
+   286	
+   287	                log "ERROR RESULT_WRITE_FAILED"
+   288	
+   289	            fi
+   290	        fi
+   291	    fi
+   292	
+   293	    sleep 0.1
+   294	done
+
+===== 3. OLD SCRIPT: LINES 1-180 =====
+     1	#!/data/data/com.termux/files/usr/bin/bash
+     2	
+     3	# ===== SINGLE DAEMON GUARD START =====
+     4	DAEMON_LOCK="$HOME/storage/downloads/Taper/.daemon.lock"
+     5	DAEMON_PIDFILE="$DAEMON_LOCK/pid"
+     6	
+     7	if ! mkdir "$DAEMON_LOCK" 2>/dev/null; then
+     8	    if [ -f "$DAEMON_PIDFILE" ]; then
+     9	        OLD_PID="$(cat "$DAEMON_PIDFILE" 2>/dev/null)"
+    10	
+    11	        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    12	            echo "TERMUX BRIDGE DAEMON ALREADY RUNNING"
+    13	            echo "PID=$OLD_PID"
+    14	            exit 0
+    15	        fi
+    16	    fi
+    17	
+    18	    rm -rf "$DAEMON_LOCK"
+    19	
+    20	    if ! mkdir "$DAEMON_LOCK" 2>/dev/null; then
+    21	        echo "ERROR: CANNOT CREATE DAEMON LOCK"
+    22	        exit 1
+    23	    fi
+    24	fi
+    25	
+    26	echo "$$" > "$DAEMON_PIDFILE"
+    27	
+    28	cleanup_daemon_lock() {
+    29	    rm -f "$DAEMON_PIDFILE"
+    30	    rmdir "$DAEMON_LOCK" 2>/dev/null || true
+    31	}
+    32	
+    33	trap cleanup_daemon_lock EXIT INT TERM
+    34	# ===== SINGLE DAEMON GUARD END =====
+    35	
+    36	
+    37	
+    38	BASE="$HOME/storage/downloads/Taper"
+    39	
+    40	if [ ! -d "$BASE" ]; then
+    41	    BASE="/storage/emulated/0/Download/Taper"
+    42	fi
+    43	
+    44	COMMAND="$BASE/command.json"
+    45	RESULT="$BASE/result.json"
+    46	LOG="$BASE/termux_bridge.log"
+    47	LOCK="$BASE/.daemon.lock"
+    48	
+    49	mkdir -p "$BASE"
+    50	
+    51	
+    52	log() {
+    53	    printf '[%s] %s\n' \
+    54	        "$(date '+%Y-%m-%d %H:%M:%S')" \
+    55	        "$1" >> "$LOG"
+    56	}
+    57	
+    58	log "DAEMON START"
+    59	log "BASE=$BASE"
+    60	
+    61	while true; do
+    62	
+    63	    if [ -f "$COMMAND" ]; then
+    64	
+    65	        CMD_JSON="$(cat "$COMMAND" 2>/dev/null || true)"
+    66	
+    67	        if [ -n "$CMD_JSON" ]; then
+    68	
+    69	            OP_ID="$(
+    70	                printf '%s' "$CMD_JSON" |
+    71	                python -c '
+    72	import sys,json
+    73	try:
+    74	 print(json.load(sys.stdin).get("operation_id",""))
+    75	except:
+    76	 print("")
+    77	' 2>/dev/null || true
+    78	            )"
+    79	
+    80	            COMMAND_VALUE="$(
+    81	                printf '%s' "$CMD_JSON" |
+    82	                python -c '
+    83	import sys,json
+    84	try:
+    85	 print(json.load(sys.stdin).get("command",""))
+    86	except:
+    87	 print("")
+    88	' 2>/dev/null || true
+    89	            )"
+    90	
+    91	            DATA="$(
+    92	                printf '%s' "$CMD_JSON" |
+    93	                python -c '
+    94	import sys,json
+    95	try:
+    96	 print(json.load(sys.stdin).get("data",""))
+    97	except:
+    98	 print("")
+    99	' 2>/dev/null || true
+   100	            )"
+   101	
+   102	            log "RECEIVED operation_id=$OP_ID"
+   103	            log "RECEIVED command=$COMMAND_VALUE"
+   104	            log "RECEIVED data=$DATA"
+   105	
+   106	            case "$COMMAND_VALUE" in
+   107	                TEST)
+   108	                    RESPONSE="TEST_OK:$DATA"
+   109	                    ;;
+   110	
+   111	                TAPER_DATA)
+   112	                    log "TAPER_DATA: RECEIVE_START"
+   113	                    log "TAPER_DATA: DATA_LENGTH=${#DATA}"
+   114	                    RESPONSE="TERMUX_DATA_RECEIVED: $DATA"
+   115	                    log "TAPER_DATA: RESPONSE_LENGTH=${#RESPONSE}"
+   116	                    log "TAPER_DATA: RECEIVE_COMPLETE"
+   117	                    ;;
+   118	
+   119	                TAPER)
+   120	                    log "TAPER: EXECUTE_START"
+   121	                    log "TAPER: COMMAND=$DATA"
+   122	
+   123	                    TMP_OUT="$(mktemp)"
+   124	
+   125	                    log "TAPER: RUNNING_COMMAND"
+   126	
+   127	                    if timeout 30s bash -lc "$DATA" >"$TMP_OUT" 2>&1; then
+   128	                        RESPONSE="$(cat "$TMP_OUT")"
+   129	                        EXIT_CODE=0
+   130	                    else
+   131	                        EXIT_CODE=$?
+   132	                        RESPONSE="$(cat "$TMP_OUT")"
+   133	                    fi
+   134	
+   135	                    rm -f "$TMP_OUT"
+   136	
+   137	                    log "TAPER: EXIT_CODE=$EXIT_CODE"
+   138	                    log "TAPER: RESPONSE_LENGTH=${#RESPONSE}"
+   139	                    log "TAPER: EXECUTE_COMPLETE"
+   140	                    ;;
+   141	
+   142	                *)
+   143	                    RESPONSE="COMMAND_OK:$COMMAND_VALUE:$DATA"
+   144	                    ;;
+   145	            esac
+   146	
+   147	            # V6: result.json is created by Android through MediaStore.
+   148	            # Write into the existing file; do not replace it with mv.
+   149	            if python - "$OP_ID" "$RESPONSE" > "$RESULT" <<'PY'
+   150	import json
+   151	import sys
+   152	import time
+   153	
+   154	print(json.dumps({
+   155	    "operation_id": sys.argv[1],
+   156	    "timestamp": int(time.time() * 1000),
+   157	    "status": "SUCCESS",
+   158	    "response": sys.argv[2]
+   159	}, ensure_ascii=False))
+   160	PY
+   161	            then
+   162	                if [ -s "$RESULT" ]; then
+   163	                    log "SENT operation_id=$OP_ID"
+   164	                    log "SENT status=SUCCESS"
+   165	                    log "SENT response=$RESPONSE"
+   166	                    log "RESULT_WRITTEN_IN_PLACE=YES"
+   167	                    rm -f "$COMMAND"
+   168	                    log "COMMAND COMPLETE"
+   169	                else
+   170	                    log "ERROR RESULT_EMPTY"
+   171	                fi
+   172	            else
+   173	                log "ERROR RESULT_WRITE_FAILED"
+   174	            fi
+   175	        fi
+   176	    fi
+   177	
+   178	    sleep 0.1
+   179	done
+
+===== 4. CURRENT PROCESS CHECK =====
+NO_ACTIVE_BRIDGE
+
+===== END SOURCE REVIEW =====

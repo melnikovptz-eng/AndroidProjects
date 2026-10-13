@@ -1,0 +1,170 @@
+===== PMCA: ПРОВЕРКА УСТАНОВЩИКА И СБОРКИ =====
+
+===== 1. ОСТАТОК КОДА УСТАНОВКИ =====
+        }
+    }
+
+    private void continueLatestApkInstall() {
+        if (Build.VERSION.SDK_INT >= 26
+                && !getPackageManager().canRequestPackageInstalls()) {
+            setStatus("РАЗРЕШИ УСТАНОВКУ ПРИЛОЖЕНИЙ", false);
+            try {
+                Intent settingsIntent = new Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                startActivityForResult(
+                        settingsIntent, PMCA_INSTALL_PERMISSION_REQUEST);
+            } catch (Exception e) {
+                PmcaLogger.log("Не удалось открыть настройки установки: " + e);
+                android.widget.Toast.makeText(
+                        this,
+                        "Разреши установку приложений из PMCA в настройках Android.",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+
+        startLatestApkInstall();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PMCA_INSTALL_PERMISSION_REQUEST) {
+            if (Build.VERSION.SDK_INT < 26
+                    || getPackageManager().canRequestPackageInstalls()) {
+                startLatestApkInstall();
+            } else {
+                setStatus("РАЗРЕШЕНИЕ НЕ ПОЛУЧЕНО", false);
+            }
+        }
+    }
+
+    private void startLatestApkInstall() {
+        File downloads = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        File apk = new File(downloads, "PMCA.apk");
+
+        if (!apk.isFile() || apk.length() == 0) {
+            setStatus("APK НЕ НАЙДЕН", false);
+            android.widget.Toast.makeText(
+                    this,
+                    "Сначала собери проект и скопируй APK в Download/PMCA.apk.",
+                    android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int sessionId = -1;
+        try {
+            PackageInstaller installer = getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            sessionId = installer.createSession(params);
+
+            try (PackageInstaller.Session session = installer.openSession(sessionId);
+                 FileInputStream in = new FileInputStream(apk);
+                 OutputStream out = session.openWrite("PMCA.apk", 0, apk.length())) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, count);
+                }
+                session.fsync(out);
+            }
+
+            Intent callback = new Intent(this, InstallStatusReceiver.class);
+            callback.setAction("com.pmca.bridge.INSTALL_STATUS");
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= 23) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent statusIntent =
+                    PendingIntent.getBroadcast(this, sessionId, callback, flags);
+
+            try (PackageInstaller.Session commitSession =
+                         installer.openSession(sessionId)) {
+                commitSession.commit(statusIntent.getIntentSender());
+            }
+
+            setStatus("ЗАПРОС УСТАНОВКИ ОТПРАВЛЕН", true);
+            PmcaLogger.log("Запрошена установка: " + apk.getAbsolutePath());
+        } catch (Exception e) {
+            if (sessionId >= 0) {
+                try {
+                    getPackageManager().getPackageInstaller().abandonSession(sessionId);
+                } catch (Exception ignored) {
+                }
+            }
+            setStatus("ОШИБКА УСТАНОВКИ APK", false);
+            PmcaLogger.log("Ошибка установки APK: " + e);
+            android.widget.Toast.makeText(
+                    this,
+                    "Не удалось запустить установку: " + e.getMessage(),
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
+
+        refreshLogs();
+    }
+
+}
+
+===== 2. INSTALL STATUS RECEIVER =====
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918
+app/src/main/java/com/pmca/bridge/MainActivity.java:6:import android.content.pm.PackageInstaller;
+app/src/main/java/com/pmca/bridge/MainActivity.java:265:        installApp.setOnClickListener(v -> installLatestApk());
+app/src/main/java/com/pmca/bridge/MainActivity.java:350:    private void installLatestApk() {
+app/src/main/java/com/pmca/bridge/MainActivity.java:435:            PackageInstaller installer = getPackageManager().getPackageInstaller();
+app/src/main/java/com/pmca/bridge/MainActivity.java:436:            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+app/src/main/java/com/pmca/bridge/MainActivity.java:437:                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+app/src/main/java/com/pmca/bridge/MainActivity.java:440:            try (PackageInstaller.Session session = installer.openSession(sessionId);
+app/src/main/java/com/pmca/bridge/MainActivity.java:461:            try (PackageInstaller.Session commitSession =
+app/src/main/java/com/pmca/bridge/MainActivity.java:471:                    getPackageManager().getPackageInstaller().abandonSession(sessionId);
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:6:import android.content.pm.PackageInstaller;
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:10:public class InstallStatusReceiver extends BroadcastReceiver {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:14:                PackageInstaller.EXTRA_STATUS,
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:15:                PackageInstaller.STATUS_FAILURE);
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:17:        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:35:        } else if (status == PackageInstaller.STATUS_SUCCESS) {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:42:                    PackageInstaller.EXTRA_STATUS_MESSAGE);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:6:import android.content.pm.PackageInstaller;
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:265:        installApp.setOnClickListener(v -> installLatestApk());
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:350:    private void installLatestApk() {
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:435:            PackageInstaller installer = getPackageManager().getPackageInstaller();
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:436:            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:437:                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:440:            try (PackageInstaller.Session session = installer.openSession(sessionId);
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:461:            try (PackageInstaller.Session commitSession =
+app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918:471:                    getPackageManager().getPackageInstaller().abandonSession(sessionId);
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:6:import android.content.pm.PackageInstaller;
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:10:public class InstallStatusReceiver extends BroadcastReceiver {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:14:                PackageInstaller.EXTRA_STATUS,
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:15:                PackageInstaller.STATUS_FAILURE);
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:17:        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:35:        } else if (status == PackageInstaller.STATUS_SUCCESS) {
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java.backup_20261010_022918:42:                    PackageInstaller.EXTRA_STATUS_MESSAGE);
+
+===== 3. GRADLE WRAPPER =====
+-rwx------. 1 u0_a338 u0_a338 8656 Oct 10 00:08 ./gradlew
+
+===== 4. JAVA И GRADLE =====
+openjdk version "21.0.12" 2026-07-21
+OpenJDK Runtime Environment (build 21.0.12)
+OpenJDK 64-Bit Server VM (build 21.0.12, mixed mode)
+
+------------------------------------------------------------
+Gradle 8.7
+------------------------------------------------------------
+
+Build time:   2024-03-22 15:52:46 UTC
+Revision:     650af14d7653aa949fce5e886e685efc9cf97c10
+
+Kotlin:       1.9.22
+Groovy:       3.0.17
+Ant:          Apache Ant(TM) version 1.10.13 compiled on January 4 2023
+JVM:          21.0.12 (Termux 21.0.12)
+OS:           Linux 5.10.226-android12-9-00047-g4968e29b7f92-ab12786767 aarch64
+
+
+===== 5. ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

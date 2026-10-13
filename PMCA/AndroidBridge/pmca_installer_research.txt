@@ -1,0 +1,131 @@
+===== ЗАВИСИМОСТИ =====
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.pmca.bridge'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pmca.bridge'
+        minSdk 23
+        targetSdk 28
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+===== ИМПОРТЫ MAIN ACTIVITY =====
+package com.pmca.bridge;
+
+
+import android.Manifest;
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.Settings;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
+import android.app.Activity;
+import android.os.Bundle;
+import android.graphics.Typeface;
+import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.content.IntentFilter;
+import android.content.Intent;
+import android.content.BroadcastReceiver;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.pmca.bridge.core.PmcaController;
+import com.pmca.bridge.logging.PmcaLogger;
+
+public class MainActivity extends Activity {
+    private PmcaController controller;
+    private EditText input;
+    private TextView status;
+    private TextView output;
+    private TextView logs;
+
+    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String result = intent.getStringExtra("result_text");
+            if (result != null) {
+                output.setText(result);
+                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+                refreshLogs();
+            }
+        }
+    };
+    private boolean resultReceiverRegistered = false;
+
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private LinearLayout column() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        return layout;
+    }
+
+    private LinearLayout row() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        return layout;
+    }
+
+    private void addGap(LinearLayout parent, int heightDp) {
+        View gap = new View(this);
+        parent.addView(gap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)));
+    }
+
+    private Button makeButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setTextSize(15);
+        button.setAllCaps(false);
+        button.setMinHeight(dp(52));
+        return button;
+    }
+
+    private void addButton(LinearLayout parent, Button button, float weight) {
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(0, dp(54), weight);
+        params.setMargins(dp(4), 0, dp(4), 0);
+        parent.addView(button, params);
+    }
+
+    private TextView makeLabel(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(16);
+
+===== РЕСУРСЫ =====
+app/src/main/res/values/styles.xml
+
+===== FILE PROVIDER =====
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

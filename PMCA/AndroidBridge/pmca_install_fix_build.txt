@@ -1,0 +1,79 @@
+===== PMCA: ИСПРАВЛЕНИЕ УСТАНОВКИ =====
+Sat Oct 10 02:49:11 EET 2026
+
+===== ШАГ 1. ПРОВЕРКА ИСХОДНИКА =====
+Резервная копия: app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_024911
+
+===== ШАГ 2. ЗАМЕНА ФЛАГА =====
+Флаг исправлен: Android 12+ использует FLAG_MUTABLE.
+
+===== ПРОВЕРКА ИЗМЕНЕНИЯ =====
+453-
+454:            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+455-            if (Build.VERSION.SDK_INT >= 31) {
+456-                flags |= PendingIntent.FLAG_MUTABLE;
+457-            }
+458-            PendingIntent statusIntent =
+459-                    PendingIntent.getBroadcast(this, sessionId, callback, flags);
+
+===== ШАГ 3. СБОРКА APK =====
+
+> Configure project :app
+WARNING: The option setting 'android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2' is experimental.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 8s
+32 actionable tasks: 4 executed, 28 up-to-date
+
+===== ШАГ 4. КОПИРОВАНИЕ APK =====
+APK успешно собран и скопирован.
+-rw-rw----. 1 u0_a201 media_rw 42K 2026-10-10 02:49 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+2b5bbd71c9582591d6cda0fdcba622af6931c3012bdfb3f7be71b33bf5c17bea  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== РЕЗУЛЬТАТ =====
+Сборка: BUILD SUCCESSFUL
+Файл: /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+Следующий шаг: установить новый APK и проверить системное окно.
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

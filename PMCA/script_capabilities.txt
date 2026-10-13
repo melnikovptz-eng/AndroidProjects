@@ -1,0 +1,112 @@
+===== SCRIPT CAPABILITIES =====
+
+Usage:
+ script [options] [<file>] [-- <command> [<argument>...]]
+
+Make a typescript of a terminal session.
+
+Options:
+ -I, --log-in <file>           log stdin to file
+ -O, --log-out <file>          log stdout to file (default)
+ -B, --log-io <file>           log stdin and stdout to file
+
+ -T, --log-timing <file>       log timing information to file
+ -t[<file>], --timing[=<file>] deprecated alias to -T (default file is stderr)
+ -m, --logging-format <name>   force to 'classic' or 'advanced' format
+
+ -a, --append                  append to the log file
+ -c, --command <command>       run <command> rather than an interactive shell
+                                 (alternative to '-- <command> [<argument...>]')
+ -e, --return                  return exit code of the child process
+ -f, --flush                   run flush after each write
+     --force                   use output file even when it is a link
+ -E, --echo <when>             echo input in session (auto, always or never)
+ -o, --output-limit <size>     terminate if output files exceed size
+ -q, --quiet                   be quiet
+
+ -h, --help                    display this help
+ -V, --version                 display version
+
+Arguments:
+ Values for <size> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the "iB" is optional).
+
+For more details see script(1).
+
+===== TERMUX VERSION =====
+Termux Variables:
+TERMUX_APP_PACKAGE_MANAGER=apt
+TERMUX_APP__APK_FILE=/data/app/~~jvQUtL5z3bk8XRQmvY6XNg==/com.termux-2Ifl-c4SHPI7N-QeCdagwQ==/base.apk
+TERMUX_APP__APK_RELEASE=F_DROID
+TERMUX_APP__APP_VERSION_CODE=1022
+TERMUX_APP__APP_VERSION_NAME=0.119.0-beta.3
+TERMUX_APP__DATA_DIR=/data/user/0/com.termux
+TERMUX_APP__IS_DEBUGGABLE_BUILD=false
+TERMUX_APP__IS_INSTALLED_ON_EXTERNAL_STORAGE=false
+TERMUX_APP__LEGACY_DATA_DIR=/data/data/com.termux
+TERMUX_APP__PACKAGE_NAME=com.termux
+TERMUX_APP__PID=19140
+TERMUX_APP__SE_FILE_CONTEXT=u:object_r:app_data_file:s0:c82,c257,c512,c768
+TERMUX_APP__SE_INFO=default:targetSdkVersion=28:complete
+TERMUX_APP__TARGET_SDK=28
+TERMUX_VERSION=0.119.0-beta.3
+TERMUX__APPS_DIR=/data/user/0/com.termux/termux/apps
+TERMUX__HOME=/data/data/com.termux/files/home
+TERMUX__PREFIX=/data/data/com.termux/files/usr
+TERMUX__ROOTFS_DIR=/data/data/com.termux/files
+TERMUX__SE_PROCESS_CONTEXT=u:r:untrusted_app_27:s0:c82,c257,c512,c768
+TERMUX__UID=10338
+TERMUX__USER_ID=0
+Packages CPU architecture:
+aarch64
+
+===== BASHRC END =====
+SOURCE: TERMUX HISTORY
+--------------------------------
+%s
+===== END PMCA COPY =====
+" "$text" | timeout 3 termux-clipboard-set; echo "[${n}с] COPY-$id: $n команд скопировано"; }
+pmca_copy1(){ pmca_copy_history 1; }
+pmca_copy2(){ pmca_copy_history 2; }
+pmca_copy3(){ pmca_copy_history 3; }
+# ===== END PMCA HISTORY KEYS =====
+
+
+# ===== PMCA OUTPUT LOGGER =====
+export PMCA_OUTPUT_LOG="$HOME/.pmca_output.log"
+
+pmca_output_start() {
+    : > "$PMCA_OUTPUT_LOG"
+    exec 3>&1 4>&2
+    exec > >(tee -a "$PMCA_OUTPUT_LOG") 2>&1
+}
+
+pmca_output_stop() {
+    exec >&3 2>&4
+    exec 3>&- 4>&-
+}
+
+# Запускать вывод через PMCA:
+pmca_run() {
+    pmca_output_start
+    "$@"
+    rc=$?
+    pmca_output_stop
+    return $rc
+}
+# ===== END PMCA OUTPUT LOGGER =====
+
+
+===== EXTRA KEYS =====
+extra-keys-style = default
+extra-keys-text-all-caps = false
+
+extra-keys = [ \
+ ['ESC','/','-','HOME','UP','END','PGUP'], \
+ ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN', \
+  {macro: "pmca_copy1 ENTER", display: "1с"}, \
+  {macro: "pmca_copy2 ENTER", display: "2с"}, \
+  {macro: "pmca_copy3 ENTER", display: "3с"}] \
+]
+
+===== END =====

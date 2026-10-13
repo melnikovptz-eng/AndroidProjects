@@ -1,0 +1,100 @@
+===== PMCA FLOATING PANEL BUILD =====
+Sat Oct 10 03:12:06 EET 2026
+Проект: /data/data/com.termux/files/home/PMCA/AndroidBridge
+Резервная копия: /data/data/com.termux/files/home/PMCA/AndroidBridge/backups/overlay_20261010_031206
+
+===== 1. РЕЗЕРВНЫЕ КОПИИ =====
+Резервные копии готовы.
+
+===== 2. ПРОВЕРКА И ИЗМЕНЕНИЕ ИСХОДНИКОВ =====
+Добавлена FloatingPanelService.java
+Обновлён AndroidManifest.xml
+Добавлена кнопка открытия панели и запрос разрешения
+Результат Termux теперь сохраняет зелёное состояние панели
+
+===== 3. ПРОВЕРКА СТРУКТУРЫ =====
+3:    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+18:            android:name=".overlay.FloatingPanelService"
+174:        Button compactMode = makeButton("Открыть плавающую панель");
+177:        compactMode.setOnClickListener(v -> openCompactPanel());
+297:    private void openCompactPanel() {
+Структура проверена.
+
+===== 4. СБОРКА DEBUG APK =====
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+WARNING: The option setting 'android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2' is experimental.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugResources
+
+> Task :app:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 39s
+32 actionable tasks: 8 executed, 24 up-to-date
+
+===== 5. КОПИРОВАНИЕ APK =====
+SHA256 нового APK:
+4686defa5a47bea9d7f54e9e21fe701fdfe39261cba9fdee3a47c68199a875db  /data/data/com.termux/files/home/storage/downloads/PMCA.apk.new
+APK успешно сохранён: /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+-rw-rw----. 1 u0_a201 media_rw 49K Oct 10 03:12 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== РЕЗУЛЬТАТ =====
+BUILD SUCCESSFUL
+Резервные копии: /data/data/com.termux/files/home/PMCA/AndroidBridge/backups/overlay_20261010_031206
+Отчёт: /data/data/com.termux/files/home/PMCA/AndroidBridge/pmca_overlay_build_report.txt
+
+УСТАНОВКА И ПРОВЕРКА:
+1. Установите PMCA.apk.
+2. Откройте PMCA.
+3. Нажмите «Открыть плавающую панель».
+4. Разрешите отображение поверх других приложений.
+5. Вернитесь в PMCA и нажмите кнопку панели ещё раз.
+6. Скопируйте текст команды, откройте панель, нажмите «Вставить из буфера», затем «Выполнить в Termux».
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====
+Буфер недоступен; отчёт сохранён в файл.
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

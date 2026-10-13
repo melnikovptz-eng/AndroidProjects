@@ -1,0 +1,7 @@
+===== RUN_COMMAND SETUP =====
+Termux:
+TERMUX_APP__APP_VERSION_NAME=0.119.0-beta.3
+
+12:allow-external-apps = true
+
+Следующий этап: реализация RUN_COMMAND в PMCA APK.

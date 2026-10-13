@@ -1,0 +1,20 @@
+===== PMCA: ТОЧНАЯ ПРОВЕРКА ИСХОДНИКА =====
+Путь: /data/data/com.termux/files/home/PMCA/AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java
+
+Файл существует: True
+Точное совпадение: 0
+Совпадения по словам:
+168: '        Button installApp = makeButton("Установить приложение");'
+174: '        Button copyResult = makeButton("Скопировать результат");'
+179: '        Button copyLog = makeButton("Скопировать лог");'
+265: '        installApp.setOnClickListener(v -> installLatestApk());'
+350: '    private void installLatestApk() {'
+
+Размер исходника: 17749 символов
+
+===== ПОСЛЕДНИЕ РЕЗЕРВНЫЕ КОПИИ =====
+-rw-------. 1 u0_a338 u0_a338 18825 Oct 10 02:29 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022918
+-rw-------. 1 u0_a338 u0_a338 12727 Oct 10 02:27 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_022734
+-rw-------. 1 u0_a338 u0_a338 12727 Oct 10 02:09 app/src/main/java/com/pmca/bridge/MainActivity.java.backup_20261010_020939
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

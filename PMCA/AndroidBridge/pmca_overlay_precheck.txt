@@ -1,0 +1,367 @@
+===== PMCA OVERLAY PRECHECK =====
+Sat Oct 10 03:10:53 EET 2026
+
+===== MAIN ACTIVITY: IMPORTS AND INITIALIZATION =====
+package com.pmca.bridge;
+
+
+import android.Manifest;
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.Settings;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
+import android.app.Activity;
+import android.os.Bundle;
+import android.graphics.Typeface;
+import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.content.IntentFilter;
+import android.content.Intent;
+import android.content.BroadcastReceiver;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.pmca.bridge.core.PmcaController;
+import com.pmca.bridge.logging.PmcaLogger;
+
+public class MainActivity extends Activity {
+    private PmcaController controller;
+    private EditText input;
+    private TextView status;
+    private TextView output;
+    private TextView logs;
+
+    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String result = intent.getStringExtra("result_text");
+            if (result != null) {
+                output.setText(result);
+                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+                refreshLogs();
+            }
+        }
+    };
+    private boolean resultReceiverRegistered = false;
+
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private LinearLayout column() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        return layout;
+    }
+
+    private LinearLayout row() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        return layout;
+    }
+
+    private void addGap(LinearLayout parent, int heightDp) {
+        View gap = new View(this);
+        parent.addView(gap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)));
+    }
+
+    private Button makeButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setTextSize(15);
+        button.setAllCaps(false);
+        button.setMinHeight(dp(52));
+        return button;
+    }
+
+    private void addButton(LinearLayout parent, Button button, float weight) {
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(0, dp(54), weight);
+        params.setMargins(dp(4), 0, dp(4), 0);
+        parent.addView(button, params);
+    }
+
+    private TextView makeLabel(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(16);
+        view.setTypeface(null, Typeface.BOLD);
+        view.setTextColor(Color.rgb(30, 45, 60));
+        return view;
+    }
+
+    @Override
+    public void onCreate(Bundle state) {
+        super.onCreate(state);
+        controller = new PmcaController(this);
+        buildScreen();
+        refreshLogs();
+        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+        if (!lastResult.isEmpty()) output.setText(lastResult);
+        setStatus("ГОТОВ К РАБОТЕ", false);
+    }
+
+    private void buildScreen() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout root = column();
+        root.setPadding(dp(16), dp(12), dp(16), dp(16));
+        root.setBackgroundColor(Color.rgb(244, 247, 250));
+
+        TextView title = makeLabel("PMCA");
+        title.setTextSize(25);
+        root.addView(title);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Portable Modular Controller Architecture");
+        subtitle.setTextSize(12);
+        subtitle.setTextColor(Color.DKGRAY);
+        root.addView(subtitle);
+
+        addGap(root, 12);
+        status = makeLabel("");
+        root.addView(status);
+
+        addGap(root, 14);
+        root.addView(makeLabel("Команда / текст"));
+        addGap(root, 6);
+
+        input = new EditText(this);
+        input.setHint("Введите команду для Termux…");
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        input.setTextSize(16);
+        input.setMinLines(3);
+        input.setMaxLines(3);
+        input.setVerticalScrollBarEnabled(true);
+        input.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        input.setPadding(dp(12), dp(10), dp(12), dp(10));
+        input.setBackgroundColor(Color.WHITE);
+
+        // Фиксированная высота поля ввода: 100 dp.
+        root.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(100)));
+
+        addGap(root, 8);
+        LinearLayout firstRow = row();
+        Button send = makeButton("Выполнить в Termux");
+        Button paste = makeButton("Вставить из буфера");
+        addButton(firstRow, send, 1.15f);
+        addButton(firstRow, paste, 1f);
+        root.addView(firstRow);
+
+        addGap(root, 8);
+        LinearLayout secondRow = row();
+        Button installApp = makeButton("Установить приложение");
+        Button clear = makeButton("Очистить ввод");
+        addButton(secondRow, installApp, 1f);
+        addButton(secondRow, clear, 1f);
+        root.addView(secondRow);
+        addGap(root, 8);
+        Button copyResult = makeButton("Скопировать результат");
+        root.addView(copyResult, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 8);
+        Button copyLog = makeButton("Скопировать лог");
+        root.addView(copyLog, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 16);
+        root.addView(makeLabel("Результат"));
+        addGap(root, 6);
+
+        output = new TextView(this);
+        output.setText("Здесь появятся сообщения о действиях PMCA.");
+        output.setTextSize(14);
+        output.setTextColor(Color.rgb(35, 45, 55));
+        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+        output.setBackgroundColor(Color.WHITE);
+        root.addView(output, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+
+        addGap(root, 16);
+        LinearLayout logHeader = row();
+        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        Button refresh = makeButton("Обновить");
+        refresh.setMinHeight(dp(44));
+        logHeader.addView(refresh);
+        root.addView(logHeader);
+
+        addGap(root, 6);
+        logs = new TextView(this);
+        logs.setTextSize(12);
+        logs.setTextColor(Color.rgb(40, 50, 60));
+        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+        logs.setBackgroundColor(Color.WHITE);
+        root.addView(logs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+
+===== ANDROID MANIFEST =====
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application
+        android:allowBackup="false"
+        android:label="PMCA"
+        android:theme="@style/AppTheme">
+        <receiver
+            android:name=".InstallStatusReceiver"
+            android:exported="false" />
+        <service android:name=".termux.TermuxResultService" android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+===== GRADLE CONFIGURATION =====
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.pmca.bridge'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pmca.bridge'
+        minSdk 23
+        targetSdk 28
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+===== TERMUX BRIDGE RUN COMMAND =====
+                                "Termux: получен ответ для ID=" + operationId);
+
+                        return "Статус: " + status + "\n"
+                                + "ID: " + operationId + "\n\n"
+                                + response;
+                    }
+                }
+            } catch (Exception ignored) {
+                // Демон может ещё записывать JSON. Повторяем чтение.
+            }
+
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "ОЖИДАНИЕ ПРЕРВАНО";
+            }
+        }
+
+        PmcaLogger.log("Termux: тайм-аут ожидания ID=" + operationId);
+        return "ТАЙМ-АУТ: ответ пока не получен.\n"
+                + "Команда могла выполниться; проверь журнал Termux.\n"
+                + "ID: " + operationId;
+    }
+
+    // Совместимость с прежним интерфейсом контроллера.
+    public synchronized boolean sendShellCommand(String command) {
+        return submitShellCommand(command).accepted;
+    }
+
+    /**
+     * Запускает команду через штатный Termux RUN_COMMAND API.
+     * Результат возвращается в TermuxResultService.
+     */
+    public boolean runNativeCommand(Context context, String command) {
+        if (command == null || command.trim().isEmpty()) {
+            PmcaLogger.log("RUN_COMMAND: пустая команда");
+            return false;
+        }
+
+        try {
+            Intent resultIntent = new Intent(context, TermuxResultService.class);
+            int requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+
+            int flags = PendingIntent.FLAG_ONE_SHOT;
+            if (Build.VERSION.SDK_INT >= 31) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getService(
+                    context, requestCode, resultIntent, flags);
+
+            Intent run = new Intent();
+            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+            run.setAction("com.termux.RUN_COMMAND");
+            run.putExtra("com.termux.RUN_COMMAND_PATH",
+                    "/data/data/com.termux/files/usr/bin/bash");
+            run.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
+                    new String[]{"-lc", command});
+            run.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+                    "/data/data/com.termux/files/home");
+            run.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
+            run.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pendingIntent);
+            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+                    "Команда запущена из PMCA");
+
+            context.startService(run);
+            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+            return true;
+        } catch (Exception e) {
+            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+}
+
+===== JAVA SOURCE TREE =====
+app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java
+app/src/main/java/com/pmca/bridge/MainActivity.java
+app/src/main/java/com/pmca/bridge/clipboard/ClipboardCopyModule.java
+app/src/main/java/com/pmca/bridge/core/PmcaController.java
+app/src/main/java/com/pmca/bridge/logging/PmcaLogger.java
+app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java
+app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java
+
+===== ANDROID SDK / JAVA / GRADLE =====
+JAVA: openjdk version "21.0.12" 2026-07-21
+OpenJDK Runtime Environment (build 21.0.12)
+OpenJDK 64-Bit Server VM (build 21.0.12, mixed mode)
+GRADLE WRAPPER: -rwx------. 1 u0_a338 u0_a338 8656 Oct 10 00:08 ./gradlew
+ANDROID SDK: не задан
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

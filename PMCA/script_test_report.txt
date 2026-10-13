@@ -1,0 +1,15 @@
+===== PMCA SCRIPT RECORDING TEST =====
+PMCA_OUTPUT_LINE_1
+PMCA_OUTPUT_LINE_2
+
+===== RECORDED CONTENT =====
+Script started on 2026-10-09 12:03:42+02:00 [COMMAND="printf "PMCA_OUTPUT_LINE_1\n"; printf "PMCA_OUTPUT_LINE_2\n"" <not executed on terminal>]
+PMCA_OUTPUT_LINE_1
+PMCA_OUTPUT_LINE_2
+
+Script done on 2026-10-09 12:03:42+02:00 [COMMAND_EXIT_CODE="0"]
+
+===== CHECK =====
+SCRIPT_RECORDING=OK
+
+===== END =====

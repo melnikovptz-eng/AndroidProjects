@@ -1,0 +1,72 @@
+# Android and Gradle generated files
+**/build/
+**/.gradle/
+**/.idea/
+**/local.properties
+
+# Compiled binaries
+*.class
+*.dex
+*.apk
+*.aab
+
+# Backup files
+**/*backup*
+**/*.before_*
+**/*.bak*
+**/*.backup*
+
+# Test-only generated directory
+**/.guard_test/
+
+# Logs and temporary runtime data
+**/logs/
+**/output_history/
+**/auto_commands/
+*.log
+*.tmp
+*.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PMCA generated and backup files
+**/build/
+**/.gradle/
+**/local.properties
+**/.guard_test/
+**/*backup*
+**/*.before_*
+**/*.bak*
+**/*.backup*
+**/logs/
+**/output_history/
+**/auto_commands/
+*.apk
+*.aab
+*.class
+*.dex
+*.log
+*.tmp
+*.lock
+
+# PMCA: локальные, временные и сгенерированные файлы
+**/.guard_test/
+**/local.properties
+**/*backup*
+**/*.before_*
+**/*.bak*
+**/*.backup*
+**/logs/
+**/output_history/
+**/auto_commands/
+**/build/
+**/.gradle/
+*.apk
+*.aab
+*.class
+*.dex
+*.log
+*.tmp
+*.lock

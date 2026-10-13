@@ -1,0 +1,29 @@
+===== PMCA CLIPBOARD DIAGNOSTIC =====
+Fri Oct  9 22:39:43 EET 2026
+
+===== 1. INSTALLED PACKAGES =====
+termux-am-socket/stable,now 1.5.0-1 aarch64 [installed]
+termux-am/stable,now 0.8.1 all [installed]
+termux-api/stable,now 0.60.0 aarch64 [installed]
+termux-auth/stable,now 1.5.0-1 aarch64 [installed,automatic]
+termux-core/stable,now 0.4.0-1 aarch64 [installed]
+termux-exec/stable,now 1:2.5.0-1 aarch64 [installed]
+termux-keyring/stable,now 3.14 all [installed]
+termux-licenses/stable,now 2.2 all [installed]
+termux-tools/stable,now 1.46.0+really1.45.0-1 aarch64 [installed]
+
+===== 2. CLIPBOARD COMMANDS =====
+termux-clipboard-set: /data/data/com.termux/files/usr/bin/termux-clipboard-set
+termux-clipboard-get: /data/data/com.termux/files/usr/bin/termux-clipboard-get
+termux-info: /data/data/com.termux/files/usr/bin/termux-info
+
+===== 3. TERMUX API PACKAGE =====
+API_PACKAGE_NOT_LISTED
+
+===== 4. API COMMAND TIMEOUT TEST =====
+CLIPBOARD_SET_EXIT=124
+
+===== 5. PROCESS CHECK =====
+NO_MATCHING_API_PROCESSES
+
+===== END DIAGNOSTIC =====

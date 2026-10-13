@@ -1,0 +1,41 @@
+===== PMCA SAFE BRIDGE DIAGNOSTICS =====
+Fri Oct  9 22:28:52 EET 2026
+
+===== 1. BRIDGE SCRIPT =====
+SCRIPT_EXISTS=YES
+-rwxr--r--. 1 u0_a338 u0_a338 7851 Oct  8 02:47 /data/data/com.termux/files/home/TaperV6/termux_bridge_daemon.sh
+SYNTAX_EXIT_CODE=0
+
+===== 2. BRIDGE STORAGE =====
+--- command.json ---
+-rw-rw----. 1 u0_a201 media_rw 161 Oct  8 11:51 /data/data/com.termux/files/home/storage/downloads/Taper/command.json
+{"operation_id":"8e019904-332f-4a87-86dd-2889f3c9e519","timestamp":1791453110566,"type":"TAPER_DATA","command":"TAPER_DATA","data":"⟦TAPER:CMD_ID:123⟧\n..."}
+--- result.json ---
+-rw-rw----. 1 u0_a201 media_rw 164 Oct  8 03:49 /data/data/com.termux/files/home/storage/downloads/Taper/result.json
+{"operation_id": "676b1689-a9a7-45cb-86d8-7f0f7fcd3154", "timestamp": 1791424176549, "status": "SUCCESS", "response": "TERMUX_DATA_RECEIVED: termux-clipboard-get"}
+
+
+===== 3. INTERNAL LOCK =====
+LOCKDIR_EXISTS=YES
+total 4
+-rw-rw----. 1 u0_a201 media_rw 6 Oct  8 03:00 pid
+
+===== 4. BRIDGE PROCESSES =====
+NO_MATCHING_PROCESSES
+
+===== 5. RECENT BRIDGE LOGS =====
+/data/data/com.termux/files/home/TaperV6/bridge_status.log
+/data/data/com.termux/files/home/TaperV6/single_daemon_status.log
+/data/data/com.termux/files/home/TaperV6/single_daemon_fix.log
+/data/data/com.termux/files/home/TaperV6/final_daemon_check.log
+/data/data/com.termux/files/home/TaperV6/android_bridge_check.log
+/data/data/com.termux/files/home/TaperV6/bridge_implementation_check.log
+/data/data/com.termux/files/home/TaperV6/daemon_shell_context.log
+/data/data/com.termux/files/home/TaperV6/duplicate_daemon_diagnostic.log
+/data/data/com.termux/files/home/TaperV6/remove_duplicate_daemon.log
+/data/data/com.termux/files/home/TaperV6/stop_old_daemon.log
+/data/data/com.termux/files/home/TaperV6/restart_shell_daemon.log
+/data/data/com.termux/files/home/storage/downloads/Taper/termux_bridge.log
+/data/data/com.termux/files/home/storage/downloads/Taper/daemon_stdout.log
+
+===== DIAGNOSTICS COMPLETE =====

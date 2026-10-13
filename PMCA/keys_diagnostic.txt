@@ -1,0 +1,32 @@
+===== 1C 2C 3C DIAGNOSTIC =====
+Fri Oct  9 11:59:42 EET 2026
+
+===== EXTRA KEYS CONFIG =====
+extra-keys-style = default
+extra-keys-text-all-caps = false
+
+extra-keys = [ \
+ ['ESC','/','-','HOME','UP','END','PGUP'], \
+ ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN', \
+  {macro: "pmca_copy1 ENTER", display: "1с"}, \
+  {macro: "pmca_copy2 ENTER", display: "2с"}, \
+  {macro: "pmca_copy3 ENTER", display: "3с"}] \
+]
+
+===== CLIPBOARD TOOLS =====
+/data/data/com.termux/files/usr/bin/termux-clipboard-set
+/data/data/com.termux/files/usr/bin/termux-clipboard-get
+/data/data/com.termux/files/usr/bin/script
+
+===== BASH CONFIG REFERENCES =====
+/data/data/com.termux/files/home/.bashrc:29:    # Используем текущий Termux clipboard механизм,
+/data/data/com.termux/files/home/.bashrc:31:    if command -v termux-clipboard-set >/dev/null 2>&1; then
+/data/data/com.termux/files/home/.bashrc:32:        printf '%s' "$text" | timeout 3 termux-clipboard-set >/dev/null 2>&1
+/data/data/com.termux/files/home/.bashrc:65:    printf '%s' "$text" | timeout 3 termux-clipboard-set >/dev/null 2>&1
+/data/data/com.termux/files/home/.bashrc:85:" "$text" | timeout 3 termux-clipboard-set; echo "[${n}с] COPY-$id: $n команд скопировано"; }
+
+===== SHELL =====
+BASH_VERSION=5.3.20(1)-release
+SHELL=/data/data/com.termux/files/usr/bin/bash
+
+===== DIAGNOSTIC END =====

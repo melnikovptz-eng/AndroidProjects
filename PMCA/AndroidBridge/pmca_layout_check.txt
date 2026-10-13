@@ -1,0 +1,234 @@
+===== PMCA: ПРОВЕРКА =====
+
+===== КНОПКИ И РАСПОЛОЖЕНИЕ =====
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        input.setTextSize(16);
+        input.setMinLines(3);
+        input.setMaxLines(3);
+        input.setVerticalScrollBarEnabled(true);
+        input.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        input.setPadding(dp(12), dp(10), dp(12), dp(10));
+        input.setBackgroundColor(Color.WHITE);
+
+        // Фиксированная высота поля ввода: 100 dp.
+        root.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(100)));
+
+        addGap(root, 8);
+        LinearLayout firstRow = row();
+        Button send = makeButton("Выполнить в Termux");
+        Button paste = makeButton("Вставить из буфера");
+        addButton(firstRow, send, 1.15f);
+        addButton(firstRow, paste, 1f);
+        root.addView(firstRow);
+
+        addGap(root, 8);
+        LinearLayout secondRow = row();
+        Button installApp = makeButton("Установить приложение");
+        Button clear = makeButton("Очистить ввод");
+        addButton(secondRow, installApp, 1f);
+        addButton(secondRow, clear, 1f);
+        root.addView(secondRow);
+        addGap(root, 8);
+        Button copyResult = makeButton("Скопировать результат");
+        root.addView(copyResult, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 8);
+        Button copyLog = makeButton("Скопировать лог");
+        root.addView(copyLog, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+
+        addGap(root, 16);
+        root.addView(makeLabel("Результат"));
+        addGap(root, 6);
+
+        output = new TextView(this);
+        output.setText("Здесь появятся сообщения о действиях PMCA.");
+        output.setTextSize(14);
+        output.setTextColor(Color.rgb(35, 45, 55));
+        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+        output.setBackgroundColor(Color.WHITE);
+        root.addView(output, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+
+        addGap(root, 16);
+        LinearLayout logHeader = row();
+        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        Button refresh = makeButton("Обновить");
+        refresh.setMinHeight(dp(44));
+        logHeader.addView(refresh);
+        root.addView(logHeader);
+
+        addGap(root, 6);
+        logs = new TextView(this);
+        logs.setTextSize(12);
+        logs.setTextColor(Color.rgb(40, 50, 60));
+        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+        logs.setBackgroundColor(Color.WHITE);
+        root.addView(logs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+
+===== ОБРАБОТЧИКИ =====
+        });
+
+        paste.setOnClickListener(v -> {
+            // Сначала очищаем старый текст.
+            input.setText("");
+
+            // Затем читаем буфер и вставляем его содержимое.
+            String text = controller.readClipboard();
+
+            if (text != null && !text.isEmpty()) {
+                input.setText(text);
+                input.setSelection(input.length());
+                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+            } else {
+                setStatus("БУФЕР ПУСТ", false);
+            }
+
+            refreshLogs();
+        });
+
+        installApp.setOnClickListener(v -> installLatestApk());
+
+clear.setOnClickListener(v -> {
+            input.setText("");
+            output.setText("Ввод очищен.");
+            setStatus("ВВОД ОЧИЩЕН", true);
+            PmcaLogger.log("UI: поле ввода очищено");
+            refreshLogs();
+        });
+
+        copyResult.setOnClickListener(v -> {
+            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+            refreshLogs();
+        });
+
+        refresh.setOnClickListener(v -> refreshLogs());
+
+        copyLog.setOnClickListener(v -> {
+            refreshLogs();
+            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+
+===== УСТАНОВКА APK =====
+    @Override
+    protected void onPause() {
+        if (resultReceiverRegistered) {
+            try {
+                unregisterReceiver(termuxResultReceiver);
+            } catch (Exception ignored) {}
+            resultReceiverRegistered = false;
+        }
+        super.onPause();
+    }
+
+
+    private static final int PMCA_INSTALL_PERMISSION_REQUEST = 7401;
+    private static final int PMCA_INSTALL_STORAGE_REQUEST = 7402;
+
+    private void installLatestApk() {
+        if (Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    PMCA_INSTALL_STORAGE_REQUEST);
+            setStatus("НУЖЕН ДОСТУП К APK", false);
+            return;
+        }
+
+        continueLatestApkInstall();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PMCA_INSTALL_STORAGE_REQUEST) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                continueLatestApkInstall();
+            } else {
+                setStatus("НЕТ ДОСТУПА К APK", false);
+                android.widget.Toast.makeText(
+                        this,
+                        "Разреши доступ к файлам, затем нажми кнопку ещё раз.",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void continueLatestApkInstall() {
+        if (Build.VERSION.SDK_INT >= 26
+                && !getPackageManager().canRequestPackageInstalls()) {
+            setStatus("РАЗРЕШИ УСТАНОВКУ ПРИЛОЖЕНИЙ", false);
+            try {
+                Intent settingsIntent = new Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                startActivityForResult(
+                        settingsIntent, PMCA_INSTALL_PERMISSION_REQUEST);
+            } catch (Exception e) {
+                PmcaLogger.log("Не удалось открыть настройки установки: " + e);
+                android.widget.Toast.makeText(
+                        this,
+                        "Разреши установку приложений из PMCA в настройках Android.",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+
+        startLatestApkInstall();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PMCA_INSTALL_PERMISSION_REQUEST) {
+            if (Build.VERSION.SDK_INT < 26
+
+===== MANIFEST =====
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application
+        android:allowBackup="false"
+        android:label="PMCA"
+        android:theme="@style/AppTheme">
+        <receiver
+            android:name=".InstallStatusReceiver"
+            android:exported="false" />
+        <service android:name=".termux.TermuxResultService" android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+===== НАСТРОЙКИ GRADLE =====
+6:    namespace 'com.pmca.bridge'
+7:    compileSdk 35
+10:        applicationId 'com.pmca.bridge'
+11:        minSdk 23
+12:        targetSdk 28
+
+===== APK =====
+-rw-rw----. 1 u0_a201 media_rw 38K Oct 10 02:27 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

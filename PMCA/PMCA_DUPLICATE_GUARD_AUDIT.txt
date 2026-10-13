@@ -1,0 +1,137 @@
+===== PMCA DUPLICATE GUARD AUDIT =====
+Sat Oct 10 13:28:52 EET 2026
+
+===== 1. JAVA SOURCE FILES =====
+AndroidBridge/app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/clipboard/ClipboardCopyModule.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/logging/PmcaLogger.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/ClipboardPasteActivity.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java
+
+===== 2. DUPLICATE GUARD REFERENCES =====
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:26:    public String waitForTermuxResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:27:        return termux.waitForResult(operationId, timeoutMs);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:29:        public final String operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:32:        Submission(boolean accepted, String operationId, String message) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:34:            this.operationId = operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:48:        String operationId = UUID.randomUUID().toString();
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:52:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:60:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:65:            json.put("operation_id", operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:79:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:84:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:88:            PmcaLogger.log("Termux: команда отправлена, ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:89:            return new Submission(true, operationId, "Команда передана");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:94:            return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:104:    public String waitForResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:105:        if (operationId == null || operationId.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:121:                    String resultId = result.optString("operation_id", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:124:                    if (operationId.equals(resultId)) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:130:                                "Termux: получен ответ для ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:133:                                + "ID: " + operationId + "\n\n"
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:149:        PmcaLogger.log("Termux: тайм-аут ожидания ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:152:                + "ID: " + operationId;
+
+===== 3. COMMAND ROUTING AND EXECUTION =====
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:26:    public String waitForTermuxResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:27:        return termux.waitForResult(operationId, timeoutMs);
+AndroidBridge/app/src/main/java/com/pmca/bridge/core/PmcaController.java:51:        PmcaLogger.log("Контроллер: запуск через штатный RUN_COMMAND");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:29:        public final String operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:32:        Submission(boolean accepted, String operationId, String message) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:34:            this.operationId = operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:44:        File commandFile = new File(bridgeDir, "command.json");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:48:        String operationId = UUID.randomUUID().toString();
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:52:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:60:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:65:            json.put("operation_id", operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:79:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:84:                return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:88:            PmcaLogger.log("Termux: команда отправлена, ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:89:            return new Submission(true, operationId, "Команда передана");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:94:            return new Submission(false, operationId,
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:104:    public String waitForResult(String operationId, long timeoutMs) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:105:        if (operationId == null || operationId.isEmpty()) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:109:        File resultFile = new File(bridgeDir, "result.json");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:121:                    String resultId = result.optString("operation_id", "");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:124:                    if (operationId.equals(resultId)) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:130:                                "Termux: получен ответ для ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:133:                                + "ID: " + operationId + "\n\n"
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:149:        PmcaLogger.log("Termux: тайм-аут ожидания ID=" + operationId);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:152:                + "ID: " + operationId;
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:161:     * Запускает команду через штатный Termux RUN_COMMAND API.
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:166:            PmcaLogger.log("RUN_COMMAND: пустая команда");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:183:            run.setClassName("com.termux", "com.termux.app.RunCommandService");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:184:            run.setAction("com.termux.RUN_COMMAND");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:185:            run.putExtra("com.termux.RUN_COMMAND_PATH",
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:187:            run.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:189:            run.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:191:            run.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:192:            run.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pendingIntent);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:193:            run.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "PMCA");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:194:            run.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:197:            context.startService(run);
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:198:            PmcaLogger.log("RUN_COMMAND: команда передана Termux");
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxBridgeAdapter.java:201:            PmcaLogger.log("RUN_COMMAND: ошибка запуска: "
+AndroidBridge/app/src/main/java/com/pmca/bridge/termux/TermuxResultService.java:102:        PmcaLogger.log("RUN_COMMAND RESULT: ответ получен");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:25:import android.content.BroadcastReceiver;
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:43:    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:45:        public void onReceive(Context context, Intent intent) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:252:            output.setText("Команда отправляется через штатный RUN_COMMAND…");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:260:                PmcaLogger.log("UI: RUN_COMMAND принят");
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:262:                output.setText("Не удалось запустить команду через RUN_COMMAND.\n"
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:330:            startService(panel);
+AndroidBridge/app/src/main/java/com/pmca/bridge/MainActivity.java:332:            startService(panel);
+AndroidBridge/app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:3:import android.content.BroadcastReceiver;
+AndroidBridge/app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:10:public class InstallStatusReceiver extends BroadcastReceiver {
+AndroidBridge/app/src/main/java/com/pmca/bridge/InstallStatusReceiver.java:12:    public void onReceive(Context context, Intent intent) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:4:import android.content.BroadcastReceiver;
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:59:    private final BroadcastReceiver resultReceiver = new BroadcastReceiver() {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:61:        public void onReceive(Context context, Intent intent) {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:386:            runCommand();
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:413:    private void runCommand() {
+AndroidBridge/app/src/main/java/com/pmca/bridge/overlay/FloatingPanelService.java:437:                    "Termux не принял команду. Проверьте RUN_COMMAND.",
+
+===== 4. DOCUMENTATION STATUS =====
+--- MODULE_REGISTRY.md ---
+23:| PMCA-DUP-001 | Duplicate Guard | Защита от повторной обработки и циклов | PLANNED | Интеграция не подтверждена |
+66:До устранения дублирования необходимо выяснить назначение этих операций,
+78:Parser, Duplicate Guard, Processing Gate, Queue и Router нельзя считать
+106:- зафиксировано дублирование обращений к буферу обмена;
+118:5. Результат команды `PMCA_DUPLICATE_DISPLAY_TEST_01` сохранился после закрытия и повторного открытия PMCA; по пользовательской проверке команда повторно не запускалась.
+122:- Полная защита от повторной обработки как отдельный модуль Duplicate Guard не подтверждена.
+124:- Эти результаты не доказывают устойчивость ко всем ошибкам, повторным событиям или состояниям Android.
+--- IMPLEMENTATION_MAP.md ---
+60:- `waitForTermuxResult(String operationId, long timeoutMs)`
+99:- `waitForResult(String operationId, long timeoutMs)`
+239:6. Установить, какие механизмы защиты от повторной обработки реально
+272:5. Результат команды `PMCA_DUPLICATE_DISPLAY_TEST_01` сохранился после закрытия и повторного открытия PMCA; по пользовательской проверке команда повторно не запускалась.
+276:- Полная защита от повторной обработки как отдельный модуль Duplicate Guard не подтверждена.
+278:- Эти результаты не доказывают устойчивость ко всем ошибкам, повторным событиям или состояниям Android.
+--- CURRENT_STATE.md ---
+57:Наличие отдельных интегрированных компонентов Parser, Duplicate Guard,
+124:8. Работа защиты от повторной обработки и циклов после реализации
+168:5. Результат команды `PMCA_DUPLICATE_DISPLAY_TEST_01` сохранился после закрытия и повторного открытия PMCA; по пользовательской проверке команда повторно не запускалась.
+172:- Полная защита от повторной обработки как отдельный модуль Duplicate Guard не подтверждена.
+174:- Эти результаты не доказывают устойчивость ко всем ошибкам, повторным событиям или состояниям Android.
+--- PROJECT_STATUS.md ---
+18:message routing, duplicate protection, logging, and verifiable execution
+31:- Duplicate Guard
+102:- Duplicate Guard не подтверждён как отдельный интегрированный компонент.
+122:- предотвращение повторной обработки сообщений.
+163:5. Результат команды `PMCA_DUPLICATE_DISPLAY_TEST_01` сохранился после закрытия и повторного открытия PMCA; по пользовательской проверке команда повторно не запускалась.
+167:- Полная защита от повторной обработки как отдельный модуль Duplicate Guard не подтверждена.
+169:- Эти результаты не доказывают устойчивость ко всем ошибкам, повторным событиям или состояниям Android.
+
+===== 5. APK INFORMATION =====
+-rw-rw----. 1 u0_a201 media_rw 49K Oct 10 12:07 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+c77688d1c75e019cff692ef409df119c25e6f6661a70e063d90c40fa127dab3d  /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== AUDIT LIMITS =====
+Это статический аудит исходников; код приложения не запускался и не изменялся.
+Наличие operation_id само по себе не доказывает полноценную защиту от повторной обработки.
+
+===== AUDIT COMPLETE =====

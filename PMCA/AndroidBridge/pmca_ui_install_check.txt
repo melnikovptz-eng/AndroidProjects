@@ -1,0 +1,138 @@
+===== PMCA: ПРОВЕРКА ИЗМЕНЕНИЙ И УСТАНОВКИ APK =====
+
+===== 1. КНОПКИ И РАЗМЕТКА =====
+141-
+142-        // Фиксированная высота поля ввода: 100 dp.
+143-        root.addView(input, new LinearLayout.LayoutParams(
+144-                ViewGroup.LayoutParams.MATCH_PARENT, dp(100)));
+145-
+146-        addGap(root, 8);
+147-        LinearLayout firstRow = row();
+148:        Button send = makeButton("Выполнить в Termux");
+149:        Button paste = makeButton("Вставить из буфера");
+150-        addButton(firstRow, send, 1.15f);
+151-        addButton(firstRow, paste, 1f);
+152-        root.addView(firstRow);
+153-
+154-        addGap(root, 8);
+155-        LinearLayout secondRow = row();
+156:        Button copyInput = makeButton("Скопировать ввод");
+157:        Button clear = makeButton("Очистить ввод");
+158-        addButton(secondRow, copyInput, 1f);
+159-        addButton(secondRow, clear, 1f);
+160-        root.addView(secondRow);
+161-        addGap(root, 8);
+162:        Button copyResult = makeButton("Скопировать результат");
+163:        root.addView(copyResult, new LinearLayout.LayoutParams(
+164-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+165-
+166-        addGap(root, 16);
+167-        root.addView(makeLabel("Результат"));
+168-        addGap(root, 6);
+169-
+170-        output = new TextView(this);
+171-        output.setText("Здесь появятся сообщения о действиях PMCA.");
+172-        output.setTextSize(14);
+173-        output.setTextColor(Color.rgb(35, 45, 55));
+174-        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+175-        output.setBackgroundColor(Color.WHITE);
+176-        root.addView(output, new LinearLayout.LayoutParams(
+177-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+178-
+179-
+180-        addGap(root, 16);
+181:        LinearLayout logHeader = row();
+182:        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+183:        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+184-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+185-        Button refresh = makeButton("Обновить");
+186-        refresh.setMinHeight(dp(44));
+187:        logHeader.addView(refresh);
+188:        root.addView(logHeader);
+189-
+190-        addGap(root, 6);
+191-        logs = new TextView(this);
+192-        logs.setTextSize(12);
+193-        logs.setTextColor(Color.rgb(40, 50, 60));
+194-        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+195-        logs.setBackgroundColor(Color.WHITE);
+196-        root.addView(logs, new LinearLayout.LayoutParams(
+197-                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+198-
+199-        addGap(root, 8);
+200:        Button copyLog = makeButton("Скопировать лог");
+201-        root.addView(copyLog, new LinearLayout.LayoutParams(
+202-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+203-
+204-        scroll.addView(root);
+205-        setContentView(scroll);
+206-
+207-        send.setOnClickListener(v -> {
+208-            hideKeyboard();
+209-            String command = input.getText().toString().trim();
+210-            if (command.isEmpty()) {
+211-                setStatus("НУЖНА КОМАНДА", false);
+212-                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+--
+259-            input.setText("");
+260-            output.setText("Ввод очищен.");
+261-            setStatus("ВВОД ОЧИЩЕН", true);
+262-            PmcaLogger.log("UI: поле ввода очищено");
+263-            refreshLogs();
+264-        });
+265-
+266:        copyResult.setOnClickListener(v -> {
+267-            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+268-            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+269-            refreshLogs();
+270-        });
+271-
+272-        refresh.setOnClickListener(v -> refreshLogs());
+273-
+274-        copyLog.setOnClickListener(v -> {
+275-            refreshLogs();
+276-            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+277-            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+278-            refreshLogs();
+
+===== 2. ANDROID MANIFEST =====
+1:<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+2:    <uses-permission android:name="android.permission.INTERNET" />
+3:    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+4:    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+5:    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+6-
+7:    <application
+8-        android:allowBackup="false"
+9-        android:label="PMCA"
+10-        android:theme="@style/AppTheme">
+11-        <service android:name=".termux.TermuxResultService" android:exported="false" />
+12-        <activity
+13:            android:name=".MainActivity"
+14-            android:exported="true">
+15-            <intent-filter>
+16-                <action android:name="android.intent.action.MAIN" />
+17-                <category android:name="android.intent.category.LAUNCHER" />
+18-            </intent-filter>
+19-        </activity>
+20:    </application>
+21:</manifest>
+
+===== 3. НАСТРОЙКИ ПРОЕКТА =====
+--- app/build.gradle ---
+6:    namespace 'com.pmca.bridge'
+7:    compileSdk 35
+10:        applicationId 'com.pmca.bridge'
+11:        minSdk 23
+12:        targetSdk 28
+--- build.gradle ---
+--- settings.gradle ---
+
+===== 4. APK ДЛЯ УСТАНОВКИ =====
+-rw-rw----. 1 u0_a201 media_rw 28K Oct 10 02:10 /data/data/com.termux/files/home/storage/downloads/PMCA.apk
+
+===== 5. ПОИСК СУЩЕСТВУЮЩЕГО FILEPROVIDER =====
+
+===== ПРОВЕРКА ЗАВЕРШЕНА =====
+Исходники не изменялись, сборка не запускалась.
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

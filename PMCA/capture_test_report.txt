@@ -1,0 +1,37 @@
+===== PMCA CAPTURE TEST =====
+
+[1] Проверка журнала
+total 23K
+drwx------. 2 u0_a338 u0_a338 3.4K Oct  9 12:28 .
+drwx------. 3 u0_a338 u0_a338 3.4K Oct  9 12:27 ..
+-rw-------. 1 u0_a338 u0_a338    0 Oct  9 12:28 cmd_000001.log
+-rw-------. 1 u0_a338 u0_a338   22 Oct  9 12:28 cmd_000002.log
+-rw-------. 1 u0_a338 u0_a338   67 Oct  9 12:28 current_11780.tmp
+-rw-------. 1 u0_a338 u0_a338  134 Oct  9 12:28 index.txt
+-rw-------. 1 u0_a338 u0_a338    2 Oct  9 12:28 sequence.txt
+
+[2] Поиск тестового вывода
+/data/data/com.termux/files/home/PMCA/logs/commands/cmd_000002.log:1:PMCA_CAPTURE_TEST_123
+
+[3] Проверка функций
+pmca_copy1 is a function
+pmca_copy1 () 
+{ 
+    pmca_copy_history 1
+}
+pmca_copy2 is a function
+pmca_copy2 () 
+{ 
+    pmca_copy_history 2
+}
+pmca_copy3 is a function
+pmca_copy3 () 
+{ 
+    pmca_copy_history 3
+}
+
+[4] Проверка индекса
+/data/data/com.termux/files/home/PMCA/logs/commands/cmd_000001.log
+/data/data/com.termux/files/home/PMCA/logs/commands/cmd_000002.log
+
+===== END TEST =====

@@ -1,0 +1,245 @@
+===== PMCA: ПОДГОТОВКА ПЕРЕНОСА КНОПКИ ЛОГА =====
+
+===== КНОПКА КОПИРОВАНИЯ ЛОГА =====
+190-        addGap(root, 6);
+191-        logs = new TextView(this);
+192-        logs.setTextSize(12);
+193-        logs.setTextColor(Color.rgb(40, 50, 60));
+194-        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+195-        logs.setBackgroundColor(Color.WHITE);
+196-        root.addView(logs, new LinearLayout.LayoutParams(
+197-                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+198-
+199-        addGap(root, 8);
+200:        Button copyLog = makeButton("Скопировать лог");
+201:        root.addView(copyLog, new LinearLayout.LayoutParams(
+202-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+203-
+204-        scroll.addView(root);
+205-        setContentView(scroll);
+206-
+207-        send.setOnClickListener(v -> {
+208-            hideKeyboard();
+209-            String command = input.getText().toString().trim();
+210-            if (command.isEmpty()) {
+211-                setStatus("НУЖНА КОМАНДА", false);
+212-                Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
+213-                return;
+214-            }
+215-
+216-            output.setText("Команда отправляется через штатный RUN_COMMAND…");
+217-            setStatus("ЗАПУСК TERMUX", false);
+--
+264-        });
+265-
+266-        copyResult.setOnClickListener(v -> {
+267-            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+268-            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+269-            refreshLogs();
+270-        });
+271-
+272-        refresh.setOnClickListener(v -> refreshLogs());
+273-
+274:        copyLog.setOnClickListener(v -> {
+275-            refreshLogs();
+276-            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+277-            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+278-            refreshLogs();
+279-        });
+280-    }
+281-
+282-    private void setStatus(String text, boolean success) {
+283-        status.setText("● " + text);
+284-        status.setTextColor(success ? Color.rgb(20, 125, 70) : Color.rgb(155, 75, 35));
+285-    }
+286-
+287-    private void refreshLogs() {
+288-        if (logs != null) logs.setText(PmcaLogger.getText());
+289-    }
+290-
+
+===== ЗАГОЛОВОК И ОТОБРАЖЕНИЕ ЛОГА =====
+31-    private final BroadcastReceiver termuxResultReceiver = new BroadcastReceiver() {
+32-        @Override
+33-        public void onReceive(Context context, Intent intent) {
+34-            if (intent == null) return;
+35-            String result = intent.getStringExtra("result_text");
+36-            if (result != null) {
+37-                output.setText(result);
+38-                setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
+39:                refreshLogs();
+40-            }
+41-        }
+42-    };
+43-    private boolean resultReceiverRegistered = false;
+44-
+45-
+46-    private int dp(float value) {
+47-        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+48-    }
+49-
+50-    private LinearLayout column() {
+51-        LinearLayout layout = new LinearLayout(this);
+52-        layout.setOrientation(LinearLayout.VERTICAL);
+53-        return layout;
+54-    }
+55-
+56-    private LinearLayout row() {
+57-        LinearLayout layout = new LinearLayout(this);
+--
+91-        return view;
+92-    }
+93-
+94-    @Override
+95-    public void onCreate(Bundle state) {
+96-        super.onCreate(state);
+97-        controller = new PmcaController(this);
+98-        buildScreen();
+99:        refreshLogs();
+100-        String lastResult = getSharedPreferences("pmca_results", MODE_PRIVATE).getString("last_result", "");
+101-        if (!lastResult.isEmpty()) output.setText(lastResult);
+102-        setStatus("ГОТОВ К РАБОТЕ", false);
+103-    }
+104-
+105-    private void buildScreen() {
+106-        ScrollView scroll = new ScrollView(this);
+107-        scroll.setFillViewport(true);
+108-
+109-        LinearLayout root = column();
+110-        root.setPadding(dp(16), dp(12), dp(16), dp(16));
+111-        root.setBackgroundColor(Color.rgb(244, 247, 250));
+112-
+113-        TextView title = makeLabel("PMCA");
+114-        title.setTextSize(25);
+115-        root.addView(title);
+116-
+117-        TextView subtitle = new TextView(this);
+--
+173-        output.setTextColor(Color.rgb(35, 45, 55));
+174-        output.setPadding(dp(12), dp(12), dp(12), dp(12));
+175-        output.setBackgroundColor(Color.WHITE);
+176-        root.addView(output, new LinearLayout.LayoutParams(
+177-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+178-
+179-
+180-        addGap(root, 16);
+181:        LinearLayout logHeader = row();
+182:        TextView logTitle = makeLabel("Журнал — последние 50 строк");
+183:        logHeader.addView(logTitle, new LinearLayout.LayoutParams(
+184-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+185-        Button refresh = makeButton("Обновить");
+186-        refresh.setMinHeight(dp(44));
+187:        logHeader.addView(refresh);
+188:        root.addView(logHeader);
+189-
+190-        addGap(root, 6);
+191-        logs = new TextView(this);
+192-        logs.setTextSize(12);
+193-        logs.setTextColor(Color.rgb(40, 50, 60));
+194-        logs.setPadding(dp(10), dp(10), dp(10), dp(10));
+195-        logs.setBackgroundColor(Color.WHITE);
+196-        root.addView(logs, new LinearLayout.LayoutParams(
+197-                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+198-
+199-        addGap(root, 8);
+200-        Button copyLog = makeButton("Скопировать лог");
+201-        root.addView(copyLog, new LinearLayout.LayoutParams(
+202-                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
+203-
+204-        scroll.addView(root);
+205-        setContentView(scroll);
+206-
+--
+223-                setStatus("КОМАНДА ЗАПУЩЕНА", true);
+224-                PmcaLogger.log("UI: RUN_COMMAND принят");
+225-            } else {
+226-                output.setText("Не удалось запустить команду через RUN_COMMAND.\n"
+227-                        + "Проверьте разрешение Termux для PMCA и настройку "
+228-                        + "allow-external-apps.");
+229-                setStatus("ЗАПУСК НЕ УДАЛСЯ", false);
+230-            }
+231:            refreshLogs();
+232-        });
+233-
+234-        paste.setOnClickListener(v -> {
+235-            // Сначала очищаем старый текст.
+236-            input.setText("");
+237-
+238-            // Затем читаем буфер и вставляем его содержимое.
+239-            String text = controller.readClipboard();
+240-
+241-            if (text != null && !text.isEmpty()) {
+242-                input.setText(text);
+243-                input.setSelection(input.length());
+244-                setStatus("ТЕКСТ ВСТАВЛЕН", true);
+245-            } else {
+246-                setStatus("БУФЕР ПУСТ", false);
+247-            }
+248-
+249:            refreshLogs();
+250-        });
+251-
+252-        copyInput.setOnClickListener(v -> {
+253-            boolean ok = controller.copy(input.getText().toString(), "PMCA ввод");
+254-            setStatus(ok ? "ВВОД СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+255:            refreshLogs();
+256-        });
+257-
+258-        clear.setOnClickListener(v -> {
+259-            input.setText("");
+260-            output.setText("Ввод очищен.");
+261-            setStatus("ВВОД ОЧИЩЕН", true);
+262-            PmcaLogger.log("UI: поле ввода очищено");
+263:            refreshLogs();
+264-        });
+265-
+266-        copyResult.setOnClickListener(v -> {
+267-            boolean ok = controller.copy(output.getText().toString(), "PMCA результат");
+268-            setStatus(ok ? "РЕЗУЛЬТАТ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+269:            refreshLogs();
+270-        });
+271-
+272:        refresh.setOnClickListener(v -> refreshLogs());
+273-
+274-        copyLog.setOnClickListener(v -> {
+275:            refreshLogs();
+276-            boolean ok = controller.copy(PmcaLogger.getText(), "PMCA лог");
+277-            setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
+278:            refreshLogs();
+279-        });
+280-    }
+281-
+282-    private void setStatus(String text, boolean success) {
+283-        status.setText("● " + text);
+284-        status.setTextColor(success ? Color.rgb(20, 125, 70) : Color.rgb(155, 75, 35));
+285-    }
+286-
+287:    private void refreshLogs() {
+288-        if (logs != null) logs.setText(PmcaLogger.getText());
+289-    }
+290-
+291-    private void hideKeyboard() {
+292-        try {
+293-            InputMethodManager imm = (InputMethodManager)
+294-                    getSystemService(Context.INPUT_METHOD_SERVICE);
+295-            if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+296-        } catch (Exception ignored) {}
+297-    }
+298-
+299-    @Override
+300-    protected void onResume() {
+301-        super.onResume();
+302-        if (!resultReceiverRegistered) {
+303-            IntentFilter filter = new IntentFilter(
+304-                    com.pmca.bridge.termux.TermuxResultService.ACTION_RESULT);
+305-            if (android.os.Build.VERSION.SDK_INT >= 33) {
+--
+314-        // пока MainActivity была на паузе.
+315-        String savedResult = getSharedPreferences(
+316-                "pmca_results", MODE_PRIVATE)
+317-                .getString("last_result", "");
+318-
+
+===== ПРОВЕРКА ЗАВЕРШЕНА =====
+Исходник не изменялся. Сборка не запускалась.
+===== ГОТОВО — ОТПРАВЬ РЕЗУЛЬТАТ =====

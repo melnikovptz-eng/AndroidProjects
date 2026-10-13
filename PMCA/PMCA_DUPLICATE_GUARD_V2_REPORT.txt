@@ -1,0 +1,6 @@
+===== PMCA DUPLICATE GUARD V2 =====
+Sat Oct 10 13:34:27 EET 2026
+
+===== 1. PRECHECK =====
+STOP: DuplicateGuard.java уже существует.
+Автоматическая перезапись запрещена.

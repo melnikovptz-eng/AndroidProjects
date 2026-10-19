@@ -275,10 +275,18 @@ public final class TaperAutoReceiver {
         GptSenderLog.write(context, "TAPER_RETRY_BEGIN",
             "cmd_id=" + commandId + "; text_length=" + response.length());
 
-        boolean inserted =
-            TesterAccessibilityService.prepareChatGPTCommand(
-                response
-            );
+        boolean inserted = false;
+        try {
+            inserted = TesterAccessibilityService.prepareChatGPTCommand(response);
+        } catch (Exception e) {
+            GptSenderLog.write(context, "TAPER_RETRY_EXCEPTION",
+                "cmd_id=" + commandId + "; "
+                    + e.getClass().getSimpleName() + ": "
+                    + String.valueOf(e.getMessage()));
+            DebugLogger.info(context,
+                TAG + ": RETRY_EXCEPTION CMD_ID=" + commandId + " "
+                    + e.getClass().getSimpleName());
+        }
 
         DebugLogger.info(
             context,
@@ -313,7 +321,8 @@ public final class TaperAutoReceiver {
             }, 700L);
 
         } else {
-
+            GptSenderLog.write(context, "TAPER_RETRY_FAILED",
+                "cmd_id=" + commandId + "; reason=insert_failed");
             running.set(false);
         }
     }

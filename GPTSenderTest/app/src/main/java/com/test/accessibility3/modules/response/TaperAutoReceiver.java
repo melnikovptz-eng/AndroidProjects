@@ -216,8 +216,8 @@ public final class TaperAutoReceiver {
                 commandId
             );
 
-            running.set(false);
-
+            // Keep the operation locked while the scheduled retry is pending.
+            // Clearing this flag here makes retryInsert() exit immediately.
             handler.postDelayed(
                 () -> retryInsert(
                     commandId,
@@ -267,8 +267,13 @@ public final class TaperAutoReceiver {
     ) {
 
         if (!running.get()) {
+            GptSenderLog.write(context, "TAPER_RETRY_SKIPPED",
+                "cmd_id=" + commandId + "; reason=operation_not_running");
             return;
         }
+
+        GptSenderLog.write(context, "TAPER_RETRY_BEGIN",
+            "cmd_id=" + commandId + "; text_length=" + response.length());
 
         boolean inserted =
             TesterAccessibilityService.prepareChatGPTCommand(

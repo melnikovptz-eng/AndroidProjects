@@ -76,7 +76,8 @@ public final class FloatingPanel {
 
         LinearLayout column = new LinearLayout(context);
         column.setOrientation(LinearLayout.VERTICAL);
-        // Reserve space for the resize grip so it never covers the buttons.\n        column.setPadding(dp(8, density), dp(6, density), dp(40, density), dp(34, density));
+        // Reserve space for the resize grip so it never covers the buttons.
+        column.setPadding(dp(8, density), dp(6, density), dp(40, density), dp(34, density));
         FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT);

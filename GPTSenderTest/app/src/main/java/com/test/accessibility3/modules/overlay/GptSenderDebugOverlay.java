@@ -29,6 +29,7 @@ public final class GptSenderDebugOverlay {
 
     private boolean hasInput;
     private boolean hasTarget;
+    private boolean hasStatus;
 
     private final int diameter;
     private final int offset;
@@ -85,6 +86,8 @@ public final class GptSenderDebugOverlay {
 
             ensureDots();
 
+            hasStatus = true;
+            ensureDots();
             int x = inputX + offset * 2;
             int y = inputY;
 
@@ -99,6 +102,7 @@ public final class GptSenderDebugOverlay {
                 return;
             }
 
+            hasStatus = true;
             ensureDots();
 
             place(statusDot, targetX + offset, targetY,
@@ -115,17 +119,17 @@ public final class GptSenderDebugOverlay {
             return;
         }
 
-        if (inputDot == null) {
+        if (hasInput && inputDot == null) {
             inputDot = createDot(Color.rgb(35, 145, 255));
             add(inputDot, inputX, inputY);
         }
 
-        if (targetDot == null) {
+        if (hasTarget && targetDot == null) {
             targetDot = createDot(Color.rgb(255, 190, 25));
             add(targetDot, targetX, targetY);
         }
 
-        if (statusDot == null) {
+        if (hasStatus && statusDot == null) {
             statusDot = createDot(Color.rgb(255, 190, 25));
             add(statusDot, targetX + offset, targetY);
         }
@@ -222,6 +226,7 @@ public final class GptSenderDebugOverlay {
 
         hasInput = false;
         hasTarget = false;
+        hasStatus = false;
     }
 
     private void remove(View view) {

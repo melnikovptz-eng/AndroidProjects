@@ -159,8 +159,24 @@ taperClipboardReceiver =
 
     @Override
     public void onDestroy() {
+        GptSenderLog.write(this, "SERVICE_SHUTDOWN_BEGIN",
+                "Stopping receiver, overlay and registered broadcasts");
+
+        if (taperClipboardReceiver != null) {
+            try {
+                taperClipboardReceiver.stop();
+                GptSenderLog.write(this, "TAPER_RECEIVER_STOPPED",
+                        "Clipboard polling callbacks removed");
+            } catch (Exception e) {
+                GptSenderLog.write(this, "TAPER_RECEIVER_STOP_FAILED",
+                        e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage()));
+            }
+            taperClipboardReceiver = null;
+        }
+
         if (debugOverlay != null) {
             debugOverlay.hide();
+            debugOverlay = null;
         }
 
         if (pmcaSendReceiver != null) {

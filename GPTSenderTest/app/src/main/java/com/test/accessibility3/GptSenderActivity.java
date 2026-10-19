@@ -119,11 +119,11 @@ public class GptSenderActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle saved) {
+        super.onCreate(saved);
+
         // GPT_DIAG_ACTIVITY_PATCH_V1
         GptSenderDiagnostics.start(this);
         GptSenderDiagnostics.activityState(this, "onCreate_ENTER");
-
-        super.onCreate();
 
         log("APP_OPEN", "PMCA 0.2.0 / Build 3");
 

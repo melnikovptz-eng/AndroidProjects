@@ -13,4 +13,27 @@ android {
         versionCode 1
         versionName '1.0-GPTSenderTest'
     }
+
+    // CI can sign debug APKs with a persistent key supplied through GitHub Actions secrets.
+    // Local builds without these variables continue to use Android's standard debug key.
+    def stableStoreFile = System.getenv('GPTSENDER_KEYSTORE_PATH')
+    def stableStorePassword = System.getenv('GPTSENDER_KEYSTORE_PASSWORD')
+    def stableKeyAlias = System.getenv('GPTSENDER_KEY_ALIAS')
+    def stableKeyPassword = System.getenv('GPTSENDER_KEY_PASSWORD')
+
+    if (stableStoreFile && stableStorePassword && stableKeyAlias && stableKeyPassword) {
+        signingConfigs {
+            stable {
+                storeFile file(stableStoreFile)
+                storePassword stableStorePassword
+                keyAlias stableKeyAlias
+                keyPassword stableKeyPassword
+            }
+        }
+        buildTypes {
+            debug {
+                signingConfig signingConfigs.stable
+            }
+        }
+    }
 }

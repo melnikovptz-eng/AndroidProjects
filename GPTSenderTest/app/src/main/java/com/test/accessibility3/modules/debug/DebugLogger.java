@@ -93,10 +93,10 @@ public class DebugLogger {
             String text
     ) {
         String value = text == null ? "" : text;
+        // Do not persist clipboard contents; logs should contain metadata only.
         info(
                 context,
                 "CLIPBOARD: DATA COPIED, length=" + value.length()
-                        + ", data=" + oneLine(value)
         );
     }
 
@@ -115,10 +115,11 @@ public class DebugLogger {
             String text
     ) {
         String value = text == null ? "" : text;
+        // Payloads can contain private messages or command output.
+        // Keep diagnostic logs useful without recording the actual content.
         info(
                 context,
                 "SEND: DATA, length=" + value.length()
-                        + ", data=" + oneLine(value)
         );
     }
 

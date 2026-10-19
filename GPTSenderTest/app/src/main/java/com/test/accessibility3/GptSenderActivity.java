@@ -123,7 +123,7 @@ public class GptSenderActivity extends Activity {
         GptSenderDiagnostics.start(this);
         GptSenderDiagnostics.activityState(this, "onCreate_ENTER");
 
-        super.onCreate(saved);
+        super.onCreate();
 
         log("APP_OPEN", "PMCA 0.2.0 / Build 3");
 
@@ -243,6 +243,8 @@ public class GptSenderActivity extends Activity {
     @Override
     protected void onDestroy() {
         log("APP_DESTROY", "Activity destroyed");
+        // Stop the shared heartbeat monitor so it does not outlive the UI.
+        GptSenderDiagnostics.stop(this);
         worker.shutdownNow();
         super.onDestroy();
     }

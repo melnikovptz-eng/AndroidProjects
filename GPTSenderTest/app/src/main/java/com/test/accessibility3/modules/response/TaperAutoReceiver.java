@@ -24,10 +24,19 @@ public final class TaperAutoReceiver {
     private final AtomicBoolean running =
         new AtomicBoolean(false);
 
-    private String lastCompleteSignature = "";
+    private volatile String lastCompleteSignature = "";
 
     public TaperAutoReceiver(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    private void clearSignatureIfCurrent(long commandId) {
+        String current = lastCompleteSignature;
+        if (current.startsWith(commandId + ":")) {
+            lastCompleteSignature = "";
+            GptSenderLog.write(context, "TAPER_DUPLICATE_GUARD_RESET",
+                "cmd_id=" + commandId + "; reason=operation_failed");
+        }
     }
 
     public void onAccessibilityText(String text) {
@@ -136,6 +145,7 @@ public final class TaperAutoReceiver {
                 if (response == null) {
                     GptSenderLog.write(context, "TAPER_TERMUX_FAILED",
                         "cmd_id=" + commandId + "; reason=NULL_RESPONSE");
+                    clearSignatureIfCurrent(commandId);
 
                     DebugLogger.info(
                         context,
@@ -181,6 +191,7 @@ public final class TaperAutoReceiver {
                     "cmd_id=" + commandId + "; "
                         + e.getClass().getSimpleName() + ": "
                         + String.valueOf(e.getMessage()));
+                clearSignatureIfCurrent(commandId);
                 running.set(false);
             }
 
@@ -334,6 +345,7 @@ public final class TaperAutoReceiver {
         } else {
             GptSenderLog.write(context, "TAPER_RETRY_FAILED",
                 "cmd_id=" + commandId + "; reason=insert_failed");
+            clearSignatureIfCurrent(commandId);
             running.set(false);
         }
     }

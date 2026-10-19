@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.test.accessibility3.TesterAccessibilityService;
+import com.test.accessibility3.GptSenderLog;
 import com.test.accessibility3.modules.debug.DebugLogger;
 import com.test.accessibility3.modules.taper.TaperProtocol;
 
@@ -88,6 +89,8 @@ public final class TaperAutoReceiver {
         }
 
         lastCompleteSignature = signature;
+        GptSenderLog.write(context, "TAPER_COMMAND_ACCEPTED",
+            "cmd_id=" + id + "; length=" + command.length());
 
         DebugLogger.info(
             context,
@@ -127,6 +130,8 @@ public final class TaperAutoReceiver {
                     );
 
                 if (response == null) {
+                    GptSenderLog.write(context, "TAPER_TERMUX_FAILED",
+                        "cmd_id=" + commandId + "; reason=NULL_RESPONSE");
 
                     DebugLogger.info(
                         context,
@@ -137,6 +142,9 @@ public final class TaperAutoReceiver {
                     running.set(false);
                     return;
                 }
+
+                GptSenderLog.write(context, "TAPER_TERMUX_SUCCESS",
+                    "cmd_id=" + commandId + "; response_length=" + response.length());
 
                 DebugLogger.info(
                     context,
@@ -182,6 +190,9 @@ public final class TaperAutoReceiver {
                 response
             );
 
+        GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_BEGIN",
+            "cmd_id=" + commandId + "; text_length=" + taggedResponse.length());
+
         DebugLogger.info(
             context,
             TAG + ": INSERT_RESPONSE CMD_ID=" +
@@ -196,6 +207,8 @@ public final class TaperAutoReceiver {
             );
 
         if (!inserted) {
+            GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_FAILED",
+                "cmd_id=" + commandId);
 
             DebugLogger.info(
                 context,
@@ -216,6 +229,9 @@ public final class TaperAutoReceiver {
             return;
         }
 
+        GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_SUCCESS",
+            "cmd_id=" + commandId + "; text_length=" + taggedResponse.length());
+
         DebugLogger.info(
             context,
             TAG + ": INSERT_OK CMD_ID=" +
@@ -226,6 +242,11 @@ public final class TaperAutoReceiver {
 
             boolean sent =
                 TesterAccessibilityService.clickSend();
+
+            GptSenderLog.write(context,
+                sent ? "TAPER_SEND_GESTURE_ACCEPTED" : "TAPER_SEND_GESTURE_FAILED",
+                "cmd_id=" + commandId + "; accepted=" + sent
+                    + "; delivery_confirmation=NOT_VERIFIED");
 
             DebugLogger.info(
                 context,
@@ -268,6 +289,11 @@ public final class TaperAutoReceiver {
 
                 boolean sent =
                     TesterAccessibilityService.clickSend();
+
+                GptSenderLog.write(context,
+                    sent ? "TAPER_RETRY_SEND_GESTURE_ACCEPTED" : "TAPER_RETRY_SEND_GESTURE_FAILED",
+                    "cmd_id=" + commandId + "; accepted=" + sent
+                        + "; delivery_confirmation=NOT_VERIFIED");
 
                 DebugLogger.info(
                     context,

@@ -46,7 +46,7 @@ public final class FloatingPanel {
         this.listener = listener;
         float density = context.getResources().getDisplayMetrics().density;
         minWidth = dp(180, density);
-        minHeight = dp(120, density);
+        minHeight = dp(150, density);
         maxWidth = Math.max(minWidth, context.getResources().getDisplayMetrics().widthPixels - dp(16, density));
         maxHeight = Math.max(minHeight, context.getResources().getDisplayMetrics().heightPixels - dp(48, density));
     }
@@ -64,7 +64,7 @@ public final class FloatingPanel {
 
         float density = context.getResources().getDisplayMetrics().density;
         int initialWidth = Math.min(maxWidth, dp(240, density));
-        int initialHeight = Math.min(maxHeight, dp(170, density));
+        int initialHeight = Math.min(maxHeight, dp(190, density));
 
         panel = new FrameLayout(context);
         GradientDrawable background = new GradientDrawable();
@@ -76,7 +76,7 @@ public final class FloatingPanel {
 
         LinearLayout column = new LinearLayout(context);
         column.setOrientation(LinearLayout.VERTICAL);
-        column.setPadding(dp(8, density), dp(6, density), dp(8, density), dp(16, density));
+        // Reserve space for the resize grip so it never covers the buttons.\n        column.setPadding(dp(8, density), dp(6, density), dp(40, density), dp(34, density));
         FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT);

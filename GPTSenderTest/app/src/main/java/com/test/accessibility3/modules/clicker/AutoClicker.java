@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AutoClicker {
 
+    private enum ClickAttempt { SUCCESS, SAFE_FALLBACK, UNCERTAIN }
+
     private final AccessibilityService service;
 
     public AutoClicker(AccessibilityService service) {
@@ -46,12 +48,18 @@ public class AutoClicker {
         debug.append("ACTUAL TAP POINT: ").append(x).append(',').append(y).append('\n');
 
         // Tap the exact coordinate shown by the overlay first.
-        boolean tapped = performTap(x, y, debug);
-        if (tapped) {
+        ClickAttempt attempt = performTap(x, y, debug);
+        if (attempt == ClickAttempt.SUCCESS) {
             debug.append("AUTOCLICKER RESULT: coordinate tap completed\n");
             return true;
         }
-        debug.append("COORDINATE TAP FAILED; TRY ACTION_CLICK FALLBACK\n");
+        if (attempt == ClickAttempt.UNCERTAIN) {
+            // A dispatched gesture may still reach the UI after a callback timeout.
+            // Never issue a second click: it could send the same message twice.
+            debug.append("AUTOCLICKER RESULT: gesture outcome uncertain; fallback suppressed\n");
+            return false;
+        }
+        debug.append("GESTURE WAS NOT DISPATCHED; TRY ACTION_CLICK FALLBACK\n");
         try {
             boolean action = node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
             debug.append("ACTION_CLICK_FALLBACK: ").append(action).append('\n');
@@ -64,7 +72,7 @@ public class AutoClicker {
         }
     }
 
-    private boolean performTap(
+    private ClickAttempt performTap(
             int x,
             int y,
             StringBuilder debug) {
@@ -83,6 +91,7 @@ public class AutoClicker {
 
         final CountDownLatch finished = new CountDownLatch(1);
         final AtomicBoolean completedSuccessfully = new AtomicBoolean(false);
+        final AtomicBoolean dispatchAccepted = new AtomicBoolean(false);
 
         try {
             boolean accepted = service.dispatchGesture(
@@ -110,32 +119,36 @@ public class AutoClicker {
 
             if (!accepted) {
                 debug.append("GESTURE ERROR: dispatchGesture returned false\n");
-                return false;
+                return ClickAttempt.SAFE_FALLBACK;
             }
+            dispatchAccepted.set(true);
 
             boolean callbackReceived = finished.await(2, TimeUnit.SECONDS);
 
             if (!callbackReceived) {
                 debug.append("GESTURE ERROR: callback timeout\n");
-                return false;
+                return ClickAttempt.UNCERTAIN;
             }
 
             debug.append("GESTURE COMPLETED SUCCESSFULLY: ")
                     .append(completedSuccessfully.get()).append("\n");
 
-            return completedSuccessfully.get();
+            return completedSuccessfully.get()
+                    ? ClickAttempt.SUCCESS : ClickAttempt.UNCERTAIN;
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             debug.append("GESTURE ERROR: interrupted\n");
-            return false;
+            return dispatchAccepted.get()
+                    ? ClickAttempt.UNCERTAIN : ClickAttempt.SAFE_FALLBACK;
         } catch (Exception e) {
             debug.append("GESTURE ERROR: ")
                     .append(e.getClass().getSimpleName())
                     .append(": ")
                     .append(String.valueOf(e.getMessage()))
                     .append("\n");
-            return false;
+            return dispatchAccepted.get()
+                    ? ClickAttempt.UNCERTAIN : ClickAttempt.SAFE_FALLBACK;
         }
     }
 }

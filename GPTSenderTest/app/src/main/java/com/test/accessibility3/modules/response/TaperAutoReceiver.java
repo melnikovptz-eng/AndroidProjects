@@ -43,6 +43,7 @@ public final class TaperAutoReceiver {
         Long id = TaperProtocol.extractId(text);
 
         if (id == null) {
+            GptSenderLog.write(context, "TAPER_COMMAND_REJECTED", "reason=missing_cmd_id");
             DebugLogger.info(
                 context,
                 TAG + ": REJECT_NO_CMD_ID"
@@ -55,7 +56,8 @@ public final class TaperAutoReceiver {
 
         if (command == null ||
             command.trim().isEmpty()) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_REJECTED",
+                "cmd_id=" + id + "; reason=empty_payload");
             DebugLogger.info(
                 context,
                 TAG + ": REJECT_EMPTY_COMMAND CMD_ID=" + id
@@ -69,7 +71,8 @@ public final class TaperAutoReceiver {
             ":" + command.length();
 
         if (signature.equals(lastCompleteSignature)) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_IGNORED",
+                "cmd_id=" + id + "; reason=duplicate_signature");
             DebugLogger.info(
                 context,
                 TAG + ": DUPLICATE_IGNORED CMD_ID=" + id
@@ -79,7 +82,8 @@ public final class TaperAutoReceiver {
         }
 
         if (!running.compareAndSet(false, true)) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_IGNORED",
+                "cmd_id=" + id + "; reason=operation_busy");
             DebugLogger.info(
                 context,
                 TAG + ": BUSY_IGNORED CMD_ID=" + id
@@ -173,6 +177,10 @@ public final class TaperAutoReceiver {
                     String.valueOf(e.getMessage())
                 );
 
+                GptSenderLog.write(context, "TAPER_EXECUTION_EXCEPTION",
+                    "cmd_id=" + commandId + "; "
+                        + e.getClass().getSimpleName() + ": "
+                        + String.valueOf(e.getMessage()));
                 running.set(false);
             }
 
@@ -201,10 +209,15 @@ public final class TaperAutoReceiver {
             taggedResponse.length()
         );
 
-        boolean inserted =
-            TesterAccessibilityService.prepareChatGPTCommand(
-                taggedResponse
-            );
+        boolean inserted = false;
+        try {
+            inserted = TesterAccessibilityService.prepareChatGPTCommand(taggedResponse);
+        } catch (Exception e) {
+            GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_EXCEPTION",
+                "cmd_id=" + commandId + "; "
+                    + e.getClass().getSimpleName() + ": "
+                    + String.valueOf(e.getMessage()));
+        }
 
         if (!inserted) {
             GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_FAILED",

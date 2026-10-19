@@ -98,7 +98,7 @@ public class SendButtonFinder {
             result.reason = "AMBIGUOUS_GEOMETRIC_CANDIDATES";
             debug.append("FINDER_RESULT=NOT_FOUND reason=")
                  .append(result.reason)
-                 .append(" candidates=").append(candidates).append('\\n');
+                 .append(" candidates=").append(candidates).append('\n');
             return result;
         }
 

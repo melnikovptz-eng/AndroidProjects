@@ -274,7 +274,11 @@ taperClipboardReceiver =
 
         
         GptSenderLog.write(this, "PREPARE_BEGIN", "message_length=" + (command == null ? 0 : command.length()));
-DebugLogger.sendEvent(this, "PREPARE START");
+        if (command == null || command.trim().isEmpty()) {
+            GptSenderLog.write(this, "PREPARE_REJECTED", "Reason: empty or null command");
+            return false;
+        }
+        DebugLogger.sendEvent(this, "PREPARE START");
 
         StringBuilder debug = new StringBuilder();
 
@@ -285,6 +289,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
                 inputCleaner == null) {
 
             debug.append("MODULES: NOT READY\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "Required modules are not ready");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -294,6 +299,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (root == null) {
 
             debug.append("ROOT: NULL\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "ChatGPT root is null");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -305,6 +311,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (edit == null) {
 
             debug.append("EDITTEXT: NOT FOUND\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "Editable ChatGPT input not found");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -335,6 +342,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (!cleared) {
 
             debug.append("CLEAR: FAILED\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "Could not clear previous input text");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -353,6 +361,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (root == null) {
 
             debug.append("ROOT AFTER CLEAR: NULL\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "ChatGPT root disappeared after clearing input");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -362,6 +371,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (edit == null) {
 
             debug.append("FRESH EDITTEXT: NOT FOUND\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "Fresh editable input not found after clearing");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -382,6 +392,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
 
             if (cb == null) {
                 DebugLogger.error(this, "CLIPBOARD: AUTO_COPY_FAILED, manager=null");
+                GptSenderLog.write(this, "PREPARE_FAILED", "Android clipboard manager unavailable");
                 return false;
             }
 
@@ -406,6 +417,8 @@ DebugLogger.sendEvent(this, "PREPARE START");
                     e.getClass().getSimpleName() + ":" +
                     String.valueOf(e.getMessage())
             );
+            GptSenderLog.write(this, "PREPARE_FAILED",
+                    "Clipboard copy exception: " + e.getClass().getSimpleName());
             return false;
         }
 
@@ -413,6 +426,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         if (command.trim().isEmpty()) {
             DebugLogger.info(this, "CLIPBOARD: EMPTY_FOR_CHATGPT");
             debug.append("CLIPBOARD: EMPTY\n");
+            GptSenderLog.write(this, "PREPARE_FAILED", "Command became empty before insertion");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -435,6 +449,8 @@ DebugLogger.sendEvent(this, "PREPARE START");
         );
 
         DebugLogger.save(this, debug.toString());
+        GptSenderLog.write(this, inserted ? "PREPARE_SUCCESS" : "PREPARE_FAILED",
+                "Input insertion result=" + inserted + "; message_length=" + command.length());
 
         return inserted;
     }

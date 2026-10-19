@@ -11,10 +11,10 @@ public class ChatGPTInputCleaner {
             return false;
         }
 
-        String before = text(edit);
+        int beforeLength = text(edit).length();
 
         log(debug, "=== INPUT CLEAR ===");
-        log(debug, "BEFORE: " + before);
+        log(debug, "BEFORE_LENGTH: " + beforeLength);
 
         Bundle args = new Bundle();
         args.putCharSequence(
@@ -75,10 +75,10 @@ public class ChatGPTInputCleaner {
             return false;
         }
 
-        String before = text(edit);
+        int beforeLength = text(edit).length();
 
         log(debug, "=== CLEAR + INSERT ===");
-        log(debug, "OLD TEXT: " + before);
+        log(debug, "OLD_TEXT_LENGTH: " + beforeLength);
 
         if (!clear(edit, debug)) {
             log(debug, "INPUT: CLEAR FAILED");

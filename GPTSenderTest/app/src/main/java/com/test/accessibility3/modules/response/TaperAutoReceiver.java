@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.test.accessibility3.TesterAccessibilityService;
+import com.test.accessibility3.GptSenderLog;
 import com.test.accessibility3.modules.debug.DebugLogger;
 import com.test.accessibility3.modules.taper.TaperProtocol;
 
@@ -23,10 +24,19 @@ public final class TaperAutoReceiver {
     private final AtomicBoolean running =
         new AtomicBoolean(false);
 
-    private String lastCompleteSignature = "";
+    private volatile String lastCompleteSignature = "";
 
     public TaperAutoReceiver(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    private void clearSignatureIfCurrent(long commandId) {
+        String current = lastCompleteSignature;
+        if (current.startsWith(commandId + ":")) {
+            lastCompleteSignature = "";
+            GptSenderLog.write(context, "TAPER_DUPLICATE_GUARD_RESET",
+                "cmd_id=" + commandId + "; reason=operation_failed");
+        }
     }
 
     public void onAccessibilityText(String text) {
@@ -42,6 +52,7 @@ public final class TaperAutoReceiver {
         Long id = TaperProtocol.extractId(text);
 
         if (id == null) {
+            GptSenderLog.write(context, "TAPER_COMMAND_REJECTED", "reason=missing_cmd_id");
             DebugLogger.info(
                 context,
                 TAG + ": REJECT_NO_CMD_ID"
@@ -54,7 +65,8 @@ public final class TaperAutoReceiver {
 
         if (command == null ||
             command.trim().isEmpty()) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_REJECTED",
+                "cmd_id=" + id + "; reason=empty_payload");
             DebugLogger.info(
                 context,
                 TAG + ": REJECT_EMPTY_COMMAND CMD_ID=" + id
@@ -68,7 +80,8 @@ public final class TaperAutoReceiver {
             ":" + command.length();
 
         if (signature.equals(lastCompleteSignature)) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_IGNORED",
+                "cmd_id=" + id + "; reason=duplicate_signature");
             DebugLogger.info(
                 context,
                 TAG + ": DUPLICATE_IGNORED CMD_ID=" + id
@@ -78,7 +91,8 @@ public final class TaperAutoReceiver {
         }
 
         if (!running.compareAndSet(false, true)) {
-
+            GptSenderLog.write(context, "TAPER_COMMAND_IGNORED",
+                "cmd_id=" + id + "; reason=operation_busy");
             DebugLogger.info(
                 context,
                 TAG + ": BUSY_IGNORED CMD_ID=" + id
@@ -88,6 +102,8 @@ public final class TaperAutoReceiver {
         }
 
         lastCompleteSignature = signature;
+        GptSenderLog.write(context, "TAPER_COMMAND_ACCEPTED",
+            "cmd_id=" + id + "; length=" + command.length());
 
         DebugLogger.info(
             context,
@@ -127,6 +143,9 @@ public final class TaperAutoReceiver {
                     );
 
                 if (response == null) {
+                    GptSenderLog.write(context, "TAPER_TERMUX_FAILED",
+                        "cmd_id=" + commandId + "; reason=NULL_RESPONSE");
+                    clearSignatureIfCurrent(commandId);
 
                     DebugLogger.info(
                         context,
@@ -137,6 +156,9 @@ public final class TaperAutoReceiver {
                     running.set(false);
                     return;
                 }
+
+                GptSenderLog.write(context, "TAPER_TERMUX_SUCCESS",
+                    "cmd_id=" + commandId + "; response_length=" + response.length());
 
                 DebugLogger.info(
                     context,
@@ -165,6 +187,11 @@ public final class TaperAutoReceiver {
                     String.valueOf(e.getMessage())
                 );
 
+                GptSenderLog.write(context, "TAPER_EXECUTION_EXCEPTION",
+                    "cmd_id=" + commandId + "; "
+                        + e.getClass().getSimpleName() + ": "
+                        + String.valueOf(e.getMessage()));
+                clearSignatureIfCurrent(commandId);
                 running.set(false);
             }
 
@@ -182,6 +209,9 @@ public final class TaperAutoReceiver {
                 response
             );
 
+        GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_BEGIN",
+            "cmd_id=" + commandId + "; text_length=" + taggedResponse.length());
+
         DebugLogger.info(
             context,
             TAG + ": INSERT_RESPONSE CMD_ID=" +
@@ -190,12 +220,19 @@ public final class TaperAutoReceiver {
             taggedResponse.length()
         );
 
-        boolean inserted =
-            TesterAccessibilityService.prepareChatGPTCommand(
-                taggedResponse
-            );
+        boolean inserted = false;
+        try {
+            inserted = TesterAccessibilityService.prepareChatGPTCommand(taggedResponse);
+        } catch (Exception e) {
+            GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_EXCEPTION",
+                "cmd_id=" + commandId + "; "
+                    + e.getClass().getSimpleName() + ": "
+                    + String.valueOf(e.getMessage()));
+        }
 
         if (!inserted) {
+            GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_FAILED",
+                "cmd_id=" + commandId);
 
             DebugLogger.info(
                 context,
@@ -203,8 +240,8 @@ public final class TaperAutoReceiver {
                 commandId
             );
 
-            running.set(false);
-
+            // Keep the operation locked while the scheduled retry is pending.
+            // Clearing this flag here makes retryInsert() exit immediately.
             handler.postDelayed(
                 () -> retryInsert(
                     commandId,
@@ -216,28 +253,36 @@ public final class TaperAutoReceiver {
             return;
         }
 
+        GptSenderLog.write(context, "TAPER_CHATGPT_INSERT_SUCCESS",
+            "cmd_id=" + commandId + "; text_length=" + taggedResponse.length());
+
         DebugLogger.info(
             context,
             TAG + ": INSERT_OK CMD_ID=" +
             commandId
         );
 
-        handler.postDelayed(() -> {
-
-            boolean sent =
-                TesterAccessibilityService.clickSend();
-
-            DebugLogger.info(
-                context,
-                TAG + ": SEND=" +
-                sent +
-                " CMD_ID=" +
-                commandId
-            );
-
-            running.set(false);
-
-        }, 700L);
+        handler.postDelayed(() -> new Thread(() -> {
+            boolean sent = false;
+            try {
+                // clickCurrentSend waits for the gesture callback; do not run it
+                // on the main looper, where that callback must execute.
+                sent = TesterAccessibilityService.clickSend();
+                GptSenderLog.write(context,
+                    sent ? "TAPER_SEND_GESTURE_ACCEPTED" : "TAPER_SEND_GESTURE_FAILED",
+                    "cmd_id=" + commandId + "; accepted=" + sent
+                        + "; delivery_confirmation=NOT_VERIFIED");
+                DebugLogger.info(context,
+                    TAG + ": SEND=" + sent + " CMD_ID=" + commandId);
+            } catch (Exception e) {
+                GptSenderLog.write(context, "TAPER_SEND_EXCEPTION",
+                    "cmd_id=" + commandId + "; "
+                        + e.getClass().getSimpleName() + ": "
+                        + String.valueOf(e.getMessage()));
+            } finally {
+                running.set(false);
+            }
+        }, "TaperAutoSend-" + commandId).start(), 700L);
     }
 
     private void retryInsert(
@@ -246,13 +291,26 @@ public final class TaperAutoReceiver {
     ) {
 
         if (!running.get()) {
+            GptSenderLog.write(context, "TAPER_RETRY_SKIPPED",
+                "cmd_id=" + commandId + "; reason=operation_not_running");
             return;
         }
 
-        boolean inserted =
-            TesterAccessibilityService.prepareChatGPTCommand(
-                response
-            );
+        GptSenderLog.write(context, "TAPER_RETRY_BEGIN",
+            "cmd_id=" + commandId + "; text_length=" + response.length());
+
+        boolean inserted = false;
+        try {
+            inserted = TesterAccessibilityService.prepareChatGPTCommand(response);
+        } catch (Exception e) {
+            GptSenderLog.write(context, "TAPER_RETRY_EXCEPTION",
+                "cmd_id=" + commandId + "; "
+                    + e.getClass().getSimpleName() + ": "
+                    + String.valueOf(e.getMessage()));
+            DebugLogger.info(context,
+                TAG + ": RETRY_EXCEPTION CMD_ID=" + commandId + " "
+                    + e.getClass().getSimpleName());
+        }
 
         DebugLogger.info(
             context,
@@ -264,25 +322,30 @@ public final class TaperAutoReceiver {
 
         if (inserted) {
 
-            handler.postDelayed(() -> {
-
-                boolean sent =
-                    TesterAccessibilityService.clickSend();
-
-                DebugLogger.info(
-                    context,
-                    TAG + ": RETRY_SEND=" +
-                    sent +
-                    " CMD_ID=" +
-                    commandId
-                );
-
-                running.set(false);
-
-            }, 700L);
+            handler.postDelayed(() -> new Thread(() -> {
+                boolean sent = false;
+                try {
+                    sent = TesterAccessibilityService.clickSend();
+                    GptSenderLog.write(context,
+                        sent ? "TAPER_RETRY_SEND_GESTURE_ACCEPTED" : "TAPER_RETRY_SEND_GESTURE_FAILED",
+                        "cmd_id=" + commandId + "; accepted=" + sent
+                            + "; delivery_confirmation=NOT_VERIFIED");
+                    DebugLogger.info(context,
+                        TAG + ": RETRY_SEND=" + sent + " CMD_ID=" + commandId);
+                } catch (Exception e) {
+                    GptSenderLog.write(context, "TAPER_RETRY_SEND_EXCEPTION",
+                        "cmd_id=" + commandId + "; "
+                            + e.getClass().getSimpleName() + ": "
+                            + String.valueOf(e.getMessage()));
+                } finally {
+                    running.set(false);
+                }
+            }, "TaperAutoRetrySend-" + commandId).start(), 700L);
 
         } else {
-
+            GptSenderLog.write(context, "TAPER_RETRY_FAILED",
+                "cmd_id=" + commandId + "; reason=insert_failed");
+            clearSignatureIfCurrent(commandId);
             running.set(false);
         }
     }

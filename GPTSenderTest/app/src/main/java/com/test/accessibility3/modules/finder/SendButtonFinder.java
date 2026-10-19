@@ -22,15 +22,15 @@ public class SendButtonFinder {
         Result result = new Result();
         if (root == null || edit == null) {
             result.reason = "ROOT_OR_EDIT_NULL";
-            debug.append("FINDER: ROOT_OR_EDIT_NULL\\n");
+            debug.append("FINDER: ROOT_OR_EDIT_NULL\n");
             return result;
         }
 
         Rect er = new Rect(), rr = new Rect();
         edit.getBoundsInScreen(er);
         root.getBoundsInScreen(rr);
-        debug.append("INPUT_BOUNDS=").append(er).append('\\n');
-        debug.append("ROOT_BOUNDS=").append(rr).append('\\n');
+        debug.append("INPUT_BOUNDS=").append(er).append('\n');
+        debug.append("ROOT_BOUNDS=").append(rr).append('\n');
         if (er.isEmpty()) {
             result.reason = "EMPTY_INPUT_BOUNDS";
             return result;
@@ -41,7 +41,7 @@ public class SendButtonFinder {
         try {
             complete = collect(root, nodes, System.nanoTime() + 500_000_000L);
             debug.append("TREE_NODES=").append(nodes.size())
-                    .append(" complete=").append(complete).append('\\n');
+                    .append(" complete=").append(complete).append('\n');
 
             int screenRight = rr.isEmpty() ? er.right + Math.max(240, er.width()) : rr.right;
             int band = Math.max(100, Math.min(220, er.height()));
@@ -62,7 +62,7 @@ public class SendButtonFinder {
                 String labels = text + " " + desc + " " + id;
                 if (containsAny(labels, "microphone", "voice", "audio", "dictat",
                         "голос", "микрофон", "диктов", "record", "speak")) {
-                    debug.append("SKIP_VOICE bounds=").append(r).append(" labels=").append(labels).append('\\n');
+                    debug.append("SKIP_VOICE bounds=").append(r).append(" labels=").append(labels).append('\n');
                     continue;
                 }
 
@@ -86,7 +86,7 @@ public class SendButtonFinder {
                 debug.append("ZONE_CANDIDATE ").append(candidates)
                     .append(" zone=").append(semantic ? "SEMANTIC" : "RIGHT_INPUT_ZONE")
                     .append(" bounds=").append(r).append(" labels=").append(labels)
-                    .append(" score=").append(score).append('\\n');
+                    .append(" score=").append(score).append('\n');
                 if (score > bestScore) {
                     bestScore = score;
                     best = n;
@@ -100,13 +100,13 @@ public class SendButtonFinder {
             if (best != null && "EXPECTED_RIGHT_ZONE".equals(bestReason) && candidates != 1) {
                 result.reason = "AMBIGUOUS_GEOMETRIC_CANDIDATES";
                 debug.append("FINDER_RESULT=NOT_FOUND reason=").append(result.reason)
-                        .append(" candidates=").append(candidates).append('\\n');
+                        .append(" candidates=").append(candidates).append('\n');
                 return result;
             }
 
             if (best == null) {
                 result.reason = complete ? "NO_CANDIDATE_IN_EXPECTED_ZONES" : "TREE_SCAN_LIMIT_NO_CANDIDATE";
-                debug.append("FINDER_RESULT=NOT_FOUND reason=").append(result.reason).append('\\n');
+                debug.append("FINDER_RESULT=NOT_FOUND reason=").append(result.reason).append('\n');
                 return result;
             }
 
@@ -115,10 +115,10 @@ public class SendButtonFinder {
             result.bounds.set(bestRect);
             result.score = bestScore;
             result.reason = bestReason;
-            debug.append("FINDER_RESULT=FOUND\\n")
-                    .append("FINDER_REASON=").append(result.reason).append('\\n')
-                    .append("FINDER_BOUNDS=").append(bestRect).append('\\n')
-                    .append("FINDER_CANDIDATES=").append(candidates).append('\\n');
+            debug.append("FINDER_RESULT=FOUND\n")
+                    .append("FINDER_REASON=").append(result.reason).append('\n')
+                    .append("FINDER_BOUNDS=").append(bestRect).append('\n')
+                    .append("FINDER_CANDIDATES=").append(candidates).append('\n');
             return result;
         } finally {
             // getChild() returns owned AccessibilityNodeInfo handles. Release every

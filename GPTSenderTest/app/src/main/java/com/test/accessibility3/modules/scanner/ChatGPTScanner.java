@@ -52,7 +52,20 @@ public class ChatGPTScanner {
     }
 
     public boolean isAvailable() {
-        return getRoot() != null;
+        AccessibilityNodeInfo root = getRoot();
+        if (root == null) {
+            return false;
+        }
+
+        try {
+            return true;
+        } finally {
+            // getRoot() transfers ownership to the caller.
+            try {
+                root.recycle();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     public boolean isChatGPT(

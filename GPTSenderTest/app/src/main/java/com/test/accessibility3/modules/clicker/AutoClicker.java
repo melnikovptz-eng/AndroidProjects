@@ -23,72 +23,45 @@ public class AutoClicker {
     public boolean click(
             AccessibilityNodeInfo node,
             StringBuilder debug) {
-
         if (node == null) {
             debug.append("AUTOCLICKER: NODE NULL\n");
             return false;
         }
-
         Rect bounds = new Rect();
-
         try {
             node.getBoundsInScreen(bounds);
         } catch (Exception e) {
             debug.append("AUTOCLICKER: BOUNDS ERROR: ")
-                    .append(e.getClass().getSimpleName())
-                    .append(": ")
-                    .append(String.valueOf(e.getMessage()))
-                    .append("\n");
+                .append(e.getClass().getSimpleName()).append(": ")
+                .append(String.valueOf(e.getMessage())).append('\n');
             return false;
         }
-
         debug.append("\n=== AUTOCLICKER ===\n");
-        debug.append("BUTTON BOUNDS: ").append(bounds).append("\n");
-
+        debug.append("TAP TARGET BOUNDS: ").append(bounds).append('\n');
         if (bounds.isEmpty()) {
             debug.append("AUTOCLICKER: EMPTY BOUNDS\n");
             return false;
         }
+        int x = bounds.centerX(), y = bounds.centerY();
+        debug.append("ACTUAL TAP POINT: ").append(x).append(',').append(y).append('\n');
 
-        debug.append("BUTTON CENTER: ")
-                .append(bounds.centerX()).append(",")
-                .append(bounds.centerY()).append("\n");
-
-        boolean actionClick = false;
-
-        try {
-            actionClick = node.performAction(
-                    AccessibilityNodeInfo.ACTION_CLICK
-            );
-            debug.append("ACTION_CLICK: ")
-                    .append(actionClick).append("\n");
-        } catch (Exception e) {
-            debug.append("ACTION_CLICK ERROR: ")
-                    .append(e.getClass().getSimpleName())
-                    .append(": ")
-                    .append(String.valueOf(e.getMessage()))
-                    .append("\n");
-        }
-
-        if (actionClick) {
-            debug.append("GESTURE: SKIPPED; ACTION_CLICK returned true\n");
-            debug.append("AUTOCLICKER RESULT: true (action accepted, delivery unconfirmed)\n");
+        // Tap the exact coordinate shown by the overlay first.
+        boolean tapped = performTap(x, y, debug);
+        if (tapped) {
+            debug.append("AUTOCLICKER RESULT: coordinate tap completed\n");
             return true;
         }
-
-        debug.append("GESTURE: TRYING COORDINATE TAP\n");
-
-        boolean gestureAccepted = performTap(
-                bounds.centerX(),
-                bounds.centerY(),
-                debug
-        );
-
-        debug.append("AUTOCLICKER RESULT: ")
-                .append(gestureAccepted)
-                .append(" (gesture acceptance does not confirm message delivery)\n");
-
-        return gestureAccepted;
+        debug.append("COORDINATE TAP FAILED; TRY ACTION_CLICK FALLBACK\n");
+        try {
+            boolean action = node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            debug.append("ACTION_CLICK_FALLBACK: ").append(action).append('\n');
+            return action;
+        } catch (Exception e) {
+            debug.append("ACTION_CLICK FALLBACK ERROR: ")
+                .append(e.getClass().getSimpleName()).append(": ")
+                .append(String.valueOf(e.getMessage())).append('\n');
+            return false;
+        }
     }
 
     private boolean performTap(

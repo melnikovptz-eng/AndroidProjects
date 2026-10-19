@@ -130,10 +130,10 @@ taperClipboardReceiver =
                 }
 
                 GptSenderLog.write(this, "PMCA_PREPARE_SUCCESS",
-                        "Text inserted; waiting before send");
+                        "Text inserted; wait 1000ms before one-pass send search");
 
                 // Даём интерфейсу ChatGPT время обновить поле ввода.
-                Thread.sleep(800L);
+                Thread.sleep(1000L);
 
                 boolean clicked = clickCurrentSend();
                 GptSenderLog.write(
@@ -424,116 +424,90 @@ DebugLogger.sendEvent(this, "PREPARE START");
     }
 
     public boolean clickCurrentSend() {
-        // GPT_DIAG_SERVICE_PATCH_V1
         GptSenderDiagnostics.log(this, "ACCESSIBILITY_SERVICE", "CLICK_CURRENT_SEND_ENTER");
-
-        
-        GptSenderLog.write(this, "SEND_BEGIN", "Manual send operation started");
-DebugLogger.sendEvent(this, "REQUEST");
-
-        StringBuilder debug = new StringBuilder();
-        debug.append("=== CLICK CURRENT SEND ===\\n");
+        GptSenderLog.write(this, "SEND_BEGIN", "Single-pass search after 1000ms wait");
+        DebugLogger.sendEvent(this, "REQUEST");
+        StringBuilder debug = new StringBuilder("=== SINGLE-PASS SEND ===\n");
 
         if (scanner == null || input == null || finder == null || clicker == null) {
-            debug.append("MODULES: NOT READY\\n");
+            debug.append("MODULES: NOT READY\n");
+            GptSenderLog.write(this, "SEND_ABORT", "Required module is null");
             DebugLogger.save(this, debug.toString());
             return false;
         }
 
-        for (int attempt = 1; attempt <= 10; attempt++) {
-            AccessibilityNodeInfo root = scanner.getRoot();
-
-            if (root != null) {
-                debug.append("ATTEMPT: ")
-                        .append(attempt)
-                        .append("\\n");
-
-                AccessibilityNodeInfo edit = input.find(root);
-
-                if (edit != null) {
-                    if (debugOverlay != null) {
-                        android.graphics.Rect inputBounds = new android.graphics.Rect();
-                        edit.getBoundsInScreen(inputBounds);
-                        if (!inputBounds.isEmpty()) {
-                            debugOverlay.showInput(
-                                    inputBounds.centerX(),
-                                    inputBounds.centerY()
-                            );
-                        }
-                    }
-
-                    DebugLogger.sendEvent(this, "EDITTEXT FOUND");
-
-                    lastResult = finder.find(root, edit, debug);
-
-                    if (lastResult != null && lastResult.found()) {
-                        debug.append("SEND BUTTON: FOUND\\n");
-                        DebugLogger.sendEvent(this, "BUTTON FOUND");
-
-                        GptSenderLog.write(
-                                this,
-                                "SEND_TARGET_FOUND",
-                                "reason=" + lastResult.reason
-                                        + ",bounds=" + lastResult.bounds
-                                        + ",candidates=" + lastResult.candidateNumber
-                        );
-
-                        if (debugOverlay != null) {
-                            debugOverlay.showTarget(
-                                    lastResult.bounds.centerX(),
-                                    lastResult.bounds.centerY()
-                            );
-                        }
-
-                        boolean result = clicker.click(lastResult.node, debug);
-
-                        if (debugOverlay != null) {
-                            debugOverlay.setClickResult(result);
-                        }
-
-                        GptSenderLog.write(
-                                this,
-                                result ? "CLICK_ACTION_SUCCESS" : "CLICK_ACTION_FAILED",
-                                "reason=" + lastResult.reason
-                                        + ",bounds=" + lastResult.bounds
-                        );
-
-                        debug.append("FINAL CLICK RESULT: ")
-                                .append(result)
-                                .append("\\n");
-
-                        DebugLogger.sendEvent(
-                                this,
-                                result ? "SUCCESS" : "FAILED"
-                        );
-
-                        DebugLogger.save(this, debug.toString());
-                        return result;
-                    }
-                }
+        AccessibilityNodeInfo root = null;
+        AccessibilityNodeInfo edit = null;
+        try {
+            root = scanner.getRoot();
+            if (root == null) {
+                GptSenderLog.write(this, "SEND_ABORT", "Active root is null");
+                debug.append("ROOT: NULL\n");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.showNotFound();
+                return false;
             }
 
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            edit = input.find(root);
+            if (edit == null) {
+                GptSenderLog.write(this, "INPUT_NOT_FOUND_AFTER_INSERT", "Fresh tree has no input field");
+                debug.append("INPUT: NOT FOUND\n");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.showNotFound();
+                return false;
             }
-        }
 
-        if (debugOverlay != null) {
-            debugOverlay.showNotFound();
-        }
+            Rect inputBounds = new Rect();
+            edit.getBoundsInScreen(inputBounds);
+            debug.append("INPUT_BOUNDS=").append(inputBounds).append('\n');
+            GptSenderLog.write(this, "INPUT_FOUND_AFTER_INSERT", "bounds=" + inputBounds);
+            if (debugOverlay != null && !inputBounds.isEmpty())
+                debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
 
-        debug.append("SEND BUTTON: NOT FOUND AFTER 5 SEC\\n");
-        GptSenderLog.write(
-                this,
-                "SEND_TARGET_NOT_FOUND",
-                "No eligible right-side candidate after 10 attempts"
-        );
-        DebugLogger.sendEvent(this, "BUTTON NOT FOUND");
-        DebugLogger.save(this, debug.toString());
-        return false;
+            // One fresh tree scan checks labels and multiple expected right-side zones.
+            lastResult = finder.find(root, edit, debug);
+            if (lastResult == null || !lastResult.found() || lastResult.bounds.isEmpty()) {
+                GptSenderLog.write(this, "SEND_TARGET_NOT_FOUND",
+                    "Single scan checked semantic controls and expected input-adjacent zones");
+                debug.append("SEND TARGET: NOT FOUND IN EXPECTED ZONES\n");
+                DebugLogger.sendEvent(this, "BUTTON NOT FOUND");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.showNotFound();
+                return false;
+            }
+
+            int x = lastResult.bounds.centerX();
+            int y = lastResult.bounds.centerY();
+            debug.append("TARGET_REASON=").append(lastResult.reason).append('\n')
+                 .append("TARGET_BOUNDS=").append(lastResult.bounds).append('\n')
+                 .append("TARGET_POINT=").append(x).append(',').append(y).append('\n');
+            GptSenderLog.write(this, "SEND_TARGET_FOUND",
+                "reason=" + lastResult.reason + ",bounds=" + lastResult.bounds
+                    + ",candidates=" + lastResult.candidateNumber);
+            if (debugOverlay != null) debugOverlay.showTarget(x, y);
+
+            boolean clicked = clicker.click(lastResult.node, debug);
+            if (debugOverlay != null) debugOverlay.setClickResult(clicked);
+            GptSenderLog.write(this, clicked ? "SEND_TAP_COMPLETED" : "SEND_TAP_FAILED",
+                "target=" + lastResult.bounds + "; click result=" + clicked
+                    + "; delivery not independently verified");
+            DebugLogger.sendEvent(this, clicked ? "SUCCESS" : "FAILED");
+            DebugLogger.save(this, debug.toString());
+            return clicked;
+        } catch (Exception e) {
+            GptSenderDiagnostics.exception(this, "ACCESSIBILITY_SERVICE", "SEND_FLOW_EXCEPTION", e);
+            GptSenderLog.write(this, "SEND_FLOW_EXCEPTION",
+                e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage()));
+            debug.append("EXCEPTION=").append(e.getClass().getSimpleName()).append('\n');
+            DebugLogger.save(this, debug.toString());
+            if (debugOverlay != null) debugOverlay.showNotFound();
+            return false;
+        } finally {
+            if (edit != null) try { edit.recycle(); } catch (Exception ignored) {}
+            if (root != null) try { root.recycle(); } catch (Exception ignored) {}
+            if (lastResult != null && lastResult.node != null)
+                try { lastResult.node.recycle(); } catch (Exception ignored) {}
+        }
     }
 
     public static boolean prepareChatGPTCommand(String command) {

@@ -1,0 +1,210 @@
+package com.test.accessibility3.modules.finder;
+
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
+import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Locale;
+
+public class SendButtonFinder {
+
+    public static class Result {
+        public AccessibilityNodeInfo node;
+        public Rect bounds = new Rect();
+        public int score;
+        public int candidateNumber;
+        public String reason;
+
+        public boolean found() {
+            return node != null;
+        }
+    }
+
+    public Result find(AccessibilityNodeInfo root,
+                       AccessibilityNodeInfo edit,
+                       StringBuilder debug) {
+        Result result = new Result();
+
+        if (root == null || edit == null) {
+            result.reason = "ROOT_OR_EDIT_NULL";
+            debug.append("FINDER: ROOT_OR_EDIT_NULL\n");
+            return result;
+        }
+
+        Rect er = new Rect();
+        edit.getBoundsInScreen(er);
+        debug.append("EDIT_BOUNDS=").append(er).append('\n');
+
+        ArrayList<AccessibilityNodeInfo> nodes = new ArrayList<>();
+        boolean complete = collect(
+                root, nodes,
+                System.nanoTime() + 350_000_000L
+        );
+        if (!complete) {
+            debug.append("FINDER: TRAVERSAL_LIMIT_REACHED; partial tree used\n");
+        }
+
+        AccessibilityNodeInfo best = null;
+        Rect bestRect = new Rect();
+        int bestScore = Integer.MIN_VALUE;
+        int candidates = 0;
+
+        for (AccessibilityNodeInfo n : nodes) {
+            if (n == null || !n.isEnabled()) continue;
+
+            Rect r = new Rect();
+            n.getBoundsInScreen(r);
+            if (r.isEmpty()) continue;
+
+            int dy = Math.abs(r.centerY() - er.centerY());
+            int tolerance = Math.max(80, er.height());
+            if (dy > tolerance || r.centerX() <= er.centerX()) continue;
+
+            CharSequence tx = n.getText();
+            CharSequence ds = n.getContentDescription();
+            String id;
+            try {
+                id = n.getViewIdResourceName();
+            } catch (Exception ignored) {
+                id = "";
+            }
+
+            String text = String.valueOf(tx == null ? "" : tx)
+                    .toLowerCase(Locale.ROOT);
+            String desc = String.valueOf(ds == null ? "" : ds)
+                    .toLowerCase(Locale.ROOT);
+            String rid = String.valueOf(id == null ? "" : id)
+                    .toLowerCase(Locale.ROOT);
+
+            boolean semantic =
+                    containsSend(text) ||
+                    containsSend(desc) ||
+                    rid.contains("send") ||
+                    rid.contains("submit");
+
+            if (!semantic) {
+                debug.append("SKIP_NON_SEND_CONTROL bounds=")
+                        .append(r)
+                        .append(" text=").append(text)
+                        .append(" desc=").append(desc)
+                        .append(" id=").append(rid)
+                        .append('\n');
+                continue;
+            }
+
+            // Do not treat every right-side control as an equally good match.
+            int score = semantic ? 10000 : 0;
+            score -= dy * 3;
+            score += Math.min(500, r.width() + r.height());
+            score += Math.min(300, r.centerX() / 10);
+
+            candidates++;
+            debug.append("CANDIDATE ").append(candidates)
+                    .append(" bounds=").append(r)
+                    .append(" text=").append(text)
+                    .append(" desc=").append(desc)
+                    .append(" id=").append(rid)
+                    .append(" semanticSend=").append(semantic)
+                    .append(" score=").append(score).append('\n');
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = n;
+                bestRect.set(r);
+            }
+        }
+
+        result.candidateNumber = candidates;
+
+        if (best == null) {
+            AccessibilityNodeInfo fallback = null;
+            Rect fallbackRect = new Rect();
+            int matches = 0;
+            for (AccessibilityNodeInfo n : nodes) {
+                if (n == null || !n.isEnabled()) continue;
+                Rect r = new Rect();
+                n.getBoundsInScreen(r);
+                if (r.isEmpty() || r.centerX() <= er.centerX()) continue;
+                if (Math.abs(r.centerY() - er.centerY()) > Math.max(80, er.height())) continue;
+                if (r.width() > 180 || r.height() > 180) continue;
+                fallback = n;
+                fallbackRect.set(r);
+                matches++;
+            }
+            if (matches != 1) {
+                result.reason = "NO_UNIQUE_SAFE_FALLBACK";
+                debug.append("FINDER_RESULT=NOT_FOUND; fallback_matches=").append(matches).append((char)10);
+                return result;
+            }
+            best = fallback;
+            bestRect.set(fallbackRect);
+            bestScore = 1000;
+            result.reason = "UNIQUE_POSITION_FALLBACK";
+        }
+
+        result.node = AccessibilityNodeInfo.obtain(best);
+        result.bounds.set(bestRect);
+        result.score = bestScore;
+        if (bestScore >= 10000) {
+            result.reason = "SEMANTIC_SEND_MATCH";
+        } else if (result.reason == null) {
+            result.reason = "POSITION_FALLBACK_NO_SEND_LABEL";
+        }
+
+        debug.append("FINDER_RESULT=FOUND\n")
+                .append("FINDER_REASON=").append(result.reason).append('\n')
+                .append("FINDER_BOUNDS=").append(bestRect).append('\n');
+
+        return result;
+    }
+
+    private static boolean containsSend(String value) {
+        return value.contains("send")
+                || value.contains("отправ")
+                || value.contains("submit")
+                || value.contains("send message")
+                || value.contains("отправить сообщение");
+    }
+
+    private static boolean collect(
+            AccessibilityNodeInfo root,
+            ArrayList<AccessibilityNodeInfo> out,
+            long deadline) {
+
+        final int maxNodes = 800;
+        ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
+        if (root == null) return true;
+        queue.add(root);
+        int visited = 0;
+
+        while (!queue.isEmpty()) {
+            if (visited >= maxNodes || System.nanoTime() >= deadline) {
+                return false;
+            }
+
+            AccessibilityNodeInfo node = queue.removeFirst();
+            visited++;
+
+            try {
+                if (node.isClickable() && node.isEnabled()) {
+                    out.add(node);
+                }
+
+                int count = node.getChildCount();
+                for (int i = 0; i < count; i++) {
+                    if (visited + queue.size() >= maxNodes
+                            || System.nanoTime() >= deadline) {
+                        return false;
+                    }
+
+                    AccessibilityNodeInfo child = node.getChild(i);
+                    if (child != null) queue.addLast(child);
+                }
+            } catch (Exception ignored) {
+                // Недоступный узел пропускаем.
+            }
+        }
+
+        return true;
+    }
+}

@@ -1,0 +1,358 @@
+package com.test.accessibility3.modules.debug;
+
+import android.content.Context;
+import android.util.Log;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.UUID;
+
+import org.json.JSONObject;
+
+public class TermuxBridge {
+
+    private static final String TAG = "TERMUX_BRIDGE";
+
+    private final Context context;
+
+    private final File baseDir =
+            new File("/storage/emulated/0/Download/Taper");
+
+    private final File commandFile =
+            new File(baseDir, "command.json");
+
+    private final File resultFile =
+            new File(baseDir, "result.json");
+
+    private static final long TIMEOUT_MS = 10000;
+
+    public TermuxBridge(Context context) {
+        this.context = context.getApplicationContext();
+
+        log("INIT");
+        log("BASE=" + baseDir.getAbsolutePath());
+        log("BASE_EXISTS=" + baseDir.exists());
+        log("BASE_CAN_READ=" + baseDir.canRead());
+        log("BASE_CAN_WRITE=" + baseDir.canWrite());
+    }
+
+    private void log(String message) {
+        Log.d(TAG, "[TERMUX] " + message);
+    }
+
+    private String readFile(File file) throws IOException {
+
+        log("READ_START=" + file.getAbsolutePath());
+        log("READ_EXISTS=" + file.exists());
+        log("READ_CAN_READ=" + file.canRead());
+        log("READ_LENGTH=" + file.length());
+
+        if (!file.exists()) {
+            throw new IOException("FILE_NOT_FOUND:" + file.getAbsolutePath());
+        }
+
+        StringBuilder result = new StringBuilder();
+
+        BufferedReader reader = new BufferedReader(
+                new FileReader(file)
+        );
+
+        String line;
+
+        while ((line = reader.readLine()) != null) {
+            result.append(line);
+        }
+
+        reader.close();
+
+        log("READ_OK length=" + result.length());
+
+        return result.toString();
+    }
+
+    private void writeFile(File file, String data) throws IOException {
+
+        log("WRITE_START=" + file.getAbsolutePath());
+        log("WRITE_LENGTH=" + data.length());
+
+        File parent = file.getParentFile();
+
+        if (parent != null && !parent.exists()) {
+            if (!parent.mkdirs()) {
+                throw new IOException(
+                        "MKDIR_FAILED:" + parent.getAbsolutePath()
+                );
+            }
+        }
+
+        FileWriter writer = new FileWriter(file, false);
+        writer.write(data);
+        writer.flush();
+        writer.close();
+
+        log("WRITE_OK exists=" + file.exists());
+        log("WRITE_SIZE=" + file.length());
+    }
+
+    public synchronized Result send(
+            String type,
+            String command,
+            String data
+    ) {
+
+        String operationId = UUID.randomUUID().toString();
+        long timestamp = System.currentTimeMillis();
+
+        log("========================================");
+        log("SEND_START");
+        log("operation_id=" + operationId);
+        log("timestamp=" + timestamp);
+        log("type=" + type);
+        log("command=" + command);
+        log("data=" + data);
+        log("========================================");
+
+        try {
+
+            if (!baseDir.exists()) {
+                if (!baseDir.mkdirs()) {
+                    log("ERROR BASE_CREATE_FAILED");
+                    return Result.error(
+                            operationId,
+                            "BASE_CREATE_FAILED"
+                    );
+                }
+            }
+
+            // Удаляем старый результат.
+            if (resultFile.exists()) {
+                log("DELETE_OLD_RESULT");
+                if (!resultFile.delete()) {
+                    log("WARNING OLD_RESULT_DELETE_FAILED");
+                }
+            }
+
+            JSONObject commandJson = new JSONObject();
+
+            commandJson.put("operation_id", operationId);
+            commandJson.put("timestamp", timestamp);
+            commandJson.put("type", type);
+            commandJson.put("command", command);
+            commandJson.put("data", data);
+
+            String commandText = commandJson.toString();
+
+            log("COMMAND_JSON=" + commandText);
+
+            writeFile(commandFile, commandText);
+
+            log("COMMAND_SENT");
+            log("WAITING_RESULT");
+
+            long start = System.currentTimeMillis();
+
+            while (
+                    System.currentTimeMillis() - start
+                            < TIMEOUT_MS
+            ) {
+
+                if (resultFile.exists()) {
+
+                    log("RESULT_FILE_DETECTED");
+                    log("RESULT_FILE_SIZE=" + resultFile.length());
+
+                    try {
+
+                        String resultText =
+                                readFile(resultFile);
+
+                        log("RESULT_RAW=" + resultText);
+
+                        JSONObject result =
+                                new JSONObject(resultText);
+
+                        String resultOperationId =
+                                result.optString(
+                                        "operation_id",
+                                        ""
+                                );
+
+                        String status =
+                                result.optString(
+                                        "status",
+                                        ""
+                                );
+
+                        String response =
+                                result.optString(
+                                        "response",
+                                        ""
+                                );
+
+                        log("RESULT_OPERATION_ID="
+                                + resultOperationId);
+
+                        log("RESULT_STATUS="
+                                + status);
+
+                        log("RESULT_RESPONSE="
+                                + response);
+
+                        if (!operationId.equals(
+                                resultOperationId
+                        )) {
+
+                            log("ERROR OPERATION_ID_MISMATCH");
+
+                            return Result.error(
+                                    operationId,
+                                    "OPERATION_ID_MISMATCH"
+                            );
+                        }
+
+                        if ("SUCCESS".equals(status)) {
+
+                            log("RESULT_SUCCESS");
+
+                            return Result.success(
+                                    operationId,
+                                    response
+                            );
+                        }
+
+                        log("RESULT_ERROR_STATUS="
+                                + status);
+
+                        return Result.error(
+                                operationId,
+                                status
+                        );
+
+                    } catch (Exception e) {
+
+                        log("RESULT_READ_ERROR="
+                                + e.getClass().getName());
+
+                        log("RESULT_READ_ERROR_MESSAGE="
+                                + e.getMessage());
+
+                        return Result.error(
+                                operationId,
+                                "RESULT_READ_FAILED:"
+                                        + e.getMessage()
+                        );
+                    }
+                }
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+
+                    Thread.currentThread().interrupt();
+
+                    log("WAIT_INTERRUPTED");
+
+                    return Result.error(
+                            operationId,
+                            "INTERRUPTED"
+                    );
+                }
+            }
+
+            log("TIMEOUT");
+            log("RESULT_EXISTS="
+                    + resultFile.exists());
+
+            if (resultFile.exists()) {
+                log("RESULT_SIZE="
+                        + resultFile.length());
+            }
+
+            return Result.error(
+                    operationId,
+                    "TIMEOUT"
+            );
+
+        } catch (Exception e) {
+
+            log("SEND_EXCEPTION="
+                    + e.getClass().getName());
+
+            log("SEND_EXCEPTION_MESSAGE="
+                    + e.getMessage());
+
+            return Result.error(
+                    operationId,
+                    "EXCEPTION:" + e.getMessage()
+            );
+        }
+    }
+
+    public Result test() {
+
+        String testData =
+                "ACCESSIBILITY_TEST_"
+                        + System.currentTimeMillis();
+
+        log("TEST_DATA=" + testData);
+
+        Result result = send(
+                "COMMAND",
+                "TEST",
+                testData
+        );
+
+        log("TEST_RESULT="
+                + result.status);
+
+        log("TEST_RESPONSE="
+                + result.response);
+
+        return result;
+    }
+
+    public static class Result {
+
+        public final String operationId;
+        public final String status;
+        public final String response;
+
+        private Result(
+                String operationId,
+                String status,
+                String response
+        ) {
+
+            this.operationId = operationId;
+            this.status = status;
+            this.response = response;
+        }
+
+        public static Result success(
+                String operationId,
+                String response
+        ) {
+
+            return new Result(
+                    operationId,
+                    "SUCCESS",
+                    response
+            );
+        }
+
+        public static Result error(
+                String operationId,
+                String error
+        ) {
+
+            return new Result(
+                    operationId,
+                    "ERROR",
+                    error
+            );
+        }
+    }
+}

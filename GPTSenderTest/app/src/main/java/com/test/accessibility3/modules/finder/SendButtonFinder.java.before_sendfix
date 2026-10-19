@@ -1,0 +1,234 @@
+package com.test.accessibility3.modules.finder;
+
+import android.graphics.Rect;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import java.util.ArrayList;
+
+public class SendButtonFinder {
+
+    public static class Result {
+        public AccessibilityNodeInfo node;
+        public Rect bounds = new Rect();
+        public int score;
+        public int candidateNumber;
+        public String reason;
+
+        public boolean found() {
+            return node != null;
+        }
+    }
+
+    public Result find(
+            AccessibilityNodeInfo root,
+            AccessibilityNodeInfo edit,
+            StringBuilder debug) {
+
+        Result result = new Result();
+
+        if (root == null || edit == null) {
+            result.reason = "ROOT или EDITTEXT отсутствует";
+            return result;
+        }
+
+        Rect editRect = new Rect();
+        edit.getBoundsInScreen(editRect);
+
+        debug.append("\n=== SEND BUTTON FINDER ===\n");
+        debug.append("EDIT RECT: ")
+                .append(editRect.left).append(",")
+                .append(editRect.top)
+                .append(" - ")
+                .append(editRect.right).append(",")
+                .append(editRect.bottom)
+                .append("\n");
+
+        ArrayList<AccessibilityNodeInfo> clickable =
+                new ArrayList<>();
+
+        collectClickable(root, clickable);
+
+        AccessibilityNodeInfo bestNode = null;
+        Rect bestRect = new Rect();
+
+        int bestX = Integer.MIN_VALUE;
+        int number = 0;
+
+        int editCenterY = editRect.centerY();
+
+        for (AccessibilityNodeInfo n : clickable) {
+
+            if (n == null) {
+                continue;
+            }
+
+            if (n == edit) {
+                continue;
+            }
+
+            if (!n.isEnabled()) {
+                continue;
+            }
+
+            Rect r = new Rect();
+            n.getBoundsInScreen(r);
+
+            if (r.width() <= 0 || r.height() <= 0) {
+                continue;
+            }
+
+            int centerY = r.centerY();
+            int centerX = r.centerX();
+
+            int distanceY =
+                    Math.abs(centerY - editCenterY);
+
+            /*
+             * Только элементы той же строки,
+             * что и поле ввода.
+             */
+            int tolerance =
+                    Math.max(80, editRect.height());
+
+            if (distanceY > tolerance) {
+                continue;
+            }
+
+            /*
+             * Только элементы справа от центра
+             * поля ввода.
+             */
+            if (centerX <= editRect.centerX()) {
+                continue;
+            }
+
+            number++;
+
+            debug.append("\n--- CANDIDATE ")
+                    .append(number)
+                    .append(" ---\n");
+
+            debug.append("CENTER_X: ")
+                    .append(centerX)
+                    .append("\n");
+
+            debug.append("CENTER_Y: ")
+                    .append(centerY)
+                    .append("\n");
+
+            debug.append("DISTANCE_Y: ")
+                    .append(distanceY)
+                    .append("\n");
+
+            debug.append("BOUNDS: ")
+                    .append(r.left).append(",")
+                    .append(r.top)
+                    .append(" - ")
+                    .append(r.right).append(",")
+                    .append(r.bottom)
+                    .append("\n");
+
+            debug.append("TEXT: ")
+                    .append(n.getText())
+                    .append("\n");
+
+            debug.append("DESC: ")
+                    .append(n.getContentDescription())
+                    .append("\n");
+
+            /*
+             * Главное правило:
+             * самый правый кандидат побеждает.
+             */
+            if (centerX > bestX) {
+
+                bestX = centerX;
+                bestNode =
+                        AccessibilityNodeInfo.obtain(n);
+                bestRect.set(r);
+            }
+        }
+
+        if (bestNode == null) {
+
+            debug.append(
+                    "\n=== FINDER RESULT ===\n"
+            );
+
+            debug.append(
+                    "SEND: НЕ НАЙДЕН\n"
+            );
+
+            result.reason =
+                    "Кандидат справа от поля ввода не найден";
+
+            return result;
+        }
+
+        result.node = bestNode;
+        result.bounds.set(bestRect);
+        result.score = bestX;
+        result.candidateNumber = number;
+        result.reason = "Самый правый кандидат";
+
+        debug.append(
+                "\n=== FINDER RESULT ===\n"
+        );
+
+        debug.append(
+                "SEND: НАЙДЕН\n"
+        );
+
+        debug.append(
+                "CANDIDATE: "
+        ).append(number)
+         .append("\n");
+
+        debug.append(
+                "RIGHTMOST CENTER_X: "
+        ).append(bestX)
+         .append("\n");
+
+        debug.append(
+                "BOUNDS: "
+        ).append(bestRect.left)
+         .append(",")
+         .append(bestRect.top)
+         .append(" - ")
+         .append(bestRect.right)
+         .append(",")
+         .append(bestRect.bottom)
+         .append("\n");
+
+        debug.append(
+                "REASON: Самый правый кандидат\n"
+        );
+
+        return result;
+    }
+
+    private void collectClickable(
+            AccessibilityNodeInfo node,
+            ArrayList<AccessibilityNodeInfo> list) {
+
+        if (node == null) {
+            return;
+        }
+
+        if (node.isClickable()
+                && node.isEnabled()) {
+
+            list.add(node);
+        }
+
+        for (int i = 0;
+             i < node.getChildCount();
+             i++) {
+
+            AccessibilityNodeInfo child =
+                    node.getChild(i);
+
+            collectClickable(child, list);
+        }
+    }
+}

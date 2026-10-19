@@ -1,0 +1,353 @@
+package com.test.accessibility3.modules.taper;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Environment;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import com.test.accessibility3.TesterAccessibilityService;
+import com.test.accessibility3.modules.debug.DebugLogger;
+import com.test.accessibility3.modules.response.TaperTermuxBridge;
+import com.test.accessibility3.modules.termux.TermuxBridge;
+
+public final class TaperClipboardReceiver {
+
+    private final Context context;
+    private final ClipboardManager clipboard;
+    private final Handler handler =
+        new Handler(Looper.getMainLooper());
+
+    private String lastProcessed = "";
+    private boolean suppressNext = false;
+
+    private void fileLog(String message) {
+        try {
+            File dir = new File(
+                Environment.getExternalStorageDirectory(),
+                "Download/Taper"
+            );
+            if (!dir.exists()) dir.mkdirs();
+
+            File f = new File(dir, "android_taper_debug.log");
+
+            FileWriter w = new FileWriter(f, true);
+            w.write(System.currentTimeMillis() + " " + message + "\n");
+            w.close();
+        } catch (Exception ignored) {}
+    }
+
+    private final ClipboardManager.OnPrimaryClipChangedListener listener =
+        () -> handler.post(this::check);
+
+    private final Runnable pollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            check();
+            handler.postDelayed(this, 500L);
+        }
+    };
+
+    public TaperClipboardReceiver(Context context) {
+        this.context = context.getApplicationContext();
+
+        clipboard =
+            (ClipboardManager)
+            this.context.getSystemService(
+                Context.CLIPBOARD_SERVICE
+            );
+    }
+
+    public void start() {
+
+        if (clipboard == null) {
+            return;
+        }
+
+        // V6 uses Termux clipboard bridge instead of Android ClipboardManager.
+        // Keep listener object for compatibility, but do not register it.
+
+        DebugLogger.info(
+            context,
+            "TAPER_CLIPBOARD: START"
+        );
+
+        fileLog("START");
+
+        check();
+        handler.postDelayed(pollRunnable, 500L);
+    }
+
+    public void stop() {
+
+        handler.removeCallbacks(pollRunnable);
+
+        DebugLogger.info(
+            context,
+            "TAPER_CLIPBOARD: STOP"
+        );
+    }
+
+    private void check() {
+
+        if (clipboard == null ||
+            !clipboard.hasPrimaryClip()) {
+            return;
+        }
+
+        String text;
+
+        try {
+            String bridgeResponse =
+                TermuxBridge.sendAndReceive(
+                    context,
+                    "SHELL",
+                    "termux-clipboard-get"
+                );
+
+            if (bridgeResponse == null) {
+                fileLog("POLL BRIDGE_NULL");
+                return;
+            }
+
+            int outPos =
+                bridgeResponse.indexOf("SHELL_OUTPUT:");
+
+            if (outPos >= 0) {
+                text =
+                    bridgeResponse.substring(
+                        outPos + "SHELL_OUTPUT:".length()
+                    ).trim();
+            } else {
+                text = bridgeResponse.trim();
+            }
+
+        } catch (Exception e) {
+            fileLog(
+                "POLL BRIDGE_EXCEPTION " +
+                e.getClass().getSimpleName()
+            );
+            return;
+        }
+
+        fileLog(
+            "POLL_TERMUX length=" + text.length() +
+            " begin=" + text.contains(TaperProtocol.BEGIN) +
+            " end=" + text.contains(TaperProtocol.END)
+        );
+
+        if (!text.contains(TaperProtocol.BEGIN) ||
+            !text.contains(TaperProtocol.END)) {
+            return;
+        }
+
+        Long existingId = TaperProtocol.extractId(text);
+
+        if (existingId == null) {
+            String payload =
+                TaperProtocol.extractPayloadWithoutId(text);
+
+            if (payload == null || payload.trim().isEmpty()) {
+                DebugLogger.info(
+                    context,
+                    "TAPER_CLIPBOARD: REJECT_NO_PAYLOAD"
+                );
+                return;
+            }
+
+            long newId =
+                TaperProtocol.nextCommandId(context);
+
+            text =
+                TaperProtocol.tagCommand(
+                    newId,
+                    payload
+                );
+
+            DebugLogger.info(
+                context,
+                "TAPER_CLIPBOARD: AUTO_CMD_ID=" +
+                newId
+            );
+
+            fileLog("AUTO_CMD_ID=" + newId);
+        }
+
+        String signature =
+            Integer.toHexString(text.hashCode()) +
+            ":" +
+            text.length();
+
+        if (signature.equals(lastProcessed)) {
+            return;
+        }
+
+        if (suppressNext) {
+            suppressNext = false;
+            lastProcessed = signature;
+            return;
+        }
+
+        Long id =
+            TaperProtocol.extractId(text);
+
+        String command =
+            TaperProtocol.extractPayload(text);
+
+        if (id == null ||
+            command == null ||
+            command.trim().isEmpty()) {
+
+            DebugLogger.info(
+                context,
+                "TAPER_CLIPBOARD: REJECT_INVALID"
+            );
+
+            return;
+        }
+
+        lastProcessed = signature;
+
+        DebugLogger.info(
+            context,
+            "TAPER_CLIPBOARD: COMMAND CMD_ID=" +
+            id +
+            " length=" +
+            command.length()
+        );
+
+        fileLog(
+            "COMMAND CMD_ID=" + id +
+            " length=" + command.length()
+        );
+
+        new Thread(() -> {
+
+            try {
+
+                fileLog("TERMUX_SEND CMD_ID=" + id);
+
+                String response =
+                    TaperTermuxBridge.handle(
+                        context,
+                          command
+                    );
+
+                if (response == null) {
+                    DebugLogger.info(
+                        context,
+                        "TAPER_CLIPBOARD: NULL_RESPONSE CMD_ID=" +
+                        id
+                    );
+                    fileLog("NULL_RESPONSE CMD_ID=" + id);
+                    return;
+                }
+
+                fileLog("TERMUX_RESPONSE CMD_ID=" + id +
+                        " length=" + response.length());
+
+                Long responseId =
+                    TaperProtocol.extractId(response);
+
+                if (responseId == null ||
+                    !responseId.equals(id)) {
+
+                    DebugLogger.info(
+                        context,
+                        "TAPER_CLIPBOARD: REJECT_WRONG_ID expected=" +
+                        id +
+                        " received=" +
+                        responseId
+                    );
+
+                    fileLog("WRONG_ID CMD_ID=" + id);
+                    return;
+                }
+
+                final String finalResponse =
+                    response;
+
+                handler.post(() -> {
+
+                    suppressNext = true;
+
+                    clipboard.setPrimaryClip(
+                        ClipData.newPlainText(
+                            "TAPER",
+                            finalResponse
+                        )
+                    );
+
+                    DebugLogger.info(
+                        context,
+                        "TAPER_CLIPBOARD: RESPONSE_COPIED CMD_ID=" +
+                        id
+                    );
+
+                    handler.postDelayed(() -> {
+
+                        String payload =
+                            TaperProtocol.extractPayload(
+                                finalResponse
+                            );
+
+                        if (payload == null) {
+                            return;
+                        }
+
+                        boolean inserted =
+                            TesterAccessibilityService
+                                .prepareChatGPTCommand(
+                                    payload
+                                );
+
+                        DebugLogger.info(
+                            context,
+                            "TAPER_CLIPBOARD: CHATGPT_INSERT=" +
+                            inserted +
+                            " CMD_ID=" +
+                            id
+                        );
+
+                        if (inserted) {
+
+                            handler.postDelayed(() -> {
+
+                                boolean sent =
+                                    TesterAccessibilityService
+                                        .clickSend();
+
+                                DebugLogger.info(
+                                    context,
+                                    "TAPER_CLIPBOARD: CHATGPT_SEND=" +
+                                    sent +
+                                    " CMD_ID=" +
+                                    id
+                                );
+
+                            }, 700L);
+                        }
+
+                    }, 300L);
+                });
+
+            } catch (Exception e) {
+
+                DebugLogger.info(
+                    context,
+                    "TAPER_CLIPBOARD: EXCEPTION CMD_ID=" +
+                    id +
+                    " " +
+                    e.getClass().getSimpleName() +
+                    ":" +
+                    String.valueOf(e.getMessage())
+                );
+            }
+
+        }, "TaperClipboard").start();
+    }
+}

@@ -1,0 +1,29 @@
+GPTSenderTest — план интеграции
+
+Источник существующих механизмов:
+AccessibilityTester3
+
+Переиспользуемые компоненты:
+- TesterAccessibilityService
+- AutoClicker
+- SendButtonFinder
+- ChatGPTInput
+
+Не копировать реализацию кликера параллельно.
+Не запускать автоматическую отправку без команды пользователя.
+
+Журнал GPTSenderLog:
+- OPERATION_START
+- INPUT_FOUND
+- INPUT_FILLED
+- SEND_BUTTON_FOUND
+- CLICK_RESULT
+- SEND_CONFIRMED
+- OPERATION_FAILED
+
+CLICK_RESULT=SUCCESS сам по себе не означает SEND_CONFIRMED.
+Подтверждать отправку только по наблюдаемому результату.
+
+Текущий этап создаёт изолированный модуль журнала.
+Полноценный APK с AccessibilityService требует отдельной
+настройки Manifest, Gradle и интеграции компонентов.

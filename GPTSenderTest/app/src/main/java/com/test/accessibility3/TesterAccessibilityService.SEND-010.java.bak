@@ -1,0 +1,217 @@
+package com.test.accessibility3;
+
+import android.accessibilityservice.AccessibilityService;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TesterAccessibilityService extends AccessibilityService {
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        TesterAccessibilityServiceHolder.service = this;
+        MainActivity.refresh();
+    }
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
+
+        CharSequence pkg = event.getPackageName();
+
+        if (pkg == null) return;
+
+        String packageName = pkg.toString();
+
+        // Не сканируем само Tester3
+        if (packageName.equals(getPackageName())) {
+            return;
+        }
+
+        // Небольшая задержка, чтобы дерево окна успело обновиться
+        handler.removeCallbacksAndMessages(null);
+
+        handler.postDelayed(() -> scanCurrentWindow(packageName), 300);
+    }
+
+    private void scanCurrentWindow(String packageName) {
+
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+
+        if (root == null) {
+            saveResult(
+                    "=== SEND-010 ===\n\n" +
+                    "PACKAGE: " + packageName + "\n" +
+                    "ROOT: NULL\n"
+            );
+            return;
+        }
+
+        StringBuilder out = new StringBuilder();
+
+        out.append("=== SEND-010 ACCESSIBILITY SCAN ===\n\n");
+        out.append("PACKAGE: ").append(packageName).append("\n");
+        out.append("ROOT: OK\n\n");
+
+        List<AccessibilityNodeInfo> nodes = new ArrayList<>();
+        collect(root, nodes);
+
+        out.append("НАЙДЕНО ЭЛЕМЕНТОВ: ")
+                .append(nodes.size())
+                .append("\n\n");
+
+        int number = 0;
+
+        for (AccessibilityNodeInfo node : nodes) {
+
+            number++;
+
+            out.append("----- NODE ")
+                    .append(number)
+                    .append(" -----\n");
+
+            CharSequence text = node.getText();
+            CharSequence desc = node.getContentDescription();
+
+            String id = "";
+            try {
+                id = node.getViewIdResourceName();
+            } catch (Exception ignored) {
+            }
+
+            out.append("TEXT: ")
+                    .append(text == null ? "" : text)
+                    .append("\n");
+
+            out.append("DESC: ")
+                    .append(desc == null ? "" : desc)
+                    .append("\n");
+
+            out.append("ID: ")
+                    .append(id)
+                    .append("\n");
+
+            out.append("CLASS: ")
+                    .append(node.getClassName() == null ? "" : node.getClassName())
+                    .append("\n");
+
+            out.append("EDITABLE: ")
+                    .append(node.isEditable())
+                    .append("\n");
+
+            out.append("CLICKABLE: ")
+                    .append(node.isClickable())
+                    .append("\n");
+
+            out.append("FOCUSABLE: ")
+                    .append(node.isFocusable())
+                    .append("\n");
+
+            out.append("FOCUSED: ")
+                    .append(node.isFocused())
+                    .append("\n");
+
+            out.append("ENABLED: ")
+                    .append(node.isEnabled())
+                    .append("\n");
+
+            out.append("LONG_CLICKABLE: ")
+                    .append(node.isLongClickable())
+                    .append("\n");
+
+            out.append("\n");
+        }
+
+        saveResult(out.toString());
+    }
+
+    private void collect(
+            AccessibilityNodeInfo node,
+            List<AccessibilityNodeInfo> list
+    ) {
+        if (node == null) return;
+
+        list.add(node);
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+
+            if (child != null) {
+                collect(child, list);
+            }
+        }
+    }
+
+    private void saveResult(String text) {
+
+        try {
+            File file = new File(
+                    getFilesDir(),
+                    "last_scan.txt"
+            );
+
+            FileWriter writer = new FileWriter(file, false);
+            writer.write(text);
+            writer.close();
+
+        } catch (IOException ignored) {
+        }
+    }
+
+    public static String readResult(AccessibilityService service) {
+
+        if (service == null) {
+            return "СЕРВИС НЕ ПОДКЛЮЧЁН";
+        }
+
+        try {
+            File file = new File(
+                    service.getFilesDir(),
+                    "last_scan.txt"
+            );
+
+            if (!file.exists()) {
+                return "СКАНИРОВАНИЯ ЕЩЁ НЕТ.\n\n" +
+                       "Открой ChatGPT и дождись события Accessibility.";
+            }
+
+            java.io.BufferedReader reader =
+                    new java.io.BufferedReader(
+                            new java.io.FileReader(file)
+                    );
+
+            StringBuilder text = new StringBuilder();
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                text.append(line).append("\n");
+            }
+
+            reader.close();
+
+            return text.toString();
+
+        } catch (Exception e) {
+            return "ОШИБКА ЧТЕНИЯ:\n" + e;
+        }
+    }
+
+    @Override
+    public void onInterrupt() {
+    }
+
+    @Override
+    public void onDestroy() {
+        TesterAccessibilityServiceHolder.service = null;
+        super.onDestroy();
+    }
+}

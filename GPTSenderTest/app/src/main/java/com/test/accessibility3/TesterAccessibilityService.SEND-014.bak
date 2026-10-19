@@ -1,0 +1,829 @@
+package com.test.accessibility3;
+
+import android.accessibilityservice.AccessibilityService;
+import android.graphics.Rect;
+import android.os.Bundle;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+
+public class TesterAccessibilityService extends AccessibilityService {
+
+    private boolean testStarted = false;
+    private boolean waitingForTree = false;
+
+    private AccessibilityNodeInfo lastSendCandidate = null;
+
+    @Override
+    public void onServiceConnected() {
+        super.onServiceConnected();
+        TesterAccessibilityServiceHolder.service = this;
+    }
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
+
+        if (event == null || event.getPackageName() == null)
+            return;
+
+        String pkg = event.getPackageName().toString();
+
+        if (!pkg.equals("com.openai.chatgpt"))
+            return;
+
+        /*
+         * Первый запуск теста.
+         */
+        if (!testStarted) {
+
+            testStarted = true;
+
+            android.os.Handler h =
+                    new android.os.Handler();
+
+            h.postDelayed(
+                    () -> startTest(),
+                    300
+            );
+
+            return;
+        }
+
+        /*
+         * После SET_TEXT ChatGPT меняет Compose tree.
+         * Ждём новое дерево.
+         */
+        if (waitingForTree) {
+
+            waitingForTree = false;
+
+            android.os.Handler h =
+                    new android.os.Handler();
+
+            h.postDelayed(
+                    () -> scanFreshTree(),
+                    200
+            );
+        }
+    }
+
+    private void startTest() {
+
+        AccessibilityNodeInfo root =
+                getRootInActiveWindow();
+
+        if (root == null) {
+
+            save(
+                    "=== SEND-013 ===\n" +
+                    "ROOT: NULL\n"
+            );
+
+            return;
+        }
+
+        AccessibilityNodeInfo edit =
+                findEditText(root);
+
+        StringBuilder out =
+                new StringBuilder();
+
+        out.append(
+                "=== SEND-013 ===\n"
+        );
+
+        out.append(
+                "PACKAGE: com.openai.chatgpt\n\n"
+        );
+
+        if (edit == null) {
+
+            out.append(
+                    "EDITTEXT: НЕ НАЙДЕН\n"
+            );
+
+            save(out.toString());
+            return;
+        }
+
+        out.append(
+                "EDITTEXT НАЙДЕН\n"
+        );
+
+        dumpNode(
+                edit,
+                out,
+                "EDITTEXT"
+        );
+
+        Bundle b =
+                new Bundle();
+
+        b.putCharSequence(
+                AccessibilityNodeInfo
+                        .ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                "SEND-013 TEST"
+        );
+
+        boolean result =
+                edit.performAction(
+                        AccessibilityNodeInfo.ACTION_SET_TEXT,
+                        b
+                );
+
+        out.append(
+                "\nSET_TEXT: "
+        ).append(result)
+         .append("\n");
+
+        out.append(
+                "\nЖДЁМ НОВОЕ ДЕРЕВО CHATGPT...\n"
+        );
+
+        save(out.toString());
+
+        /*
+         * Следующее accessibility-событие ChatGPT
+         * запустит scanFreshTree().
+         */
+        waitingForTree = true;
+    }
+
+    private void scanFreshTree() {
+
+        AccessibilityNodeInfo root =
+                getRootInActiveWindow();
+
+        StringBuilder out =
+                new StringBuilder();
+
+        out.append(
+                "=== SEND-013 FRESH TREE ===\n\n"
+        );
+
+        if (root == null) {
+
+            out.append(
+                    "ROOT: NULL\n"
+            );
+
+            save(out.toString());
+            return;
+        }
+
+        AccessibilityNodeInfo edit =
+                findEditText(root);
+
+        if (edit == null) {
+
+            out.append(
+                    "EDITTEXT: НЕ НАЙДЕН В НОВОМ ДЕРЕВЕ\n\n"
+            );
+
+            /*
+             * ВАЖНО:
+             * даже если EditText временно исчез,
+             * выводим все кликабельные элементы.
+             */
+
+            dumpClickableNodes(
+                    root,
+                    out
+            );
+
+            save(out.toString());
+            return;
+        }
+
+        Rect editRect =
+                new Rect();
+
+        edit.getBoundsInScreen(
+                editRect
+        );
+
+        out.append(
+                "EDITTEXT В НОВОМ ДЕРЕВЕ\n"
+        );
+
+        dumpNode(
+                edit,
+                out,
+                "EDITTEXT"
+        );
+
+        out.append(
+                "\n=== CLICKABLE ЭЛЕМЕНТЫ РЯДОМ ===\n"
+        );
+
+        ArrayList<AccessibilityNodeInfo>
+                clickable =
+                new ArrayList<>();
+
+        collectClickable(
+                root,
+                clickable
+        );
+
+        lastSendCandidate = null;
+
+        int bestScore =
+                Integer.MIN_VALUE;
+
+        int number = 0;
+
+        for (AccessibilityNodeInfo n :
+                clickable) {
+
+            if (n == null)
+                continue;
+
+            if (!n.isEnabled())
+                continue;
+
+            Rect r =
+                    new Rect();
+
+            n.getBoundsInScreen(r);
+
+            if (r.width() <= 0 ||
+                    r.height() <= 0)
+                continue;
+
+            int cy =
+                    (r.top + r.bottom) / 2;
+
+            int ey =
+                    (editRect.top +
+                     editRect.bottom) / 2;
+
+            int distance =
+                    Math.abs(cy - ey);
+
+            /*
+             * Берём достаточно широкую область
+             * вокруг поля ввода.
+             */
+            if (distance >
+                    editRect.height() * 4)
+                continue;
+
+            number++;
+
+            int score = 0;
+
+            /*
+             * Та же горизонтальная линия.
+             */
+            score +=
+                    2000 - distance;
+
+            /*
+             * Элементы справа от поля
+             * получают дополнительный вес.
+             */
+            if (r.left >= editRect.left)
+                score += 300;
+
+            if (r.centerX() >
+                    editRect.centerX())
+                score += 300;
+
+            // Кнопка Send находится справа от поля
+            if (r.left >= editRect.right - 350)
+                score += 1200;
+
+            // Не выбираем элементы, которые находятся
+            // слишком далеко справа от поля
+            if (r.left > editRect.right)
+                score -= 500;
+
+            /*
+             * Текст / description.
+             */
+            String desc =
+                    String.valueOf(
+                            n.getContentDescription()
+                    ).toLowerCase();
+
+            String text =
+                    String.valueOf(
+                            n.getText()
+                    ).toLowerCase();
+
+            if (desc.contains("отправ"))
+                score += 10000;
+
+            if (desc.contains("send"))
+                score += 10000;
+
+            if (text.contains("отправ"))
+                score += 10000;
+
+            if (text.contains("send"))
+                score += 10000;
+
+            out.append(
+                    "\n--- CANDIDATE "
+            ).append(number)
+             .append(" SCORE=")
+             .append(score)
+             .append(" ---\n");
+
+            dumpNode(
+                    n,
+                    out,
+                    "CLICKABLE"
+            );
+
+            if (score > bestScore) {
+
+                bestScore =
+                        score;
+
+                lastSendCandidate =
+                        AccessibilityNodeInfo
+                                .obtain(n);
+            }
+        }
+
+        out.append(
+                "\n=== ВЫБРАН SEND-КАНДИДАТ ===\n"
+        );
+
+        if (lastSendCandidate == null) {
+
+            out.append(
+                    "SEND: НЕ НАЙДЕН\n"
+            );
+
+        } else {
+
+            dumpNode(
+                    lastSendCandidate,
+                    out,
+                    "SEND CANDIDATE"
+            );
+
+            out.append(
+                    "\nSEND CLICK ГОТОВ.\n"
+            );
+        }
+
+        save(out.toString());
+    }
+
+    private void dumpClickableNodes(
+            AccessibilityNodeInfo root,
+            StringBuilder out) {
+
+        ArrayList<AccessibilityNodeInfo>
+                list =
+                new ArrayList<>();
+
+        collectClickable(
+                root,
+                list
+        );
+
+        int number = 0;
+
+        for (AccessibilityNodeInfo n :
+                list) {
+
+            if (n == null)
+                continue;
+
+            if (!n.isEnabled())
+                continue;
+
+            Rect r =
+                    new Rect();
+
+            n.getBoundsInScreen(r);
+
+            if (r.width() <= 0 ||
+                    r.height() <= 0)
+                continue;
+
+            number++;
+
+            out.append(
+                    "\n--- CLICKABLE "
+            ).append(number)
+             .append(" ---\n");
+
+            dumpNode(
+                    n,
+                    out,
+                    "CLICKABLE"
+            );
+        }
+    }
+
+    /*
+     * Нажатие вызывается кнопкой
+     * «ОТПРАВИТЬ В CHATGPT».
+     */
+    public static boolean clickSend() {
+
+        AccessibilityService service =
+                TesterAccessibilityServiceHolder.service;
+
+        if (service == null)
+            return false;
+
+        AccessibilityNodeInfo root =
+                service.getRootInActiveWindow();
+
+        if (root == null)
+            return false;
+
+        /*
+         * Сначала пытаемся использовать
+         * последний найденный кандидат.
+         */
+        if (service instanceof
+                TesterAccessibilityService) {
+
+            TesterAccessibilityService s =
+                    (TesterAccessibilityService)
+                            service;
+
+            if (s.lastSendCandidate != null) {
+
+                boolean result =
+                        s.lastSendCandidate
+                                .performAction(
+                                    AccessibilityNodeInfo
+                                        .ACTION_CLICK
+                                );
+
+                if (result)
+                    return true;
+            }
+        }
+
+        /*
+         * Если дерево изменилось —
+         * ищем Send заново.
+         */
+        AccessibilityNodeInfo edit =
+                findEditTextStatic(root);
+
+        if (edit == null)
+            return false;
+
+        Rect editRect =
+                new Rect();
+
+        edit.getBoundsInScreen(
+                editRect
+        );
+
+        ArrayList<AccessibilityNodeInfo>
+                list =
+                new ArrayList<>();
+
+        collectClickableStatic(
+                root,
+                list
+        );
+
+        AccessibilityNodeInfo best =
+                null;
+
+        int bestScore =
+                Integer.MIN_VALUE;
+
+        for (AccessibilityNodeInfo n :
+                list) {
+
+            if (n == null ||
+                    !n.isEnabled())
+                continue;
+
+            Rect r =
+                    new Rect();
+
+            n.getBoundsInScreen(r);
+
+            if (r.width() <= 0 ||
+                    r.height() <= 0)
+                continue;
+
+            int cy =
+                    (r.top + r.bottom) / 2;
+
+            int ey =
+                    (editRect.top +
+                     editRect.bottom) / 2;
+
+            int distance =
+                    Math.abs(cy - ey);
+
+            if (distance >
+                    editRect.height() * 4)
+                continue;
+
+            int score =
+                    2000 - distance;
+
+            if (r.left >= editRect.left)
+                score += 300;
+
+            if (r.centerX() >
+                    editRect.centerX())
+                score += 300;
+
+            // Кнопка Send находится справа от поля
+            if (r.left >= editRect.right - 350)
+                score += 1200;
+
+            // Не выбираем элементы, которые находятся
+            // слишком далеко справа от поля
+            if (r.left > editRect.right)
+                score -= 500;
+
+            String desc =
+                    String.valueOf(
+                            n.getContentDescription()
+                    ).toLowerCase();
+
+            String text =
+                    String.valueOf(
+                            n.getText()
+                    ).toLowerCase();
+
+            if (desc.contains("отправ") ||
+                    desc.contains("send"))
+                score += 10000;
+
+            if (text.contains("отправ") ||
+                    text.contains("send"))
+                score += 10000;
+
+            if (score > bestScore) {
+
+                bestScore =
+                        score;
+
+                best = n;
+            }
+        }
+
+        if (best == null)
+            return false;
+
+        return best.performAction(
+                AccessibilityNodeInfo.ACTION_CLICK
+        );
+    }
+
+    private AccessibilityNodeInfo findEditText(
+            AccessibilityNodeInfo node) {
+
+        if (node == null)
+            return null;
+
+        if ("android.widget.EditText"
+                .contentEquals(
+                        node.getClassName())
+                && node.isEditable()) {
+
+            return node;
+        }
+
+        for (int i = 0;
+             i < node.getChildCount();
+             i++) {
+
+            AccessibilityNodeInfo found =
+                    findEditText(
+                            node.getChild(i)
+                    );
+
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private static AccessibilityNodeInfo
+    findEditTextStatic(
+            AccessibilityNodeInfo node) {
+
+        if (node == null)
+            return null;
+
+        if ("android.widget.EditText"
+                .contentEquals(
+                        node.getClassName())
+                && node.isEditable()) {
+
+            return node;
+        }
+
+        for (int i = 0;
+             i < node.getChildCount();
+             i++) {
+
+            AccessibilityNodeInfo found =
+                    findEditTextStatic(
+                            node.getChild(i)
+                    );
+
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private void collectClickable(
+            AccessibilityNodeInfo node,
+            ArrayList<AccessibilityNodeInfo>
+                    list) {
+
+        if (node == null)
+            return;
+
+        if (node.isClickable() &&
+                node.isEnabled() &&
+                !("android.widget.EditText".contentEquals(
+                        node.getClassName()))) {
+
+            list.add(node);
+        }
+
+        for (int i = 0;
+             i < node.getChildCount();
+             i++) {
+
+            collectClickable(
+                    node.getChild(i),
+                    list
+            );
+        }
+    }
+
+    private static void collectClickableStatic(
+            AccessibilityNodeInfo node,
+            ArrayList<AccessibilityNodeInfo>
+                    list) {
+
+        if (node == null)
+            return;
+
+        if (node.isClickable() &&
+                node.isEnabled() &&
+                !("android.widget.EditText".contentEquals(
+                        node.getClassName()))) {
+
+            list.add(node);
+        }
+
+        for (int i = 0;
+             i < node.getChildCount();
+             i++) {
+
+            collectClickableStatic(
+                    node.getChild(i),
+                    list
+            );
+        }
+    }
+
+    private void dumpNode(
+            AccessibilityNodeInfo n,
+            StringBuilder out,
+            String name) {
+
+        if (n == null)
+            return;
+
+        Rect r =
+                new Rect();
+
+        n.getBoundsInScreen(r);
+
+        out.append(name)
+           .append("\n");
+
+        out.append("CLASS: ")
+           .append(n.getClassName())
+           .append("\n");
+
+        out.append("TEXT: ")
+           .append(n.getText())
+           .append("\n");
+
+        out.append("DESC: ")
+           .append(n.getContentDescription())
+           .append("\n");
+
+        out.append("CLICKABLE: ")
+           .append(n.isClickable())
+           .append("\n");
+
+        out.append("FOCUSABLE: ")
+           .append(n.isFocusable())
+           .append("\n");
+
+        out.append("FOCUSED: ")
+           .append(n.isFocused())
+           .append("\n");
+
+        out.append("ENABLED: ")
+           .append(n.isEnabled())
+           .append("\n");
+
+        out.append("EDITABLE: ")
+           .append(n.isEditable())
+           .append("\n");
+
+        out.append("BOUNDS: ")
+           .append(r.left)
+           .append(",")
+           .append(r.top)
+           .append(" - ")
+           .append(r.right)
+           .append(",")
+           .append(r.bottom)
+           .append("\n");
+    }
+
+    private void save(String text) {
+
+        try {
+
+            File f =
+                    new File(
+                            getFilesDir(),
+                            "last_scan.txt"
+                    );
+
+            FileOutputStream fos =
+                    new FileOutputStream(
+                            f,
+                            false
+                    );
+
+            fos.write(
+                    text.getBytes("UTF-8")
+            );
+
+            fos.close();
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static String readResult(
+            AccessibilityService service) {
+
+        try {
+
+            File f =
+                    new File(
+                            service.getFilesDir(),
+                            "last_scan.txt"
+                    );
+
+            if (!f.exists())
+                return "Файл last_scan.txt не найден";
+
+            FileInputStream fis =
+                    new FileInputStream(f);
+
+            byte[] data =
+                    new byte[(int) f.length()];
+
+            int n =
+                    fis.read(data);
+
+            fis.close();
+
+            return new String(
+                    data,
+                    0,
+                    n,
+                    "UTF-8"
+            );
+
+        } catch (Exception e) {
+
+            return "Ошибка чтения: " +
+                    e.getMessage();
+        }
+    }
+
+    @Override
+    public void onInterrupt() {
+    }
+}

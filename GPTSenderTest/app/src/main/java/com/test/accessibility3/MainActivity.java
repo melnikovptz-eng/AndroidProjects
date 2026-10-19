@@ -1,0 +1,586 @@
+package com.test.accessibility3;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.content.Intent;
+import android.provider.Settings;
+import android.graphics.Color;
+import android.view.Gravity;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.EditText;
+
+public class MainActivity extends Activity {
+
+    private EditText output;
+    private final Handler handler = new Handler();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(20, 20, 20, 20);
+
+        TextView title = new TextView(this);
+        title.setText("AccessibilityTester3\nMODULAR");
+        title.setTextSize(22);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, 20);
+        root.addView(title);
+
+        Button accessibility = new Button(this);
+        accessibility.setText("1. ОТКРЫТЬ ACCESSIBILITY");
+
+        accessibility.setOnClickListener(v -> {
+            try {
+                startActivity(
+                    new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                );
+            } catch (Exception ignored) {
+            }
+        });
+
+        root.addView(accessibility);
+
+        Button check = new Button(this);
+        check.setText("2. ПРОВЕРИТЬ СЕРВИС");
+
+        check.setOnClickListener(v -> {
+            if (TesterAccessibilityServiceHolder.service != null) {
+                output.setText("СЕРВИС ACCESSIBILITY: OK\n");
+            } else {
+                output.setText("СЕРВИС НЕ ПОДКЛЮЧЕН\n");
+            }
+        });
+
+        root.addView(check);
+
+        Button scan = new Button(this);
+        scan.setText("3. ПОКАЗАТЬ СКАН CHATGPT");
+
+        scan.setOnClickListener(v -> refresh());
+
+        root.addView(scan);
+
+        Button send = new Button(this);
+        send.setText("ОТПРАВИТЬ В CHATGPT");
+        send.setTextSize(18);
+
+        send.setOnClickListener(v -> {
+
+            output.append(
+                "\n\n=== CHATGPT SEND START ===\n"
+            );
+
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            String clipboardText = "";
+            if (clipboard != null && clipboard.hasPrimaryClip()) {
+                android.content.ClipData clip = clipboard.getPrimaryClip();
+                if (clip != null && clip.getItemCount() > 0) {
+                    CharSequence text = clip.getItemAt(0).coerceToText(this);
+                    if (text != null) clipboardText = text.toString();
+                }
+            }
+            com.test.accessibility3.modules.debug.DebugLogger.info(this, "CLIPBOARD: READ_FOR_CHATGPT, length=" + clipboardText.length());
+            if (clipboardText.trim().isEmpty()) {
+                output.append("CLIPBOARD: EMPTY\n");
+                return;
+            }
+            boolean inserted = TesterAccessibilityService.prepareChatGPTCommand(clipboardText);
+
+            if (!inserted) {
+                output.append(
+                    "INPUT INSERT: FAILED\n"
+                );
+                return;
+            }
+
+            output.append(
+                "INPUT INSERT: OK\n"
+            );
+
+            handler.postDelayed(() -> {
+
+                boolean sent =
+                    TesterAccessibilityService
+                        .clickSend();
+
+                if (sent) {
+
+                    output.append(
+                        "SEND BUTTON: CLICKED\n"
+                    );
+
+                    refresh();
+
+                } else {
+
+                    output.append(
+                        "SEND FIRST ATTEMPT: FAILED\n"
+                    );
+
+                    handler.postDelayed(() -> {
+
+                        boolean retry =
+                            TesterAccessibilityService
+                                .clickSend();
+
+                        output.append(
+                            retry
+                                ? "SEND RETRY: CLICKED\n"
+                                : "SEND RETRY: FAILED\n"
+                        );
+
+                        refresh();
+
+                    }, 300);
+                }
+
+            }, 700);
+        });
+
+        root.addView(send);
+
+        Button copy = new Button(this);
+        copy.setText("КОПИРОВАТЬ ВЫВОД");
+
+        copy.setOnClickListener(v -> {
+
+            String text =
+                output.getText().toString();
+
+            com.test.accessibility3.modules.debug.DebugLogger.info(
+                this,
+                "CLIPBOARD: COPY_REQUEST, length=" + text.length()
+            );
+
+            if (text.trim().isEmpty()) {
+                output.append(
+                    "\n\nЛОГ ПУСТОЙ\n"
+                );
+                return;
+            }
+
+            android.content.ClipboardManager cb =
+                (android.content.ClipboardManager)
+                    getSystemService(CLIPBOARD_SERVICE);
+
+            cb.setPrimaryClip(
+                android.content.ClipData.newPlainText(
+                    "MODULAR LOG",
+                    text
+                )
+            );
+
+            com.test.accessibility3.modules.debug.DebugLogger.clipboardCopyData(
+                this,
+                text
+            );
+
+            com.test.accessibility3.modules.debug.DebugLogger.clipboardCopy(
+                this,
+                text.length()
+            );
+
+            String taperStatus =
+                com.test.accessibility3.modules.response.TaperTermuxBridge
+                    .handle(this, text);
+
+            output.append(
+                "\n\n" + taperStatus + "\n"
+            );
+
+            output.append(
+                "\n\nЛОГ СКОПИРОВАН В БУФЕР\n"
+            );
+        });
+
+        root.addView(copy);
+
+        Button showLog = new Button(this);
+        showLog.setText("ПОКАЗАТЬ ЛОГ LOGGER");
+
+        showLog.setOnClickListener(v -> {
+
+            String log =
+                com.test.accessibility3.modules.debug.DebugLogger
+                    .readLog(this);
+
+            output.setText(log);
+        });
+
+        root.addView(showLog);
+
+        Button taperLog = new Button(this);
+        taperLog.setText("ПОКАЗАТЬ TAPER ЛОГ");
+
+        taperLog.setOnClickListener(v -> {
+
+            String fullLog;
+
+            try {
+                fullLog =
+                        com.test.accessibility3.modules.debug.DebugLogger
+                                .readLastLines(
+                                        new java.io.File(
+                                                getFilesDir(),
+                                                "debug_log.txt"
+                                        ),
+                                        80
+                                );
+            } catch (Exception e) {
+                fullLog =
+                        "ОШИБКА ЧТЕНИЯ ЛОГА: " +
+                        e.getClass().getSimpleName() +
+                        ": " +
+                        e.getMessage();
+            }
+
+            if (fullLog == null ||
+                    fullLog.trim().isEmpty()) {
+
+                output.setText("TAPER ЛОГ ПУСТ");
+                return;
+            }
+
+            String[] lines =
+                    fullLog.split("\\r?\\n");
+
+            StringBuilder shortLog =
+                    new StringBuilder();
+
+            int start =
+                    Math.max(0, lines.length - 80);
+
+            for (int i = start;
+                    i < lines.length;
+                    i++) {
+
+                String line = lines[i];
+
+                if (line.contains("[TAPER]") ||
+                        line.contains("TAPER:") ||
+                        line.contains("SEND:") ||
+                        line.contains("CLIPBOARD:")) {
+
+                    shortLog
+                            .append(line)
+                            .append("\n");
+                }
+            }
+
+            String[] selected =
+                    shortLog.toString()
+                            .split("\\r?\\n");
+
+            StringBuilder result =
+                    new StringBuilder();
+
+            int selectedStart =
+                    Math.max(0, selected.length - 40);
+
+            result.append(
+                    "=== TAPER SHORT LOG ===\n"
+            );
+
+            result.append(
+                    "Последние 40 событий\n\n"
+            );
+
+            for (int i = selectedStart;
+                    i < selected.length;
+                    i++) {
+
+                result.append(
+                        selected[i]
+                );
+
+                result.append("\n");
+            }
+
+            output.setText(result.toString());
+
+            com.test.accessibility3.modules.debug.DebugLogger
+                    .info(
+                            this,
+                            "TAPER SHORT LOG DISPLAYED"
+                    );
+        });
+
+        root.addView(taperLog);
+
+        Button clear = new Button(this);
+        clear.setText("ОЧИСТИТЬ ВЫВОД");
+
+        clear.setOnClickListener(
+            v -> output.setText("")
+        );
+
+        root.addView(clear);
+
+        ScrollView scroll = new ScrollView(this);
+
+        output = new EditText(this);
+
+        output.setTextSize(12);
+        output.setTextColor(Color.BLACK);
+        output.setBackgroundColor(Color.WHITE);
+        output.setPadding(12, 12, 12, 12);
+
+        output.setTextIsSelectable(true);
+        output.setFocusable(true);
+        output.setFocusableInTouchMode(true);
+        output.setLongClickable(true);
+
+        scroll.addView(output);
+
+        LinearLayout.LayoutParams scrollParams =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1
+            );
+
+        scrollParams.topMargin = 15;
+
+        root.addView(scroll, scrollParams);
+
+        setContentView(root);
+
+        // TERMUX_INPUT_FIELD_V1
+        final android.widget.EditText termuxInput = new android.widget.EditText(this);
+        termuxInput.setHint("Введите данные для Termux");
+        termuxInput.setTextSize(16);
+        termuxInput.setSingleLine(false);
+        termuxInput.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        termuxInput.setPadding(16,12,16,12);
+        android.widget.FrameLayout.LayoutParams inputParams = new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,(int)(110*getResources().getDisplayMetrics().density));
+        inputParams.leftMargin=(int)(12*getResources().getDisplayMetrics().density);
+        inputParams.rightMargin=(int)(12*getResources().getDisplayMetrics().density);
+        inputParams.bottomMargin=(int)(80*getResources().getDisplayMetrics().density);
+        inputParams.gravity=android.view.Gravity.BOTTOM;
+        addContentView(termuxInput,inputParams);
+
+        // TERMUX_TEST_BUTTON_V2
+        try {
+            final android.widget.Button termuxTestButton =
+                    new android.widget.Button(this);
+
+            termuxTestButton.setText("ОТПРАВИТЬ В TERMUX");
+            termuxTestButton.setTextSize(16);
+            termuxTestButton.setAllCaps(false);
+
+            int buttonHeight =
+                    (int) (56 * getResources().getDisplayMetrics().density);
+
+            android.widget.FrameLayout.LayoutParams
+                    termuxParams =
+                    new android.widget.FrameLayout.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            buttonHeight
+                    );
+
+            termuxParams.leftMargin =
+                    (int) (12 * getResources().getDisplayMetrics().density);
+
+            termuxParams.rightMargin =
+                    (int) (12 * getResources().getDisplayMetrics().density);
+
+            termuxParams.bottomMargin =
+                    (int) (12 * getResources().getDisplayMetrics().density);
+
+            termuxParams.gravity =
+                    android.view.Gravity.BOTTOM;
+
+            addContentView(
+                    termuxTestButton,
+                    termuxParams
+            );
+
+            termuxTestButton.setOnClickListener(
+                    new android.view.View.OnClickListener() {
+
+                        @Override
+                        public void onClick(
+                                android.view.View v
+                        ) {
+
+                            termuxTestButton.setEnabled(false);
+                            termuxTestButton.setText(
+                                    "ОТПРАВКА В TERMUX..."
+                            );
+
+                            final android.content.Context ctx =
+                                    MainActivity.this;
+
+                            com.test.accessibility3.modules.termux.TermuxBridge
+                                    .initialize(ctx);
+
+                            new Thread(
+                                    new Runnable() {
+
+                                        @Override
+                                        public void run() {
+
+                                            final String realText =
+                                                    termuxInput.getText().toString();
+
+                                            com.test.accessibility3.modules.debug.DebugLogger.info(
+                                                    ctx,
+                                                    "TAPER_REAL: SEND length=" + realText.length()
+                                            );
+
+                                            final String result =
+                                                    com.test.accessibility3.modules.termux.TermuxBridge
+                                                            .sendTaperData(ctx, realText);
+
+                                            runOnUiThread(
+                                                    new Runnable() {
+
+                                                        @Override
+                                                        public void run() {
+
+                                                            termuxTestButton
+                                                                    .setEnabled(true);
+
+                                                            if (result != null) {
+
+                                                                android.content.ClipboardManager cb =
+                                                                        (android.content.ClipboardManager)
+                                                                                getSystemService(CLIPBOARD_SERVICE);
+
+                                                                cb.setPrimaryClip(
+                                                                        android.content.ClipData.newPlainText(
+                                                                                "TERMUX RESPONSE",
+                                                                                result
+                                                                        )
+                                                                );
+
+                                                                com.test.accessibility3.modules.debug.DebugLogger.info(
+                                                                        ctx,
+                                                                        "CLIPBOARD: TERMUX_RESPONSE_COPIED, length=" +
+                                                                                result.length()
+                                                                );
+
+                                                                com.test.accessibility3.modules.debug.DebugLogger.clipboardCopyData(
+                                                                        ctx,
+                                                                        result
+                                                                );
+
+                                                                com.test.accessibility3.modules.debug.DebugLogger.info(
+                                                                        ctx,
+                                                                        "TERMUX: ROUND_TRIP_AND_CLIPBOARD=SUCCESS"
+                                                                );
+
+                                                                termuxTestButton
+                                                                        .setText(
+                                                                                "TERMUX: ОТВЕТ ПОЛУЧЕН"
+                                                                        );
+
+                                                                // ===== AUTO TERMUX -> CHATGPT DISABLED =====
+                                                                com.test.accessibility3.modules.debug.DebugLogger.info(
+                                                                        ctx,
+                                                                        "AUTO_CHAT: DISABLED"
+                                                                );
+// ===== END AUTO TERMUX -> CHATGPT DISABLED =====
+
+                                                                android.widget.Toast
+                                                                        .makeText(
+                                                                                ctx,
+                                                                                "TERMUX OK\n" +
+                                                                                        result,
+                                                                                android.widget.Toast.LENGTH_LONG
+                                                                        )
+                                                                        .show();
+
+                                                            } else {
+
+                                                                termuxTestButton
+                                                                        .setText(
+                                                                                "TERMUX: ERROR"
+                                                                        );
+
+                                                                android.widget.Toast
+                                                                        .makeText(
+                                                                                ctx,
+                                                                                "TERMUX ERROR / TIMEOUT",
+                                                                                android.widget.Toast.LENGTH_LONG
+                                                                        )
+                                                                        .show();
+                                                            }
+                                                        }
+                                                    }
+                                            );
+                                        }
+                                    }
+                            ).start();
+                        }
+                    }
+            );
+
+        } catch (Exception termuxButtonError) {
+
+            com.test.accessibility3.modules.debug.DebugLogger.info(
+                    this,
+                    "TERMUX: TEST_BUTTON_ERROR=" +
+                            termuxButtonError.getMessage()
+            );
+        }
+
+    }
+
+    private static String extractTermuxOutput(String result) {
+
+        if (result == null) {
+            return "";
+        }
+
+        String value = result;
+
+        int pos = value.indexOf("TERMUX_DATA_RECEIVED:");
+
+        if (pos >= 0) {
+            value = value.substring(
+                    pos + "TERMUX_DATA_RECEIVED:".length()
+            ).trim();
+        }
+
+        if ("<EMPTY>".equals(value)) {
+            return "";
+        }
+
+        return value;
+    }
+
+    private void refresh() {
+
+        if (TesterAccessibilityServiceHolder.service == null) {
+            output.setText(
+                "СЕРВИС НЕ ПОДКЛЮЧЕН\n"
+            );
+            return;
+        }
+
+        output.setText(
+            TesterAccessibilityService.readResult(
+                TesterAccessibilityServiceHolder.service
+            )
+        );
+    }
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        handler.postDelayed(
+            () -> refresh(),
+            300
+        );
+    }
+}

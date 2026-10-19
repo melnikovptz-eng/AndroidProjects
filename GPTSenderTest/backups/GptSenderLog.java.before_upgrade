@@ -1,0 +1,54 @@
+package com.test.accessibility3;
+
+import android.content.Context;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+public final class GptSenderLog {
+    private GptSenderLog() {}
+
+    public static synchronized void write(
+            Context context, String event, String details) {
+        if (context == null) return;
+
+        String timestamp = new SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss.SSS", Locale.US
+        ).format(new Date());
+
+        String line = timestamp + " | " + event + " | "
+            + (details == null ? "" :
+               details.replace("\n", "\\n").replace("\r", "\\r"))
+            + "\n";
+
+        File file = new File(context.getFilesDir(), "gpt_sender.log");
+
+        try (FileOutputStream out = new FileOutputStream(file, true)) {
+            out.write(line.getBytes("UTF-8"));
+            out.flush();
+        } catch (Exception e) {
+            android.util.Log.e("GPTSenderTest", "LOG_WRITE_FAILED", e);
+        }
+
+        android.util.Log.i("GPTSenderTest", line.trim());
+    }
+
+    public static String read(Context context) {
+        File file = new File(context.getFilesDir(), "gpt_sender.log");
+        if (!file.exists()) return "Журнал пока пуст.";
+
+        try {
+            byte[] bytes = new byte[(int) Math.min(file.length(), 60000)];
+            try (java.io.FileInputStream in =
+                    new java.io.FileInputStream(file)) {
+                int n = in.read(bytes);
+                return n > 0 ? new String(bytes, 0, n, "UTF-8")
+                             : "Журнал пока пуст.";
+            }
+        } catch (Exception e) {
+            return "Ошибка чтения журнала: " + e;
+        }
+    }
+}

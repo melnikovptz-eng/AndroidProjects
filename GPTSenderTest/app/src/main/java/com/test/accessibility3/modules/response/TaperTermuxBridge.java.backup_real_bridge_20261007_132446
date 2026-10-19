@@ -1,0 +1,518 @@
+package com.test.accessibility3.modules.response;
+
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.MediaStore;
+
+import com.test.accessibility3.modules.debug.DebugLogger;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+
+public class TaperTermuxBridge {
+
+    private static final String BEGIN = "⟦TAPER:BEGIN⟧";
+    private static final String END = "⟦TAPER:END⟧";
+
+    private static final String RELATIVE_PATH =
+            Environment.DIRECTORY_DOWNLOADS + "/Taper";
+
+    private static final String COMMAND_NAME =
+            "command.sh";
+
+    private static final String RESULT_NAME =
+            "result.log";
+
+    private static final long POLL_DELAY = 500;
+    private static final long MAX_WAIT = 10000;
+
+    public static String handle(Context context, String text) {
+
+        DebugLogger.info(
+                context,
+                "TAPER: CHECK, length=" +
+                        (text == null ? 0 : text.length())
+        );
+
+        if (text == null || text.trim().isEmpty()) {
+            DebugLogger.info(context, "TAPER: EMPTY");
+            return "TAPER: ПУСТО";
+        }
+
+        TaperResponseChecker checker =
+                new TaperResponseChecker();
+
+        TaperResponseChecker.Result result =
+                checker.check(text);
+
+        if (result == TaperResponseChecker.Result.NOT_FOUND) {
+            DebugLogger.info(
+                    context,
+                    "TAPER: NOT_FOUND"
+            );
+            return "TAPER: МЕТКИ НЕ НАЙДЕНЫ";
+        }
+
+        if (result == TaperResponseChecker.Result.LOADING) {
+            DebugLogger.info(
+                    context,
+                    "TAPER: LOADING"
+            );
+            return "TAPER: ОЖИДАЕТСЯ END";
+        }
+
+        int beginPos = text.indexOf(BEGIN);
+
+        int endPos = text.indexOf(
+                END,
+                beginPos + BEGIN.length()
+        );
+
+        if (beginPos < 0 ||
+                endPos < 0 ||
+                endPos <= beginPos) {
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: EXTRACTION FAILED"
+            );
+
+            return "TAPER: ОШИБКА ИЗВЛЕЧЕНИЯ";
+        }
+
+        String command =
+                text.substring(
+                        beginPos + BEGIN.length(),
+                        endPos
+                ).trim();
+
+        // Преобразуем экранированные \\n в реальные переводы строк.
+        command = command.replaceAll("\\\\\\+n", "\\n");
+
+
+        DebugLogger.info(
+                context,
+                "TAPER: COMPLETE"
+        );
+
+        DebugLogger.info(
+                context,
+                "TAPER: COMMAND EXTRACTED, length=" +
+                        command.length()
+        );
+
+        if (command.isEmpty()) {
+            DebugLogger.info(
+                    context,
+                    "TAPER: COMMAND EMPTY"
+            );
+
+            return "TAPER: КОМАНДА ПУСТА";
+        }
+
+        /*
+         * ВАЖНО:
+         * Логируем команду ДО записи.
+         * Даже если Android вернет EPERM,
+         * в debug_log.txt останется точное содержимое.
+         */
+        DebugLogger.info(
+                context,
+                "TAPER: COMMAND DATA=" +
+                        oneLine(command)
+        );
+
+        DebugLogger.info(
+                context,
+                "TAPER: STORAGE=MEDIASTORE"
+        );
+
+        DebugLogger.info(
+                context,
+                "TAPER: RELATIVE_PATH=" +
+                        RELATIVE_PATH
+        );
+
+        try {
+
+            ContentResolver resolver =
+                    context.getContentResolver();
+
+            /*
+             * Создаем/перезаписываем command.sh
+             * через MediaStore Downloads.
+             */
+            Uri commandUri =
+                    createOrReplaceFile(
+                            resolver,
+                            COMMAND_NAME,
+                            "text/x-shellscript"
+                    );
+
+            if (commandUri == null) {
+                DebugLogger.error(
+                        context,
+                        "TAPER: COMMAND URI CREATE FAILED"
+                );
+
+                return "TAPER: ОШИБКА СОЗДАНИЯ ФАЙЛА";
+            }
+
+            byte[] data =
+                    command.getBytes(
+                            StandardCharsets.UTF_8
+                    );
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: COMMAND WRITE START, bytes=" +
+                            data.length
+            );
+
+            try (OutputStream out =
+                         resolver.openOutputStream(
+                                 commandUri,
+                                 "wt"
+                         )) {
+
+                if (out == null) {
+                    throw new Exception(
+                            "ContentResolver returned null"
+                    );
+                }
+
+                out.write(data);
+                out.flush();
+            }
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: COMMAND WRITE SUCCESS, bytes=" +
+                            data.length
+            );
+
+            /*
+             * Создаем result.log тем же способом.
+             * Termux сможет писать результат в этот файл,
+             * а приложение сможет читать созданный им URI.
+             */
+            Uri resultUri =
+                    createOrReplaceFile(
+                            resolver,
+                            RESULT_NAME,
+                            "text/plain"
+                    );
+
+            if (resultUri == null) {
+                DebugLogger.error(
+                        context,
+                        "TAPER: RESULT URI CREATE FAILED"
+                );
+
+                return "TAPER: КОМАНДА ПЕРЕДАНА, RESULT НЕ СОЗДАН";
+            }
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: RESULT FILE READY"
+            );
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: COMMAND URI=" +
+                            commandUri.toString()
+            );
+
+            DebugLogger.info(
+                    context,
+                    "TAPER: RESULT URI=" +
+                            resultUri.toString()
+            );
+
+            /*
+             * Termux видит эти файлы как:
+             *
+             * ~/storage/downloads/Taper/command.sh
+             * ~/storage/downloads/Taper/result.log
+             *
+             * Android сам управляет реальным shared-storage path.
+             */
+
+            waitForResult(
+                    context,
+                    resultUri,
+                    0
+            );
+
+            return
+                    "TAPER: КОМАНДА ПЕРЕДАНА В TERMUX";
+
+        } catch (Exception e) {
+
+            DebugLogger.error(
+                    context,
+                    "TAPER: COMMAND WRITE FAILED, error=" +
+                            e.getClass().getSimpleName() +
+                            ": " +
+                            e.getMessage()
+            );
+
+            return
+                    "TAPER: ОШИБКА ПЕРЕДАЧИ: " +
+                            e.getMessage();
+        }
+    }
+
+    private static Uri createOrReplaceFile(
+            ContentResolver resolver,
+            String name,
+            String mime
+    ) throws Exception {
+
+        Uri collection =
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+
+        /*
+         * Ищем старый файл.
+         */
+        Uri oldUri = findFile(
+                resolver,
+                collection,
+                name
+        );
+
+        if (oldUri != null) {
+            try {
+                resolver.delete(
+                        oldUri,
+                        null,
+                        null
+                );
+            } catch (Exception ignored) {
+            }
+        }
+
+        ContentValues values =
+                new ContentValues();
+
+        values.put(
+                MediaStore.Downloads.DISPLAY_NAME,
+                name
+        );
+
+        values.put(
+                MediaStore.Downloads.MIME_TYPE,
+                mime
+        );
+
+        values.put(
+                MediaStore.Downloads.RELATIVE_PATH,
+                RELATIVE_PATH
+        );
+
+        values.put(
+                MediaStore.Downloads.IS_PENDING,
+                0
+        );
+
+        return resolver.insert(
+                collection,
+                values
+        );
+    }
+
+    private static Uri findFile(
+            ContentResolver resolver,
+            Uri collection,
+            String name
+    ) {
+
+        String[] projection = {
+                MediaStore.Downloads._ID,
+                MediaStore.Downloads.DISPLAY_NAME
+        };
+
+        String selection =
+                MediaStore.Downloads.DISPLAY_NAME +
+                        "=? AND " +
+                        MediaStore.Downloads.RELATIVE_PATH +
+                        "=?";
+
+        String[] args = {
+                name,
+                RELATIVE_PATH + "/"
+        };
+
+        try (Cursor cursor =
+                     resolver.query(
+                             collection,
+                             projection,
+                             selection,
+                             args,
+                             null
+                     )) {
+
+            if (cursor == null)
+                return null;
+
+            int idIndex =
+                    cursor.getColumnIndex(
+                            MediaStore.Downloads._ID
+                    );
+
+            if (cursor.moveToFirst()) {
+
+                long id =
+                        cursor.getLong(idIndex);
+
+                return ContentUris.withAppendedId(
+                        collection,
+                        id
+                );
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    private static void waitForResult(
+            Context context,
+            Uri resultUri,
+            long waited
+    ) {
+
+        Handler handler =
+                new Handler(
+                        Looper.getMainLooper()
+                );
+
+        handler.postDelayed(
+                new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        try {
+
+                            String result =
+                                    readUri(
+                                            context,
+                                            resultUri
+                                    );
+
+                            if (result != null &&
+                                    !result.trim().isEmpty()) {
+
+                                DebugLogger.info(
+                                        context,
+                                        "TAPER: RESULT READ, length=" +
+                                                result.length()
+                                );
+
+                                DebugLogger.info(
+                                        context,
+                                        "TAPER: RESULT DATA=" +
+                                                oneLine(result)
+                                );
+
+                                return;
+                            }
+
+                        } catch (Exception e) {
+
+                            DebugLogger.debug(
+                                    context,
+                                    "TAPER: RESULT WAIT, " +
+                                            e.getClass()
+                                                    .getSimpleName()
+                            );
+                        }
+
+                        if (waited < MAX_WAIT) {
+
+                            waitForResult(
+                                    context,
+                                    resultUri,
+                                    waited + POLL_DELAY
+                            );
+
+                        } else {
+
+                            DebugLogger.info(
+                                    context,
+                                    "TAPER: RESULT TIMEOUT"
+                            );
+                        }
+                    }
+                },
+                POLL_DELAY
+        );
+    }
+
+    private static String readUri(
+            Context context,
+            Uri uri
+    ) throws Exception {
+
+        ContentResolver resolver =
+                context.getContentResolver();
+
+        InputStream in =
+                resolver.openInputStream(uri);
+
+        if (in == null)
+            return "";
+
+        byte[] buffer =
+                new byte[4096];
+
+        StringBuilder sb =
+                new StringBuilder();
+
+        int count;
+
+        while (
+                (count = in.read(buffer)) != -1
+        ) {
+
+            sb.append(
+                    new String(
+                            buffer,
+                            0,
+                            count,
+                            StandardCharsets.UTF_8
+                    )
+            );
+        }
+
+        in.close();
+
+        return sb.toString();
+    }
+
+    private static String oneLine(
+            String value
+    ) {
+
+        if (value == null)
+            return "";
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+    }
+}

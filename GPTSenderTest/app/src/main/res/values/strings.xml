@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Accessibility Tester 3</string>
+    <string name="service_label">Accessibility Tester 3</string>
+    <string name="service_description">Диагностика Accessibility Service</string>
+</resources>

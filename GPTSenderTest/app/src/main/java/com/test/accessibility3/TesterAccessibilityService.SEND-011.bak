@@ -1,0 +1,223 @@
+package com.test.accessibility3;
+
+import android.accessibilityservice.AccessibilityService;
+import android.os.Bundle;
+import android.os.Handler;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.graphics.Rect;
+
+public class TesterAccessibilityService extends AccessibilityService {
+
+    private final Handler handler = new Handler();
+
+    @Override
+    public void onServiceConnected() {
+        super.onServiceConnected();
+        TesterAccessibilityServiceHolder.service = this;
+    }
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event == null || event.getPackageName() == null) return;
+
+        String pkg = event.getPackageName().toString();
+
+        if (!pkg.equals("com.openai.chatgpt")) return;
+
+        handler.removeCallbacksAndMessages(null);
+
+        handler.postDelayed(() -> runSend011(), 500);
+    }
+
+    private void runSend011() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) return;
+
+        AccessibilityNodeInfo edit = findEditText(root);
+
+        StringBuilder out = new StringBuilder();
+        out.append("=== SEND-011 ===\n");
+        out.append("PACKAGE: com.openai.chatgpt\n\n");
+
+        if (edit == null) {
+            out.append("EDITTEXT: НЕ НАЙДЕН\n");
+            save(out.toString());
+            return;
+        }
+
+        out.append("EDITTEXT НАЙДЕН\n");
+        out.append("CLASS: ").append(edit.getClassName()).append("\n");
+        out.append("CLICKABLE: ").append(edit.isClickable()).append("\n");
+        out.append("FOCUSABLE: ").append(edit.isFocusable()).append("\n");
+        out.append("FOCUSED: ").append(edit.isFocused()).append("\n\n");
+
+        Bundle b = new Bundle();
+        b.putCharSequence(
+                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                "SEND-011 TEST"
+        );
+
+        boolean set = edit.performAction(
+                AccessibilityNodeInfo.ACTION_SET_TEXT,
+                b
+        );
+
+        out.append("SET_TEXT: ").append(set).append("\n\n");
+
+        handler.postDelayed(() -> {
+            AccessibilityNodeInfo r2 = getRootInActiveWindow();
+
+            if (r2 == null) {
+                out.append("ROOT AFTER TEXT: NULL\n");
+                save(out.toString());
+                return;
+            }
+
+            AccessibilityNodeInfo e2 = findEditText(r2);
+
+            if (e2 == null) {
+                out.append("EDITTEXT AFTER TEXT: НЕ НАЙДЕН\n");
+                save(out.toString());
+                return;
+            }
+
+            out.append("=== ЭЛЕМЕНТЫ ПОСЛЕ EDITTEXT ===\n");
+
+            AccessibilityNodeInfo parent = e2.getParent();
+
+            if (parent != null) {
+                out.append("\n--- PARENT EDITTEXT ---\n");
+                dumpNode(parent, out, "PARENT");
+            }
+
+            AccessibilityNodeInfo[] nodes = collectClickableNodes(r2);
+
+            int count = 0;
+
+            for (int i = 0; i < nodes.length; i++) {
+                AccessibilityNodeInfo n = nodes[i];
+                if (n == null) continue;
+
+                Rect rect = new Rect();
+                n.getBoundsInScreen(rect);
+
+                if (rect.top >= 0 && rect.bottom >= rect.top) {
+                    out.append("\nCLICKABLE #").append(++count).append("\n");
+                    dumpNode(n, out, "NODE");
+                }
+            }
+
+            out.append("\n=== END SEND-011 ===\n");
+
+            save(out.toString());
+
+        }, 700);
+    }
+
+    private AccessibilityNodeInfo findEditText(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+
+        if ("android.widget.EditText".contentEquals(node.getClassName())
+                && node.isEditable()) {
+            return node;
+        }
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            AccessibilityNodeInfo found = findEditText(child);
+
+            if (found != null) return found;
+        }
+
+        return null;
+    }
+
+    private AccessibilityNodeInfo[] collectClickableNodes(
+            AccessibilityNodeInfo root) {
+
+        java.util.ArrayList<AccessibilityNodeInfo> list =
+                new java.util.ArrayList<>();
+
+        collect(root, list);
+
+        return list.toArray(new AccessibilityNodeInfo[0]);
+    }
+
+    private void collect(
+            AccessibilityNodeInfo node,
+            java.util.ArrayList<AccessibilityNodeInfo> list) {
+
+        if (node == null) return;
+
+        if (node.isClickable() && node.isEnabled()) {
+            list.add(node);
+        }
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            collect(node.getChild(i), list);
+        }
+    }
+
+    private void dumpNode(
+            AccessibilityNodeInfo n,
+            StringBuilder out,
+            String name) {
+
+        if (n == null) return;
+
+        Rect r = new Rect();
+        n.getBoundsInScreen(r);
+
+        out.append(name).append("\n");
+        out.append("CLASS: ").append(n.getClassName()).append("\n");
+        out.append("TEXT: ").append(n.getText()).append("\n");
+        out.append("DESC: ").append(n.getContentDescription()).append("\n");
+        out.append("CLICKABLE: ").append(n.isClickable()).append("\n");
+        out.append("FOCUSABLE: ").append(n.isFocusable()).append("\n");
+        out.append("FOCUSED: ").append(n.isFocused()).append("\n");
+        out.append("ENABLED: ").append(n.isEnabled()).append("\n");
+        out.append("EDITABLE: ").append(n.isEditable()).append("\n");
+        out.append("BOUNDS: ")
+                .append(r.left).append(",")
+                .append(r.top).append(" - ")
+                .append(r.right).append(",")
+                .append(r.bottom).append("\n");
+        out.append("CHILDREN: ").append(n.getChildCount()).append("\n");
+    }
+
+    private void save(String text) {
+        try {
+            java.io.File f = new java.io.File(
+                    getFilesDir(),
+                    "last_scan.txt"
+            );
+
+            java.io.FileOutputStream fos =
+                    new java.io.FileOutputStream(f, false);
+
+            fos.write(text.getBytes("UTF-8"));
+            fos.close();
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static String readResult(android.accessibilityservice.AccessibilityService service) {
+        try {
+            java.io.File f = new java.io.File(service.getFilesDir(), "last_scan.txt");
+            if (!f.exists()) return "Файл last_scan.txt не найден";
+            java.io.FileInputStream fis = new java.io.FileInputStream(f);
+            byte[] data = new byte[(int) f.length()];
+            int n = fis.read(data);
+            fis.close();
+            return new String(data, 0, n, "UTF-8");
+        } catch (Exception e) {
+            return "Ошибка чтения: " + e.getMessage();
+        }
+    }
+
+    @Override
+    public void onInterrupt() {
+    }
+}

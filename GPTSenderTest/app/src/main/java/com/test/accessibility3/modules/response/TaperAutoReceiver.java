@@ -238,27 +238,27 @@ public final class TaperAutoReceiver {
             commandId
         );
 
-        handler.postDelayed(() -> {
-
-            boolean sent =
-                TesterAccessibilityService.clickSend();
-
-            GptSenderLog.write(context,
-                sent ? "TAPER_SEND_GESTURE_ACCEPTED" : "TAPER_SEND_GESTURE_FAILED",
-                "cmd_id=" + commandId + "; accepted=" + sent
-                    + "; delivery_confirmation=NOT_VERIFIED");
-
-            DebugLogger.info(
-                context,
-                TAG + ": SEND=" +
-                sent +
-                " CMD_ID=" +
-                commandId
-            );
-
-            running.set(false);
-
-        }, 700L);
+        handler.postDelayed(() -> new Thread(() -> {
+            boolean sent = false;
+            try {
+                // clickCurrentSend waits for the gesture callback; do not run it
+                // on the main looper, where that callback must execute.
+                sent = TesterAccessibilityService.clickSend();
+                GptSenderLog.write(context,
+                    sent ? "TAPER_SEND_GESTURE_ACCEPTED" : "TAPER_SEND_GESTURE_FAILED",
+                    "cmd_id=" + commandId + "; accepted=" + sent
+                        + "; delivery_confirmation=NOT_VERIFIED");
+                DebugLogger.info(context,
+                    TAG + ": SEND=" + sent + " CMD_ID=" + commandId);
+            } catch (Exception e) {
+                GptSenderLog.write(context, "TAPER_SEND_EXCEPTION",
+                    "cmd_id=" + commandId + "; "
+                        + e.getClass().getSimpleName() + ": "
+                        + String.valueOf(e.getMessage()));
+            } finally {
+                running.set(false);
+            }
+        }, "TaperAutoSend-" + commandId).start(), 700L);
     }
 
     private void retryInsert(
@@ -298,27 +298,25 @@ public final class TaperAutoReceiver {
 
         if (inserted) {
 
-            handler.postDelayed(() -> {
-
-                boolean sent =
-                    TesterAccessibilityService.clickSend();
-
-                GptSenderLog.write(context,
-                    sent ? "TAPER_RETRY_SEND_GESTURE_ACCEPTED" : "TAPER_RETRY_SEND_GESTURE_FAILED",
-                    "cmd_id=" + commandId + "; accepted=" + sent
-                        + "; delivery_confirmation=NOT_VERIFIED");
-
-                DebugLogger.info(
-                    context,
-                    TAG + ": RETRY_SEND=" +
-                    sent +
-                    " CMD_ID=" +
-                    commandId
-                );
-
-                running.set(false);
-
-            }, 700L);
+            handler.postDelayed(() -> new Thread(() -> {
+                boolean sent = false;
+                try {
+                    sent = TesterAccessibilityService.clickSend();
+                    GptSenderLog.write(context,
+                        sent ? "TAPER_RETRY_SEND_GESTURE_ACCEPTED" : "TAPER_RETRY_SEND_GESTURE_FAILED",
+                        "cmd_id=" + commandId + "; accepted=" + sent
+                            + "; delivery_confirmation=NOT_VERIFIED");
+                    DebugLogger.info(context,
+                        TAG + ": RETRY_SEND=" + sent + " CMD_ID=" + commandId);
+                } catch (Exception e) {
+                    GptSenderLog.write(context, "TAPER_RETRY_SEND_EXCEPTION",
+                        "cmd_id=" + commandId + "; "
+                            + e.getClass().getSimpleName() + ": "
+                            + String.valueOf(e.getMessage()));
+                } finally {
+                    running.set(false);
+                }
+            }, "TaperAutoRetrySend-" + commandId).start(), 700L);
 
         } else {
             GptSenderLog.write(context, "TAPER_RETRY_FAILED",

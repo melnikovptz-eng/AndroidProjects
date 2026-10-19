@@ -297,11 +297,6 @@ taperClipboardReceiver =
             return false;
         }
 
-        // Release the old tree before asking Compose for a fresh one.
-        try { if (edit != null) edit.recycle(); } catch (Exception ignored) {}
-        edit = null;
-        try { if (root != null) root.recycle(); } catch (Exception ignored) {}
-        root = null;
         root = scanner.getRoot();
 
         if (root == null) {
@@ -364,6 +359,11 @@ taperClipboardReceiver =
          *
          * Сразу получаем свежее дерево.
          */
+        // Release the old tree before asking Compose for a fresh one.
+        try { if (edit != null) edit.recycle(); } catch (Exception ignored) {}
+        edit = null;
+        try { if (root != null) root.recycle(); } catch (Exception ignored) {}
+        root = null;
         root = scanner.getRoot();
 
         if (root == null) {

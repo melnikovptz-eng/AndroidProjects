@@ -278,6 +278,9 @@ taperClipboardReceiver =
             GptSenderLog.write(this, "PREPARE_REJECTED", "Reason: empty or null command");
             return false;
         }
+        AccessibilityNodeInfo root = null;
+        AccessibilityNodeInfo edit = null;
+        try {
         DebugLogger.sendEvent(this, "PREPARE START");
 
         StringBuilder debug = new StringBuilder();
@@ -294,7 +297,12 @@ taperClipboardReceiver =
             return false;
         }
 
-        AccessibilityNodeInfo root = scanner.getRoot();
+        // Release the old tree before asking Compose for a fresh one.
+        try { if (edit != null) edit.recycle(); } catch (Exception ignored) {}
+        edit = null;
+        try { if (root != null) root.recycle(); } catch (Exception ignored) {}
+        root = null;
+        root = scanner.getRoot();
 
         if (root == null) {
 
@@ -306,7 +314,7 @@ taperClipboardReceiver =
 
         debug.append("ROOT: OK\n");
 
-        AccessibilityNodeInfo edit = input.find(root);
+        edit = input.find(root);
 
         if (edit == null) {
 
@@ -453,6 +461,10 @@ taperClipboardReceiver =
                 "Input insertion result=" + inserted + "; message_length=" + command.length());
 
         return inserted;
+        } finally {
+            try { if (edit != null) edit.recycle(); } catch (Exception ignored) {}
+            try { if (root != null) root.recycle(); } catch (Exception ignored) {}
+        }
     }
 
     public boolean clickCurrentSend() {

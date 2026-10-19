@@ -89,6 +89,19 @@ public class SendButtonFinder {
         }
 
         result.candidateNumber = candidates;
+
+        // A geometric fallback is safe only when it identifies one unique
+        // clickable candidate. Never guess between several unlabeled controls.
+        if (best != null
+                && "EXPECTED_RIGHT_ZONE".equals(bestReason)
+                && candidates != 1) {
+            result.reason = "AMBIGUOUS_GEOMETRIC_CANDIDATES";
+            debug.append("FINDER_RESULT=NOT_FOUND reason=")
+                 .append(result.reason)
+                 .append(" candidates=").append(candidates).append('\\n');
+            return result;
+        }
+
         if (best == null) {
             result.reason = complete ? "NO_CANDIDATE_IN_EXPECTED_ZONES" : "TREE_SCAN_LIMIT_NO_CANDIDATE";
             debug.append("FINDER_RESULT=NOT_FOUND reason=").append(result.reason).append('\n');

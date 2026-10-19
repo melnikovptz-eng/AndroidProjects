@@ -3,6 +3,7 @@ package com.test.accessibility3;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
+import android.net.Uri;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
@@ -23,6 +24,8 @@ public class GptSenderActivity extends Activity {
     private EditText message;
     private Button prepareButton;
     private Button sendButton;
+    private Button floatingPanelButton;
+    private com.test.accessibility3.modules.overlay.FloatingPanel floatingPanel;
 
     private boolean busy = false;
 
@@ -216,6 +219,69 @@ public class GptSenderActivity extends Activity {
                 })
         );
 
+        floatingPanelButton = button(
+                root,
+                "Плавающая панель: открыть / скрыть",
+                v -> {
+                    if (floatingPanel != null && floatingPanel.isShown()) {
+                        floatingPanel.hide();
+                        log("FLOATING_PANEL_HIDDEN", "User hid the panel");
+                        refreshLog();
+                        return;
+                    }
+
+                    if (!Settings.canDrawOverlays(this)) {
+                        log("OVERLAY_PERMISSION_REQUIRED",
+                                "Opening Android overlay permission settings");
+                        refreshLog();
+                        try {
+                            Intent overlaySettings = new Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + getPackageName()));
+                            startActivity(overlaySettings);
+                        } catch (Exception e) {
+                            log("OVERLAY_SETTINGS_FAILED",
+                                    e.getClass().getSimpleName() + ": "
+                                            + String.valueOf(e.getMessage()));
+                            refreshLog();
+                        }
+                        return;
+                    }
+
+                    floatingPanel = new com.test.accessibility3.modules.overlay.FloatingPanel(
+                            this,
+                            new com.test.accessibility3.modules.overlay.FloatingPanel.Listener() {
+                                @Override
+                                public void onSend() {
+                                    runOperation("FLOATING_PANEL_SEND", () -> {
+                                        log("SEND_REQUEST", "Explicit floating-panel button press");
+                                        boolean clicked = TesterAccessibilityService.clickSend();
+                                        log(clicked ? "SEND_CLICK_RESULT" : "SEND_CLICK_FAILED",
+                                                "clicked=" + clicked + "; delivery not confirmed");
+                                        return clicked;
+                                    });
+                                }
+
+                                @Override
+                                public void onClose() {
+                                    if (floatingPanel != null) {
+                                        floatingPanel.hide();
+                                        log("FLOATING_PANEL_HIDDEN", "Closed from panel");
+                                        refreshLog();
+                                    }
+                                }
+                            });
+
+                    boolean shown = floatingPanel.show();
+                    log(shown ? "FLOATING_PANEL_SHOWN" : "FLOATING_PANEL_SHOW_FAILED",
+                            shown
+                                    ? "Panel supports drag by title and resize by bottom-right grip"
+                                    : "Overlay could not be added; check permission and system restrictions");
+                    if (!shown) floatingPanel = null;
+                    refreshLog();
+                }
+        );
+
         button(root, "Обновить журнал", v -> refreshLog());
 
         status = new TextView(this);
@@ -243,6 +309,10 @@ public class GptSenderActivity extends Activity {
     @Override
     protected void onDestroy() {
         log("APP_DESTROY", "Activity destroyed");
+        if (floatingPanel != null) {
+            floatingPanel.hide();
+            floatingPanel = null;
+        }
         // Stop the shared heartbeat monitor so it does not outlive the UI.
         GptSenderDiagnostics.stop(this);
         worker.shutdownNow();

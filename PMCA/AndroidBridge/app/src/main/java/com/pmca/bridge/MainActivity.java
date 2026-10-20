@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
             if (intent == null) return;
             String result = intent.getStringExtra("result_text");
             if (result != null) {
+                PmcaLogger.log("event=TERMUX_RESULT_RECEIVED status=SUCCESS stage=RESULT_DELIVERY");
                 output.setText(result);
                 setStatus("ОТВЕТ TERMUX ПОЛУЧЕН", true);
                 refreshLogs();
@@ -246,6 +247,7 @@ public class MainActivity extends Activity {
             hideKeyboard();
             String command = input.getText().toString().trim();
             if (command.isEmpty()) {
+                PmcaLogger.log("event=COMMAND_REJECTED status=REJECTED stage=VALIDATE reason=empty_input");
                 setStatus("НУЖНА КОМАНДА", false);
                 Toast.makeText(this, "Сначала введите команду", Toast.LENGTH_SHORT).show();
                 return;
@@ -261,6 +263,7 @@ public class MainActivity extends Activity {
                 setStatus("КОМАНДА ЗАПУЩЕНА", true);
                 PmcaLogger.log("UI: RUN_COMMAND принят");
             } else {
+                PmcaLogger.log("event=TERMUX_DISPATCH status=FAILED stage=RUN_COMMAND error=dispatch_rejected");
                 output.setText("Не удалось запустить команду через RUN_COMMAND.\n"
                         + "Проверьте разрешение Termux для PMCA и настройку "
                         + "allow-external-apps.");

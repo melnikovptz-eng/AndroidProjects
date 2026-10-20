@@ -547,6 +547,31 @@ DebugLogger.sendEvent(this, "PREPARE START");
             debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
             if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
 
+            // Validate the fixed point against the real display before any gesture.
+            android.util.DisplayMetrics displayMetrics = new android.util.DisplayMetrics();
+            android.view.WindowManager windowManager =
+                    (android.view.WindowManager) getSystemService(WINDOW_SERVICE);
+            if (windowManager != null) {
+                windowManager.getDefaultDisplay().getRealMetrics(displayMetrics);
+            }
+            boolean targetInBounds = displayMetrics.widthPixels > 0
+                    && displayMetrics.heightPixels > 0
+                    && sendX >= 0 && sendY >= 0
+                    && sendX < displayMetrics.widthPixels
+                    && sendY < displayMetrics.heightPixels;
+            debug.append("SEND_TARGET_DISPLAY=").append(displayMetrics.widthPixels)
+                    .append('x').append(displayMetrics.heightPixels)
+                    .append(" in_bounds=").append(targetInBounds).append('\n');
+            if (!targetInBounds) {
+                GptSenderLog.write(this, "SEND_STATE_REJECTED",
+                        "Target outside real display: x=" + sendX + ",y=" + sendY
+                        + "; display=" + displayMetrics.widthPixels + "x" + displayMetrics.heightPixels);
+                debug.append("TAP_ABORTED: target is outside display bounds.\n");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.setClickResult(false);
+                return false;
+            }
+
             if (!CHATGPT.equals(String.valueOf(root.getPackageName()))) {
                 debug.append("SEND_STATE_CHECK=REJECTED_WRONG_PACKAGE package=")
                      .append(root.getPackageName()).append('\n');

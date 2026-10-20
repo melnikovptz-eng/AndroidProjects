@@ -353,7 +353,8 @@ clear.setOnClickListener(v -> {
         // Поэтому открываем ChatGPT, а панель G остаётся поверх него у края.
         Intent chat = getPackageManager().getLaunchIntentForPackage("com.openai.chatgpt");
         if (chat != null) {
-            chat.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            chat.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
             try {
                 startActivity(chat);
                 PmcaLogger.log("Режим G: открыт ChatGPT");

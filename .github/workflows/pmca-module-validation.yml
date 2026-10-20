@@ -35,6 +35,8 @@ jobs:
           python-version: "3.12"
       - name: Validate all module passports
         run: python tools/pmca_module_test.py --all
+      - name: Test validator helper functions
+        run: python -m unittest tools/test_pmca_module_test.py
       - name: Audit Android application IDs and version metadata
         run: python tools/pmca_android_audit.py
 

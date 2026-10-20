@@ -103,7 +103,7 @@ Document any device-only checks that cannot be automated. A log statement in sou
 
 ## 8. Existing implementation audit and migration
 
-Before changing logging, inventory the current implementations, files, formats, callers, UI readers/exporters, and legacy files. In this repository, known implementations include `PMCA/AndroidBridge/.../PmcaLogger.java`, `GPTSenderTest/.../DebugLogger.java`, and the `GptSenderLog` call sites. Verify their current paths and all usages before editing.
+Before changing logging, inventory the current implementations, files, formats, callers, UI readers/exporters, and legacy files. In this repository, `GPTSenderTest/.../GptSenderLog.java` is the canonical operational logger for GPTSenderTest. `GPTSenderTest/.../DebugLogger.java` is a compatibility adapter and must not create a second operational log. `PMCA/AndroidBridge/.../PmcaLogger.java` is the PMCA app logger: it retains the latest 50 lines for the UI and, after `initialize(Context)`, asynchronously persists bounded `pmca.log` plus one rotated `pmca.log.1` in app-private storage. GPTSenderTest writes `gpt_sender.log` plus one bounded `gpt_sender.previous.log`. Verify current call sites and UI readers before editing these contracts.
 
 Do not delete or rename existing log files/APIs until their consumers are identified and migrated. Prefer one authoritative operational logger per app/platform boundary, with diagnostic channels clearly separated by purpose. Document any temporary compatibility adapter and its removal condition.
 

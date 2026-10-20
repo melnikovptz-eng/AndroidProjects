@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
@@ -16,6 +17,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -46,6 +48,7 @@ public final class GModePanelService extends Service {
     private TextView copyIcon;
     private PmcaController controller;
     private boolean receiverRegistered;
+    private ViewTreeObserver.OnGlobalLayoutListener keyboardLayoutListener;
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override
@@ -200,6 +203,7 @@ public final class GModePanelService extends Service {
 
         try {
             windowManager.addView(panel, windowParams);
+            installKeyboardAvoidance();
             PmcaLogger.log("Режим G: панель показана у " + (right ? "правого" : "левого") + " края");
         } catch (Exception e) {
             panel = null;
@@ -208,6 +212,30 @@ public final class GModePanelService extends Service {
             PmcaLogger.log("Режим G: ошибка показа панели: " + e.getClass().getSimpleName());
             stopSelf();
         }
+    }
+
+    /**
+     * Best-effort keyboard avoidance. A non-focusable overlay may not receive
+     * IME insets on every device, so this is a best-effort adjustment.
+     */
+    private void installKeyboardAvoidance() {
+        if (panel == null) return;
+        keyboardLayoutListener = () -> {
+            if (panel == null || windowParams == null) return;
+            Rect visible = new Rect();
+            panel.getWindowVisibleDisplayFrame(visible);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int obscuredHeight = Math.max(0, screenHeight - visible.bottom);
+            int targetY = obscuredHeight > dp(150) ? obscuredHeight + dp(8) : dp(8);
+            if (windowParams.y != targetY) {
+                windowParams.y = targetY;
+                try {
+                    windowManager.updateViewLayout(panel, windowParams);
+                } catch (Exception ignored) {
+                }
+            }
+        };
+        panel.getViewTreeObserver().addOnGlobalLayoutListener(keyboardLayoutListener);
     }
 
     private void moveToOppositeSide() {
@@ -295,6 +323,13 @@ public final class GModePanelService extends Service {
     private void removePanel() {
         if (panel != null) {
             try {
+                if (keyboardLayoutListener != null) {
+                    ViewTreeObserver observer = panel.getViewTreeObserver();
+                    if (observer.isAlive()) {
+                        observer.removeOnGlobalLayoutListener(keyboardLayoutListener);
+                    }
+                    keyboardLayoutListener = null;
+                }
                 windowManager.removeView(panel);
             } catch (Exception ignored) {
             }

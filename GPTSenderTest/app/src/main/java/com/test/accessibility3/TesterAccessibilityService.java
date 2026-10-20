@@ -18,6 +18,7 @@ import com.test.accessibility3.api.ClickResult;
 import com.test.accessibility3.modules.debug.DebugLogger;
 import com.test.accessibility3.modules.finder.SendButtonFinder;
 import com.test.accessibility3.modules.finder.SendTarget;
+import com.test.accessibility3.config.GptSenderConstants;
 import com.test.accessibility3.modules.input.ChatGPTInput;
 import com.test.accessibility3.modules.input.ChatGPTInputCleaner;
 import com.test.accessibility3.modules.scanner.ChatGPTScanner;
@@ -135,10 +136,10 @@ taperClipboardReceiver =
                 }
 
                 GptSenderLog.write(this, "PMCA_PREPARE_SUCCESS",
-                        "Text inserted; wait 1000ms before one-pass send search");
+                        "Text inserted; wait " + GptSenderConstants.Timing.BEFORE_SEND_MS + "ms before one-pass send search");
 
                 // Даём интерфейсу ChatGPT время обновить поле ввода.
-                Thread.sleep(1000L);
+                Thread.sleep(GptSenderConstants.Timing.BEFORE_SEND_MS);
 
                 boolean clicked = clickCurrentSend();
                 GptSenderLog.write(
@@ -473,7 +474,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
 
     public boolean clickCurrentSend() {
         GptSenderDiagnostics.log(this, "ACCESSIBILITY_SERVICE", "CLICK_CURRENT_SEND_ENTER");
-        GptSenderLog.write(this, "SEND_BEGIN", "Single-pass search after 1000ms wait");
+        GptSenderLog.write(this, "SEND_BEGIN", "Single-pass search after " + GptSenderConstants.Timing.BEFORE_SEND_MS + "ms wait");
         DebugLogger.sendEvent(this, "REQUEST");
         StringBuilder debug = new StringBuilder("=== SINGLE-PASS SEND ===\n");
 

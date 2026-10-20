@@ -62,8 +62,8 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Prepare persistent signing key
         env:
-          GPTSENDER_KEYSTORE_B64: ${{ secrets.GPTSENDER_KEYSTORE_B64 }}
-          GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_STORE_PASSWORD }}
+          GPTSENDER_KEYSTORE_B64: ${{ secrets.GPTSENDER_KEYSTORE_BASE64 }}
+          GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_KEYSTORE_PASSWORD }}
           GPTSENDER_KEY_ALIAS: ${{ secrets.GPTSENDER_KEY_ALIAS }}
           GPTSENDER_KEY_PASSWORD: ${{ secrets.GPTSENDER_KEY_PASSWORD }}
         run: |

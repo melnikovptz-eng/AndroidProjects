@@ -179,7 +179,7 @@ public final class GModePanelService extends Service {
         termuxIcon.setTextSize(22);
         termuxIcon.setTextColor(Color.WHITE);
         termuxIcon.setBackground(tileBackground(Color.BLACK));
-        copyIcon = makeIcon("▢", "Скопировать результат Termux");
+        copyIcon = makeIcon("⧉", "Скопировать результат Termux");
 
         // Порядок сверху вниз: перенос панели, отправка в Termux, копирование результата.
         addTile(panel, moveIcon, this::moveToOppositeSide);
@@ -268,7 +268,7 @@ public final class GModePanelService extends Service {
             PmcaLogger.log("Режим G: копирование отклонено — результата Termux нет");
             handler.postDelayed(() -> {
                 if (copyIcon != null) {
-                    copyIcon.setText("▢");
+                    copyIcon.setText("⧉");
                     copyIcon.setBackground(tileBackground(Color.WHITE));
                 }
             }, 900);

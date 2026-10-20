@@ -6,7 +6,8 @@ on:
       - "GPTSenderTest/modules/**"
       - "PMCA/**"
       - "tools/pmca_module_test.py"
-      - "docs/MODULE_DEVELOPMENT.md"
+      - "docs/**"
+      - "README.md"
       - ".github/workflows/pmca-module-validation.yml"
   push:
     branches: [main]
@@ -14,7 +15,8 @@ on:
       - "GPTSenderTest/modules/**"
       - "PMCA/**"
       - "tools/pmca_module_test.py"
-      - "docs/MODULE_DEVELOPMENT.md"
+      - "docs/**"
+      - "README.md"
       - ".github/workflows/pmca-module-validation.yml"
   workflow_dispatch:
 

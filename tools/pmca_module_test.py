@@ -134,8 +134,7 @@ def main() -> int:
                 emit("ERROR", label, f"missing required field: {key}", issues)
         for key in ("module_id", "name", "version", "api_version", "description",
                     "type", "category", "status"):
-            if key in data and (not isinstance(data[key], str) or not data[key].strip():
-                                ):
+            if key in data and (not isinstance(data[key], str) or not data[key].strip()):
                 emit("ERROR", label, f"{key} must be a non-empty string", issues)
         for key in ("capabilities", "dependencies", "limitations"):
             value = data.get(key)

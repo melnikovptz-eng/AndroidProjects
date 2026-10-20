@@ -16,7 +16,10 @@
   ],
   "capabilities": ["coordinate-tap", "gesture-result-reporting"],
   "dependencies": ["Android AccessibilityService", "PMCA Click API"],
+  "dependency_ids": [],
   "permissions": ["Android Accessibility Service must be enabled"],
+  "inputs": ["ClickRequest: bounded physical pixel coordinates, actionId, and expectedPackage."],
+  "outputs": ["ClickResult with accepted/rejected state, status, detail, and coordinates."],
   "input_schema": {
     "x": "integer >= 0, physical display pixels",
     "y": "integer >= 0, physical display pixels",
@@ -30,6 +33,8 @@
     "x": "integer",
     "y": "integer"
   },
+  "limits": ["Coordinates must be within current real display bounds; the caller validates target package and intent."],
+  "tests": ["ClickRequest/ClickResult and screen-bounds unit tests are pending; manual device verification is required."],
   "limitations": [
     "A completed Android gesture does not prove that the target application processed the tap.",
     "The host project is responsible for confirming the active package and intended target before requesting a tap."

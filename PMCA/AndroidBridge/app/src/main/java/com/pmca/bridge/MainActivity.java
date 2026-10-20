@@ -136,6 +136,14 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
         compactMode.setOnClickListener(v -> openCompactPanel());
 
+        Button modeG = makeButton("G Режим G");
+        modeG.setTextSize(13);
+        modeG.setMinWidth(0);
+        modeG.setPadding(dp(7), 0, dp(7), 0);
+        topBar.addView(modeG, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
+        modeG.setOnClickListener(v -> openModeGPanel());
+
         screen.addView(topBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
@@ -309,6 +317,25 @@ clear.setOnClickListener(v -> {
             setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
             refreshLogs();
         });
+    }
+
+    private void openModeGPanel() {
+        if (android.os.Build.VERSION.SDK_INT >= 23
+                && !Settings.canDrawOverlays(this)) {
+            Intent permission = new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(permission);
+            Toast.makeText(this,
+                    "Разрешите PMCA отображение поверх других приложений, затем нажмите «Режим G» ещё раз.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        Intent panel = new Intent(this,
+                com.pmca.bridge.overlay.ModeGPanelService.class);
+        panel.setAction(com.pmca.bridge.overlay.ModeGPanelService.ACTION_TOGGLE);
+        startService(panel);
+        Toast.makeText(this, "Режим G переключён", Toast.LENGTH_SHORT).show();
     }
 
     private void openCompactPanel() {

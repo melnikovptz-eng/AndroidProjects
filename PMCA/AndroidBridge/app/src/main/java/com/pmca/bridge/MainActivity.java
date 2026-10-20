@@ -32,6 +32,7 @@ import android.widget.Toast;
 
 import com.pmca.bridge.core.PmcaController;
 import com.pmca.bridge.logging.PmcaLogger;
+import com.pmca.bridge.overlay.GModePanelService;
 
 public class MainActivity extends Activity {
     private PmcaController controller;
@@ -127,6 +128,14 @@ public class MainActivity extends Activity {
         title.setTextSize(22);
         topBar.addView(title, new LinearLayout.LayoutParams(
                 0, dp(48), 1f));
+
+        Button gMode = makeButton("G");
+        gMode.setTextSize(16);
+        gMode.setMinWidth(dp(44));
+        gMode.setPadding(dp(6), 0, dp(6), 0);
+        topBar.addView(gMode, new LinearLayout.LayoutParams(
+                dp(48), dp(48)));
+        gMode.setOnClickListener(v -> toggleGMode());
 
         Button compactMode = makeButton("▣ Открыть панель");
         compactMode.setTextSize(13);
@@ -309,6 +318,58 @@ clear.setOnClickListener(v -> {
             setStatus(ok ? "ЛОГ СКОПИРОВАН" : "КОПИРОВАНИЕ НЕ УДАЛОСЬ", ok);
             refreshLogs();
         });
+    }
+
+    private void toggleGMode() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("pmca_g_mode", MODE_PRIVATE);
+        boolean active = prefs.getBoolean("active", false);
+        Intent service = new Intent(this, GModePanelService.class);
+
+        if (active) {
+            service.setAction(GModePanelService.ACTION_HIDE);
+            startService(service);
+            setStatus("РЕЖИМ G ВЫКЛЮЧЕН", true);
+            Toast.makeText(this, "Режим G выключен", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
+            Intent permission = new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(permission);
+            Toast.makeText(this,
+                    "Разрешите PMCA отображение поверх других приложений, затем включите режим G.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        service.setAction(GModePanelService.ACTION_SHOW);
+        startService(service);
+
+        // Android не позволяет стороннему приложению гарантированно
+        // включить системный split-screen для другого приложения.
+        // Поэтому открываем ChatGPT, а панель G остаётся поверх него у края.
+        Intent chat = getPackageManager().getLaunchIntentForPackage("com.openai.chatgpt");
+        if (chat != null) {
+            chat.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
+            try {
+                startActivity(chat);
+                PmcaLogger.log("Режим G: открыт ChatGPT");
+            } catch (Exception e) {
+                PmcaLogger.log("Режим G: не удалось открыть ChatGPT: "
+                        + e.getClass().getSimpleName());
+                Toast.makeText(this, "Не удалось открыть ChatGPT", Toast.LENGTH_LONG).show();
+            }
+        } else {
+            PmcaLogger.log("Режим G: приложение ChatGPT не найдено");
+            Toast.makeText(this,
+                    "ChatGPT не найден. Установите приложение или откройте его вручную.",
+                    Toast.LENGTH_LONG).show();
+        }
+        setStatus("РЕЖИМ G ВКЛЮЧЁН", true);
     }
 
     private void openCompactPanel() {

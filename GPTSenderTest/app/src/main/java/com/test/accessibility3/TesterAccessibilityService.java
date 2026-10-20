@@ -273,6 +273,20 @@ DebugLogger.sendEvent(this, "PREPARE START");
             return false;
         }
 
+        // GPTSENDER_FIXED_COORDINATES_V1: coordinates measured from the supplied screenshot.
+        final int inputX = 280;
+        final int inputY = 1393;
+        GptSenderLog.write(this, "FIXED_INPUT_TAP_BEGIN", "x=" + inputX + ",y=" + inputY);
+        if (debugOverlay != null) debugOverlay.showInput(inputX, inputY);
+        boolean inputTapped = clicker != null && clicker.clickAt(inputX, inputY, debug);
+        GptSenderLog.write(this, inputTapped ? "FIXED_INPUT_TAP_COMPLETED" : "FIXED_INPUT_TAP_FAILED",
+                "x=" + inputX + ",y=" + inputY);
+        if (!inputTapped) {
+            debug.append("FIXED INPUT TAP FAILED at ").append(inputX).append(',').append(inputY).append('\\n');
+            DebugLogger.save(this, debug.toString());
+            return false;
+        }
+
         AccessibilityNodeInfo root = scanner.getRoot();
 
         if (root == null) {
@@ -464,33 +478,19 @@ DebugLogger.sendEvent(this, "PREPARE START");
             if (debugOverlay != null && !inputBounds.isEmpty())
                 debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
 
-            // One fresh tree scan checks labels and multiple expected right-side zones.
-            lastResult = finder.find(root, edit, debug);
-            if (lastResult == null || !lastResult.found() || lastResult.bounds.isEmpty()) {
-                GptSenderLog.write(this, "SEND_TARGET_NOT_FOUND",
-                    "Single scan checked semantic controls and expected input-adjacent zones");
-                debug.append("SEND TARGET: NOT FOUND IN EXPECTED ZONES\n");
-                DebugLogger.sendEvent(this, "BUTTON NOT FOUND");
-                DebugLogger.save(this, debug.toString());
-                if (debugOverlay != null) debugOverlay.showNotFound();
-                return false;
-            }
+            // GPTSENDER_FIXED_COORDINATES_V1: use the screenshot-measured send point.
+            final int sendX = 602;
+            final int sendY = 1394;
+            debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\\n');
+            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY);
+            if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
 
-            int x = lastResult.bounds.centerX();
-            int y = lastResult.bounds.centerY();
-            debug.append("TARGET_REASON=").append(lastResult.reason).append('\n')
-                 .append("TARGET_BOUNDS=").append(lastResult.bounds).append('\n')
-                 .append("TARGET_POINT=").append(x).append(',').append(y).append('\n');
-            GptSenderLog.write(this, "SEND_TARGET_FOUND",
-                "reason=" + lastResult.reason + ",bounds=" + lastResult.bounds
-                    + ",candidates=" + lastResult.candidateNumber);
-            if (debugOverlay != null) debugOverlay.showTarget(x, y);
-
-            boolean clicked = clicker.click(lastResult.node, debug);
+            boolean clicked = clicker.clickAt(sendX, sendY, debug);
             if (debugOverlay != null) debugOverlay.setClickResult(clicked);
-            GptSenderLog.write(this, clicked ? "SEND_TAP_COMPLETED" : "SEND_TAP_FAILED",
-                "target=" + lastResult.bounds + "; click result=" + clicked
-                    + "; delivery not independently verified");
+            GptSenderLog.write(this, clicked ? "FIXED_SEND_TAP_COMPLETED" : "FIXED_SEND_TAP_FAILED",
+                "x=" + sendX + ",y=" + sendY
+                    + "; gesture callback result=" + clicked
+                    + "; message delivery not independently verified");
             DebugLogger.sendEvent(this, clicked ? "SUCCESS" : "FAILED");
             DebugLogger.save(this, debug.toString());
             return clicked;

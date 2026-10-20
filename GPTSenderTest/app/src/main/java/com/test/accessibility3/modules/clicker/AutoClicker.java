@@ -64,6 +64,15 @@ public class AutoClicker {
         }
     }
 
+    /** Performs a coordinate tap using the same gesture engine as the existing clicker. */
+    public boolean clickAt(int x, int y, StringBuilder debug) {
+        debug.append("\\n=== FIXED COORDINATE TAP ===\\n");
+        debug.append("FIXED_TAP_POINT=").append(x).append(',').append(y).append('\\n');
+        boolean result = performTap(x, y, debug);
+        debug.append("FIXED_TAP_RESULT=").append(result).append('\\n');
+        return result;
+    }
+
     private boolean performTap(
             int x,
             int y,

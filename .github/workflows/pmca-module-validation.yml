@@ -1,0 +1,83 @@
+name: PMCA Module Validation
+
+on:
+  pull_request:
+    paths:
+      - "GPTSenderTest/**"
+      - "PMCA/**"
+      - "tools/**"
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "GPTSenderTest/**"
+      - "PMCA/**"
+      - "tools/**"
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contracts:
+    name: Validate module contracts and Android package metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate all module passports
+        run: python tools/pmca_module_test.py --all
+      - name: Test validator helper functions
+        run: python -m unittest tools/test_pmca_module_test.py
+      - name: Audit Android application IDs and version metadata
+        run: python tools/pmca_android_audit.py
+      - name: Audit duplicate services and loop patterns
+        run: python tools/pmca_runtime_audit.py
+
+  gptsender-build:
+    name: Build GPTSenderTest debug APK and run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ""
+      - run: yes | sdkmanager --licenses || true
+      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Run unit tests and build debug APK
+        working-directory: GPTSenderTest
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+  pmca-androidbridge-build:
+    name: Build PMCA AndroidBridge debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ""
+      - run: yes | sdkmanager --licenses || true
+      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Build debug APK
+        working-directory: PMCA/AndroidBridge
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug

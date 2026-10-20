@@ -9,6 +9,11 @@ Portable Modular Controller Architecture
 ## Core Principle
 Сначала контракт — потом реализация.
 
+## Mandatory AI/developer preflight
+Before creating a module/application or materially changing an existing one, read the current repository and applicable rules: `README.md`, `docs/PROJECT_RULES.md`, `docs/MODULE_DEVELOPMENT.md`, `docs/PMCA_SHARED_PLATFORM_RULES.md`, `docs/PMCA_LOGGING_CONTRACT.md`, this contract, `PMCA/ARCHITECTURE.md`, and the target component's passport, docs, source, tests, build configuration, and relevant workflows. Search for existing implementations and call sites before adding code. Record the review and test plan. If required documents cannot be read, disclose the gap and do not claim the preflight passed.
+
+For Android apps, audit `applicationId`, `namespace`, versioning, signing identity, and APK workflows before changes that might break update/install compatibility.
+
 ## Architecture
 Controller
 Module System
@@ -36,7 +41,6 @@ UI не управляет внутренней логикой модулей н
 
 ## Module Rule
 Каждый модуль независим и должен иметь:
-
 - code
 - Contract
 - Module Manifest
@@ -46,6 +50,7 @@ UI не управляет внутренней логикой модулей н
 - Permissions
 - Health Check
 - Tests
+- logging contract coverage (success and failure outcomes)
 
 ## Module Lifecycle
 start()
@@ -88,6 +93,11 @@ UI
 -> Executor
 -> Logger
 
+Only stages that actually exist in a given implementation may be reported as completed.
+
+## Logging Rule
+`docs/PMCA_LOGGING_CONTRACT.md` is mandatory. Existing logger implementations and call sites must be audited before a new logger is introduced. Operational events must record actual success and failure outcomes, use execution/correlation IDs when applicable, and redact sensitive data. A click callback is not proof that a message was delivered. Logger failure must not re-run the original command or crash the main operation.
+
 ## Stability Priority
 1. Stability
 2. Correctness
@@ -112,4 +122,3 @@ Developer Mode предназначен для диагностики,
 
 Не обрабатывать одну и ту же команду повторно
 без прохождения Duplicate Guard.
-

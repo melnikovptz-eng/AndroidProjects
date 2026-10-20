@@ -8,11 +8,15 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.test.accessibility3.api.ClickApi;
+import com.test.accessibility3.api.ClickRequest;
+import com.test.accessibility3.api.ClickResult;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AutoClicker {
+public class AutoClicker implements ClickApi {
 
     private final AccessibilityService service;
 
@@ -62,6 +66,42 @@ public class AutoClicker {
                 .append(String.valueOf(e.getMessage())).append('\n');
             return false;
         }
+    }
+
+    /**
+     * Shared API entry point. The caller must verify the active package and intended target.
+     * This implementation validates request shape and real display bounds before dispatch.
+     */
+    @Override
+    public ClickResult click(ClickRequest request, StringBuilder diagnostics) {
+        StringBuilder debug = diagnostics == null ? new StringBuilder() : diagnostics;
+        if (request == null || !request.isValid()) {
+            debug.append("CLICK_API_REJECTED: invalid request\n");
+            return new ClickResult(false, "INVALID_REQUEST", "Request or required fields are invalid",
+                    request == null ? -1 : request.getX(), request == null ? -1 : request.getY());
+        }
+
+        android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
+        android.view.WindowManager wm =
+                (android.view.WindowManager) service.getSystemService(android.content.Context.WINDOW_SERVICE);
+        if (wm != null) wm.getDefaultDisplay().getRealMetrics(metrics);
+        int x = request.getX();
+        int y = request.getY();
+        boolean inBounds = metrics.widthPixels > 0 && metrics.heightPixels > 0
+                && x >= 0 && y >= 0 && x < metrics.widthPixels && y < metrics.heightPixels;
+        debug.append("CLICK_API_REQUEST id=").append(request.getActionId())
+                .append(" package=").append(request.getExpectedPackage())
+                .append(" point=").append(x).append(',').append(y)
+                .append(" display=").append(metrics.widthPixels).append('x').append(metrics.heightPixels)
+                .append(" in_bounds=").append(inBounds).append('\n');
+        if (!inBounds) {
+            return new ClickResult(false, "OUT_OF_BOUNDS",
+                    "Target is outside the real display bounds", x, y);
+        }
+        boolean success = clickAt(x, y, debug);
+        return new ClickResult(success, success ? "GESTURE_COMPLETED" : "GESTURE_FAILED",
+                success ? "Android gesture callback completed; app-level delivery is not verified"
+                        : "Android gesture did not complete successfully", x, y);
     }
 
     /** Performs a coordinate tap using the same gesture engine as the existing clicker. */

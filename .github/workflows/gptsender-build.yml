@@ -1,6 +1,10 @@
 name: GPTSenderTest Android Build
 
 on:
+  pull_request:
+    paths:
+      - "GPTSenderTest/**"
+      - ".github/workflows/gptsender-build.yml"
   push:
     branches:
       - main
@@ -13,34 +17,53 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build GPTSenderTest signed APK
+  verify:
+    name: Verify GPTSenderTest (PR-safe)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
           packages: ""
-
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses || true
-
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Build debug APK (does not require signing secrets)
+        working-directory: GPTSenderTest
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
 
+  release:
+    name: Build signed release APK
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ""
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Prepare persistent signing key
         env:
-          GPTSENDER_KEYSTORE_B64: ${{ secrets.GPTSENDER_KEYSTORE_B64 }}
-          GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_STORE_PASSWORD }}
+          GPTSENDER_KEYSTORE_B64: ${{ secrets.GPTSENDER_KEYSTORE_BASE64 }}
+          GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_KEYSTORE_PASSWORD }}
           GPTSENDER_KEY_ALIAS: ${{ secrets.GPTSENDER_KEY_ALIAS }}
           GPTSENDER_KEY_PASSWORD: ${{ secrets.GPTSENDER_KEY_PASSWORD }}
         run: |
@@ -57,13 +80,11 @@ jobs:
           echo "GPTSENDER_STORE_PASSWORD=$GPTSENDER_STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "GPTSENDER_KEY_ALIAS=$GPTSENDER_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "GPTSENDER_KEY_PASSWORD=$GPTSENDER_KEY_PASSWORD" >> "$GITHUB_ENV"
-
       - name: Build signed release APK
         working-directory: GPTSenderTest
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleRelease
-
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:

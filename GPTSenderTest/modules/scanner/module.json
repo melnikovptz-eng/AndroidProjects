@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "module_id": "pmca.module.scanner",
+  "name": "Accessibility Scanner",
+  "version": "1.0.0",
+  "api_version": "1.0",
+  "type": "android-library-component",
+  "category": "accessibility-discovery",
+  "status": "implemented-in-gptsender-test; extraction-to-library-pending",
+  "description": "Discovers the active target application's accessibility root and elements.",
+  "entrypoint": "com.test.accessibility3.modules.scanner.ChatGPTScanner",
+  "capabilities": ["find-active-window-root", "configurable-target-package"],
+  "dependencies": ["Android AccessibilityService", "Android AccessibilityNodeInfo"],
+  "dependency_ids": [],
+  "permissions": ["Android Accessibility Service must be enabled by the user."],
+  "inputs": ["Configured target package name; current accessibility-service state."],
+  "outputs": ["Active accessibility root for the target package, or null when unavailable."],
+  "configuration": {
+    "targetPackage": "required by configurable constructor; defaults to com.openai.chatgpt for backward compatibility"
+  },
+  "limits": ["Scan only reports nodes exposed by the current active accessibility window."],
+  "tests": ["Target-package filtering and unavailable-root tests are pending; manual device verification is required."],
+  "limitations": [
+    "Available nodes and properties depend on the target application and Android version.",
+    "Package-specific filtering belongs in configuration or an adapter, not in a project-neutral scanner core."
+  ]
+}

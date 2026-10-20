@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "module_id": "pmca.module.input",
+  "name": "Input Finder and Text Inserter",
+  "version": "1.0.0",
+  "api_version": "1.0",
+  "type": "android-library-component",
+  "category": "accessibility-input",
+  "status": "implemented-in-gptsender-test; extraction-to-library-pending",
+  "description": "Finds editable accessibility nodes and inserts or clears text through supported accessibility actions.",
+  "entrypoints": [
+    "com.test.accessibility3.modules.input.ChatGPTInput",
+    "com.test.accessibility3.modules.input.ChatGPTInputCleaner"
+  ],
+  "capabilities": ["find-editable-node", "set-text", "clear-text"],
+  "dependencies": ["Android AccessibilityNodeInfo"],
+  "dependency_ids": [],
+  "permissions": ["Android Accessibility Service must be enabled by the user."],
+  "inputs": ["Accessibility root node; text to insert or clear."],
+  "outputs": ["Editable node or null; boolean result for clear/insert actions."],
+  "limits": ["Search is bounded by node count and elapsed time; target app must expose an editable node."],
+  "tests": ["Editable-node selection and text-action tests are pending; manual device verification is required."],
+  "limitations": [
+    "Text insertion depends on the target app exposing an editable accessibility node and supporting ACTION_SET_TEXT.",
+    "No fixed screen coordinate should be used to locate or focus the input field."
+  ]
+}

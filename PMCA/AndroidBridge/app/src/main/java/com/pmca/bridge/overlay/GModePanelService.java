@@ -64,7 +64,7 @@ public final class GModePanelService extends Service {
             } else if (state == 3) {
                 termuxIcon.setBackground(tileBackground(Color.rgb(207, 240, 220)));
             } else {
-                termuxIcon.setBackground(tileBackground(Color.WHITE));
+                termuxIcon.setBackground(tileBackground(Color.BLACK));
             }
         }
     };
@@ -157,7 +157,7 @@ public final class GModePanelService extends Service {
                                 .setDuration(110).start();
                         handler.postDelayed(() -> {
                             if (view == termuxIcon) {
-                                termuxIcon.setBackground(tileBackground(Color.WHITE));
+                                termuxIcon.setBackground(tileBackground(Color.BLACK));
                             } else if (view == moveIcon) {
                                 moveIcon.setBackground(tileBackground(Color.WHITE));
                             } else if (view == copyIcon && !"✓".contentEquals(copyIcon.getText())) {

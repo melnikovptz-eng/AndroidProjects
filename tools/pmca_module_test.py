@@ -101,9 +101,10 @@ def main() -> int:
         for key in ("capabilities", "dependencies", "limitations"):
             if key in data and (not isinstance(data[key], list) or not all(isinstance(x, str) and x.strip() for x in data[key])):
                 emit("ERROR", label, f"{key} must be an array of non-empty strings", issues)
-        for key in ("version", "api_version"):
-            if isinstance(data.get(key), str) and not SEMVER.fullmatch(data[key]):
-                emit("ERROR", label, f"{key} must use MAJOR.MINOR.PATCH format", issues)
+        if isinstance(data.get("version"), str) and not SEMVER.fullmatch(data["version"]):
+            emit("ERROR", label, "version must use MAJOR.MINOR.PATCH format", issues)
+        if isinstance(data.get("api_version"), str) and not re.fullmatch(r"^\\d+\\.\\d+(?:\\.\\d+)?(?:[-+][0-9A-Za-z.-]+)?$", data["api_version"]):
+            emit("ERROR", label, "api_version must use MAJOR.MINOR or MAJOR.MINOR.PATCH format", issues)
         if data.get("schema_version") != "1.0":
             emit("ERROR", label, "unsupported or missing schema_version (currently 1.0)", issues)
         mid = data.get("module_id")

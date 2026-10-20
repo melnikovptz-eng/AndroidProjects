@@ -69,7 +69,7 @@ public class AutoClicker {
         debug.append("\n=== FIXED COORDINATE TAP ===\n");
         debug.append("FIXED_TAP_POINT=").append(x).append(',').append(y).append('\n');
         boolean result = performTap(x, y, debug);
-        debug.append("FIXED_TAP_RESULT=").append(result).append('\\n');
+        debug.append("FIXED_TAP_RESULT=").append(result).append('\n');
         return result;
     }
 

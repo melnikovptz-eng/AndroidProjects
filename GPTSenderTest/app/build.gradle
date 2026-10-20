@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+def signingStoreFile = System.getenv('GPTSENDER_KEYSTORE_FILE')
+def signingStorePassword = System.getenv('GPTSENDER_STORE_PASSWORD')
+def signingKeyAlias = System.getenv('GPTSENDER_KEY_ALIAS')
+def signingKeyPassword = System.getenv('GPTSENDER_KEY_PASSWORD')
+
 android {
     namespace 'com.test.accessibility3'
     compileSdk 35
@@ -10,7 +15,27 @@ android {
         applicationId 'com.test.gptsender'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '1.0-GPTSenderTest'
+        versionCode 2
+        versionName '1.1-GPTSenderTest'
+    }
+
+    signingConfigs {
+        release {
+            if (signingStoreFile && signingStorePassword && signingKeyAlias && signingKeyPassword) {
+                storeFile file(signingStoreFile)
+                storePassword signingStorePassword
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (signingStoreFile && signingStorePassword && signingKeyAlias && signingKeyPassword) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+        }
     }
 }

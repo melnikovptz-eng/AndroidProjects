@@ -13,8 +13,11 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.test.accessibility3.modules.clicker.AutoClicker;
+import com.test.accessibility3.api.ClickRequest;
+import com.test.accessibility3.api.ClickResult;
 import com.test.accessibility3.modules.debug.DebugLogger;
 import com.test.accessibility3.modules.finder.SendButtonFinder;
+import com.test.accessibility3.modules.finder.SendTarget;
 import com.test.accessibility3.modules.input.ChatGPTInput;
 import com.test.accessibility3.modules.input.ChatGPTInputCleaner;
 import com.test.accessibility3.modules.scanner.ChatGPTScanner;
@@ -313,19 +316,10 @@ DebugLogger.sendEvent(this, "PREPARE START");
             return false;
         }
 
-        // GPTSENDER_FIXED_COORDINATES_V1: coordinates measured from the supplied screenshot.
-        final int inputX = 280;
-        final int inputY = 1393;
-        GptSenderLog.write(this, "FIXED_INPUT_TAP_BEGIN", "x=" + inputX + ",y=" + inputY);
-        if (debugOverlay != null) debugOverlay.showInput(inputX, inputY);
-        boolean inputTapped = clicker != null && clicker.clickAt(inputX, inputY, debug);
-        GptSenderLog.write(this, inputTapped ? "FIXED_INPUT_TAP_COMPLETED" : "FIXED_INPUT_TAP_FAILED",
-                "x=" + inputX + ",y=" + inputY);
-        if (!inputTapped) {
-            debug.append("FIXED INPUT TAP FAILED at ").append(inputX).append(',').append(inputY).append('\n');
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
+        // Do not tap a guessed input coordinate. Locate the editable accessibility node
+        // and use ACTION_SET_TEXT; the input module owns text insertion.
+        GptSenderLog.write(this, "INPUT_COORDINATE_TAP_SKIPPED",
+                "No fixed coordinate tap; input will be found through Accessibility");
 
         AccessibilityNodeInfo root = scanner.getRoot();
 
@@ -542,8 +536,8 @@ DebugLogger.sendEvent(this, "PREPARE START");
             // GPTSENDER_FIXED_COORDINATES_V3: fixed user-confirmed screen point.
             // Safety gate: never tap unless the accessibility tree confirms an enabled
             // semantic SEND button under this exact point. Voice/online-mode buttons are rejected.
-            final int sendX = 965;
-            final int sendY = 2125;
+            final int sendX = SendTarget.X;
+            final int sendY = SendTarget.Y;
             debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
             if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
 
@@ -589,7 +583,12 @@ DebugLogger.sendEvent(this, "PREPARE START");
 
             GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + "," + sendY
                     + "; state=USER_CONFIRMED_FIXED_COORDINATE");
-            boolean clicked = clicker.clickAt(sendX, sendY, debug);
+            ClickResult clickResult = clicker.click(
+                    new ClickRequest(sendX, sendY, SendTarget.ID, SendTarget.PACKAGE_NAME), debug);
+            boolean clicked = clickResult.isSuccess();
+            GptSenderLog.write(this, "CLICK_API_RESULT",
+                    "status=" + clickResult.getStatus() + "; detail=" + clickResult.getDetail()
+                            + "; x=" + clickResult.getX() + "; y=" + clickResult.getY());
             if (debugOverlay != null) debugOverlay.setClickResult(clicked);
             GptSenderLog.write(this, clicked ? "FIXED_SEND_TAP_COMPLETED" : "FIXED_SEND_TAP_FAILED",
                 "x=" + sendX + ",y=" + sendY

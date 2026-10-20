@@ -6,13 +6,20 @@ import android.view.accessibility.AccessibilityWindowInfo;
 
 public class ChatGPTScanner {
 
-    private static final String CHATGPT_PACKAGE =
-            "com.openai.chatgpt";
+    private static final String DEFAULT_TARGET_PACKAGE = "com.openai.chatgpt";
 
     private final AccessibilityService service;
+    private final String targetPackage;
 
+    /** Backward-compatible constructor for GPTSenderTest. */
     public ChatGPTScanner(AccessibilityService service) {
+        this(service, DEFAULT_TARGET_PACKAGE);
+    }
+
+    /** Reusable constructor for projects that target another package. */
+    public ChatGPTScanner(AccessibilityService service, String targetPackage) {
         this.service = service;
+        this.targetPackage = targetPackage == null ? "" : targetPackage.trim();
     }
 
     public AccessibilityNodeInfo getRoot() {
@@ -37,7 +44,7 @@ public class ChatGPTScanner {
                 CharSequence packageName = root.getPackageName();
 
                 if (packageName != null
-                        && CHATGPT_PACKAGE.equals(
+                        && targetPackage.equals(
                                 packageName.toString())) {
 
                     return root;
@@ -66,7 +73,7 @@ public class ChatGPTScanner {
                 root.getPackageName();
 
         return packageName != null
-                && CHATGPT_PACKAGE.equals(
+                && targetPackage.equals(
                         packageName.toString());
     }
 }

@@ -365,6 +365,32 @@ taperClipboardReceiver =
                 GptSenderLog.write(this, focused ? "INPUT_FOCUS_ACCEPTED" : "INPUT_FOCUS_ACTION_REJECTED",
                         "bounds=" + inputBounds);
                 debug.append("INPUT_FOCUS_ACTION=").append(focused).append('\n');
+
+                if (focused) {
+                    // Opening the keyboard may rebuild the Compose accessibility tree.
+                    edit.recycle();
+                    edit = null;
+                    root.recycle();
+                    root = null;
+                    root = scanner.getRoot();
+                    if (root == null) {
+                        GptSenderLog.write(this, "PREPARE_ABORT", "Root missing after focusing input");
+                        debug.append("ROOT AFTER FOCUS: NULL\n");
+                        DebugLogger.save(this, debug.toString());
+                        return false;
+                    }
+                    edit = input.find(root);
+                    if (edit == null) {
+                        GptSenderLog.write(this, "PREPARE_ABORT", "Input missing after focusing");
+                        debug.append("INPUT AFTER FOCUS: NOT FOUND\n");
+                        DebugLogger.save(this, debug.toString());
+                        return false;
+                    }
+                    Rect refreshedBounds = new Rect();
+                    edit.getBoundsInScreen(refreshedBounds);
+                    GptSenderLog.write(this, "INPUT_REFRESHED_AFTER_FOCUS",
+                            "bounds=" + refreshedBounds + "; focused=" + edit.isFocused());
+                }
             }
 
             if (!inputCleaner.clear(edit, debug)) {

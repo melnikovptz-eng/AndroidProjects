@@ -582,20 +582,13 @@ DebugLogger.sendEvent(this, "PREPARE START");
                 return false;
             }
 
-            boolean sendReady = verifySendButtonReady(root, sendX, sendY, debug);
-            GptSenderLog.write(this, sendReady ? "SEND_STATE_CONFIRMED" : "SEND_STATE_REJECTED",
-                    "x=" + sendX + ",y=" + sendY
-                    + "; requires enabled clickable semantic send control at target");
-            if (!sendReady) {
-                debug.append("TAP_ABORTED: button state not positively confirmed; no gesture sent.\n");
-                DebugLogger.sendEvent(this, "SEND_STATE_REJECTED");
-                DebugLogger.save(this, debug.toString());
-                if (debugOverlay != null) debugOverlay.setClickResult(false);
-                return false;
-            }
+            // User-confirmed target: tap the red marker directly. No accessibility-label gate.
+            debug.append("SEND_STATE_CHECK=FIXED_USER_COORDINATE\\n");
+            GptSenderLog.write(this, "SEND_TARGET_FIXED", "x=" + sendX + ",y=" + sendY
+                    + "; accessibility-label gate bypassed; display bounds and non-empty input verified");
 
-            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY
-                    + "; state=CONFIRMED_SEND_BUTTON");
+            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + "," + sendY
+                    + "; state=USER_CONFIRMED_FIXED_COORDINATE");
             boolean clicked = clicker.clickAt(sendX, sendY, debug);
             if (debugOverlay != null) debugOverlay.setClickResult(clicked);
             GptSenderLog.write(this, clicked ? "FIXED_SEND_TAP_COMPLETED" : "FIXED_SEND_TAP_FAILED",

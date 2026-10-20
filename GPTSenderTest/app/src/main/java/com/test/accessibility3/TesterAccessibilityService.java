@@ -583,7 +583,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
     private boolean verifySendButtonReady(AccessibilityNodeInfo root, int x, int y,
                                           StringBuilder debug) {
         if (root == null) {
-            debug.append("SEND_STATE_CHECK=REJECTED_ROOT_NULL\\n");
+            debug.append("SEND_STATE_CHECK=REJECTED_ROOT_NULL\n");
             return false;
         }
 
@@ -620,11 +620,11 @@ DebugLogger.sendEvent(this, "PREPARE START");
                             .append(" class=").append(node.getClassName())
                             .append(" enabled=").append(node.isEnabled())
                             .append(" clickable=").append(node.isClickable())
-                            .append(" labels=").append(labels).append('\\n');
+                            .append(" labels=").append(labels).append('\n');
 
                     if (!voice && semanticSend && node.isEnabled() && node.isClickable()) {
                         confirmed = true;
-                        debug.append("SEND_STATE_CHECK=CONFIRMED_SEMANTIC_SEND_BUTTON\\n");
+                        debug.append("SEND_STATE_CHECK=CONFIRMED_SEMANTIC_SEND_BUTTON\n");
                     }
                 }
 
@@ -633,7 +633,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
                     if (child != null) queue.addLast(child);
                 }
             } catch (Exception e) {
-                debug.append("SEND_STATE_NODE_ERROR=").append(e.getClass().getSimpleName()).append('\\n');
+                debug.append("SEND_STATE_NODE_ERROR=").append(e.getClass().getSimpleName()).append('\n');
             } finally {
                 if (!isRoot) {
                     try { node.recycle(); } catch (Exception ignored) {}
@@ -641,9 +641,9 @@ DebugLogger.sendEvent(this, "PREPARE START");
             }
         }
 
-        debug.append("SEND_STATE_NODES_SCANNED=").append(visited).append('\\n');
+        debug.append("SEND_STATE_NODES_SCANNED=").append(visited).append('\n');
         if (!confirmed) {
-            debug.append("SEND_STATE_CHECK=REJECTED_UNCONFIRMED_OR_VOICE_MODE\\n");
+            debug.append("SEND_STATE_CHECK=REJECTED_UNCONFIRMED_OR_VOICE_MODE\n");
         }
         return confirmed;
     }

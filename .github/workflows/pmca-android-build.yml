@@ -3,8 +3,12 @@ name: PMCA Android Build
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - 'PMCA/AndroidBridge/**'
+      - '.github/workflows/pmca-android-build.yml'
+  pull_request:
+    branches: [main]
     paths:
       - 'PMCA/AndroidBridge/**'
       - '.github/workflows/pmca-android-build.yml'
@@ -14,8 +18,10 @@ permissions:
 
 jobs:
   build:
-    name: Build PMCA APK
+    name: Build PMCA APKs
     runs-on: ubuntu-latest
+    env:
+      PMCA_SIGNING_AVAILABLE: ${{ secrets.PMCA_KEYSTORE_BASE64 != '' && secrets.PMCA_KEYSTORE_PASSWORD != '' && secrets.PMCA_KEY_PASSWORD != '' && secrets.PMCA_KEY_ALIAS != '' }}
 
     steps:
       - name: Checkout repository
@@ -44,7 +50,28 @@ jobs:
           chmod +x gradlew
           ./gradlew --version
 
+      - name: Build PMCA debug APK
+        working-directory: PMCA/AndroidBridge
+        run: ./gradlew --no-daemon clean assembleDebug
+
+      - name: Verify debug APK
+        run: |
+          APK="PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          ls -lh "$APK"
+          sha256sum "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
+
+      - name: Upload PMCA debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PMCA-debug-apk
+          path: PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Prepare signing key
+        if: env.PMCA_SIGNING_AVAILABLE == 'true'
         env:
           PMCA_KEYSTORE_BASE64: ${{ secrets.PMCA_KEYSTORE_BASE64 }}
           PMCA_KEYSTORE_PASSWORD: ${{ secrets.PMCA_KEYSTORE_PASSWORD }}
@@ -52,17 +79,17 @@ jobs:
           PMCA_KEY_ALIAS: ${{ secrets.PMCA_KEY_ALIAS }}
         run: |
           set -eu
-          test -n "$PMCA_KEYSTORE_BASE64"
-          test -n "$PMCA_KEYSTORE_PASSWORD"
-          test -n "$PMCA_KEY_PASSWORD"
-          test -n "$PMCA_KEY_ALIAS"
           echo "$PMCA_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pmca-release.jks"
           chmod 600 "$RUNNER_TEMP/pmca-release.jks"
           echo "::add-mask::$PMCA_KEYSTORE_PASSWORD"
           echo "::add-mask::$PMCA_KEY_PASSWORD"
-          echo "Signing key prepared"
+          echo "PMCA_KEYSTORE_PATH=$RUNNER_TEMP/pmca-release.jks" >> "$GITHUB_ENV"
+          echo "PMCA_KEYSTORE_PASSWORD=$PMCA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "PMCA_KEY_PASSWORD=$PMCA_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "PMCA_KEY_ALIAS=$PMCA_KEY_ALIAS" >> "$GITHUB_ENV"
 
-      - name: Build signed Release APK
+      - name: Build signed PMCA release APK
+        if: env.PMCA_SIGNING_AVAILABLE == 'true'
         working-directory: PMCA/AndroidBridge
         env:
           PMCA_KEYSTORE_PATH: ${{ runner.temp }}/pmca-release.jks
@@ -71,7 +98,8 @@ jobs:
           PMCA_KEY_ALIAS: ${{ secrets.PMCA_KEY_ALIAS }}
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Verify signed APK
+      - name: Verify signed release APK
+        if: env.PMCA_SIGNING_AVAILABLE == 'true'
         run: |
           APK="PMCA/AndroidBridge/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
@@ -79,10 +107,15 @@ jobs:
           sha256sum "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
 
-      - name: Upload APK artifact
+      - name: Upload signed PMCA release APK
+        if: env.PMCA_SIGNING_AVAILABLE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: PMCA-release-apk
           path: PMCA/AndroidBridge/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Explain unsigned build fallback
+        if: env.PMCA_SIGNING_AVAILABLE != 'true'
+        run: echo "Signing secrets are not configured; PMCA-debug-apk was built and uploaded."

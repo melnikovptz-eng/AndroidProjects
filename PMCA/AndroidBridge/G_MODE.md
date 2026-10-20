@@ -11,6 +11,7 @@
 - The selected edge is persisted in `pmca_g_mode/side_right` and restored on the next entry.
 - Button taps animate with a brief press effect. The copy icon changes to a check mark on success or an X if no result is available/copying fails.
 - The panel listens for the existing PMCA clipboard-state broadcast to give the T button a visual status.
+- The panel makes a best-effort attempt to move above the on-screen keyboard using visible-frame measurements; Android may not expose reliable IME geometry to a non-focusable overlay on every device.
 - G mode launches the ChatGPT Android app if it is installed and requests adjacent launch when Android split-screen is already active.
 - The overlay permission is checked before enabling the mode.
 

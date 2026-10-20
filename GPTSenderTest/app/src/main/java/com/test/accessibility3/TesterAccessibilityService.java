@@ -292,200 +292,22 @@ taperClipboardReceiver =
     }
 
     public boolean prepareCommand(String command) {
-        // GPT_DIAG_SERVICE_PATCH_V1
         GptSenderDiagnostics.log(this, "ACCESSIBILITY_SERVICE", "PREPARE_COMMAND_ENTER");
+        GptSenderLog.write(this, "PREPARE_BEGIN",
+                "message_length=" + (command == null ? 0 : command.length()));
 
+        StringBuilder debug = new StringBuilder("=== PREPARE CHATGPT COMMAND ===\n");
+        DebugLogger.sendEvent(this, "PREPARE START");
 
-        
-        GptSenderLog.write(this, "PREPARE_BEGIN", "message_length=" + (command == null ? 0 : command.length()));
-DebugLogger.sendEvent(this, "PREPARE START");
-
-        StringBuilder debug = new StringBuilder();
-
-        debug.append("=== PREPARE CHATGPT COMMAND ===\n");
-
-        if (scanner == null ||
-                input == null ||
-                inputCleaner == null) {
-
+        if (command == null || command.trim().isEmpty()) {
+            GptSenderLog.write(this, "PREPARE_REJECTED", "Command is null or empty");
+            debug.append("COMMAND: EMPTY\n");
+            DebugLogger.save(this, debug.toString());
+            return false;
+        }
+        if (scanner == null || input == null || inputCleaner == null || clicker == null) {
+            GptSenderLog.write(this, "PREPARE_ABORT", "Required module is not ready");
             debug.append("MODULES: NOT READY\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        // GPTSENDER_FIXED_COORDINATES_V1: coordinates measured from the supplied screenshot.
-        final int inputX = 280;
-        final int inputY = 1393;
-        GptSenderLog.write(this, "FIXED_INPUT_TAP_BEGIN", "x=" + inputX + ",y=" + inputY);
-        if (debugOverlay != null) debugOverlay.showInput(inputX, inputY);
-        boolean inputTapped = clicker != null && clicker.clickAt(inputX, inputY, debug);
-        GptSenderLog.write(this, inputTapped ? "FIXED_INPUT_TAP_COMPLETED" : "FIXED_INPUT_TAP_FAILED",
-                "x=" + inputX + ",y=" + inputY);
-        if (!inputTapped) {
-            debug.append("FIXED INPUT TAP FAILED at ").append(inputX).append(',').append(inputY).append('\n');
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        AccessibilityNodeInfo root = scanner.getRoot();
-
-        if (root == null) {
-
-            debug.append("ROOT: NULL\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        debug.append("ROOT: OK\n");
-
-        AccessibilityNodeInfo edit = input.find(root);
-
-        if (edit == null) {
-
-            debug.append("EDITTEXT: NOT FOUND\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        debug.append("EDITTEXT: FOUND\n");
-
-        Rect rect = new Rect();
-        edit.getBoundsInScreen(rect);
-
-        debug.append("EDIT BOUNDS: ")
-                .append(rect.left)
-                .append(",")
-                .append(rect.top)
-                .append(" - ")
-                .append(rect.right)
-                .append(",")
-                .append(rect.bottom)
-                .append("\n");
-
-        /*
-         * Сначала полностью очищаем старое содержимое.
-         */
-        boolean cleared = inputCleaner.clear(
-                edit,
-                debug
-        );
-
-        if (!cleared) {
-
-            debug.append("CLEAR: FAILED\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        debug.append("CLEAR: OK\n");
-
-        /*
-         * После SET_TEXT ChatGPT/Compose может создать
-         * новый EditText. Поэтому старый AccessibilityNodeInfo
-         * больше не используем.
-         *
-         * Сразу получаем свежее дерево.
-         */
-        root = scanner.getRoot();
-
-        if (root == null) {
-
-            debug.append("ROOT AFTER CLEAR: NULL\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        edit = input.find(root);
-
-        if (edit == null) {
-
-            debug.append("FRESH EDITTEXT: NOT FOUND\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-
-        debug.append("FRESH EDITTEXT: FOUND\n");
-
-        /*
-         * Пока тестируем только вставку.
-         * Отправку здесь НЕ выполняем.
-         */
-        DebugLogger.info(this, "CLIPBOARD: RECEIVED_FOR_CHATGPT, length=" + (command == null ? 0 : command.length()));
-
-        // REAL AUTOMATIC COPY TO ANDROID CLIPBOARD
-        try {
-            android.content.ClipboardManager cb =
-                    (android.content.ClipboardManager)
-                            getSystemService(CLIPBOARD_SERVICE);
-
-            if (cb == null) {
-                DebugLogger.error(this, "CLIPBOARD: AUTO_COPY_FAILED, manager=null");
-                return false;
-            }
-
-            cb.setPrimaryClip(
-                    android.content.ClipData.newPlainText(
-                            "AccessibilityTester3",
-                            command
-                    )
-            );
-
-            DebugLogger.info(
-                    this,
-                    "CLIPBOARD: AUTO_COPIED, length=" + command.length()
-            );
-
-        } catch (Exception e) {
-            GptSenderDiagnostics.exception(this, "ACCESSIBILITY_SERVICE", "CAUGHT_EXCEPTION", e);
-
-            DebugLogger.error(
-                    this,
-                    "CLIPBOARD: AUTO_COPY_EXCEPTION=" +
-                    e.getClass().getSimpleName() + ":" +
-                    String.valueOf(e.getMessage())
-            );
-            return false;
-        }
-
-        DebugLogger.info(this, "CLIPBOARD: READ_FOR_CHATGPT, length=" + command.length());
-        if (command.trim().isEmpty()) {
-            DebugLogger.info(this, "CLIPBOARD: EMPTY_FOR_CHATGPT");
-            debug.append("CLIPBOARD: EMPTY\n");
-            DebugLogger.save(this, debug.toString());
-            return false;
-        }
-        debug.append("CLIPBOARD: READ OK, length=").append(command.length()).append("\n");
-        DebugLogger.sendData(this, command);
-
-        boolean inserted = inputCleaner.insert(
-                edit,
-                command,
-                debug
-        );
-
-        debug.append("INSERT: ")
-                .append(inserted)
-                .append("\n");
-
-        DebugLogger.sendEvent(
-                this,
-                inserted ? "PREPARE INSERT SUCCESS" : "PREPARE INSERT FAILED"
-        );
-
-        DebugLogger.save(this, debug.toString());
-
-        return inserted;
-    }
-
-    public boolean clickCurrentSend() {
-        GptSenderDiagnostics.log(this, "ACCESSIBILITY_SERVICE", "CLICK_CURRENT_SEND_ENTER");
-        GptSenderLog.write(this, "SEND_BEGIN", "Single-pass search after 1000ms wait");
-        DebugLogger.sendEvent(this, "REQUEST");
-        StringBuilder debug = new StringBuilder("=== SINGLE-PASS SEND ===\n");
-
-        if (scanner == null || input == null || finder == null || clicker == null) {
-            debug.append("MODULES: NOT READY\n");
-            GptSenderLog.write(this, "SEND_ABORT", "Required module is null");
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -495,16 +317,191 @@ DebugLogger.sendEvent(this, "PREPARE START");
         try {
             root = scanner.getRoot();
             if (root == null) {
-                GptSenderLog.write(this, "SEND_ABORT", "Active root is null");
+                GptSenderLog.write(this, "PREPARE_ABORT", "ChatGPT accessibility root is null");
+                debug.append("ROOT: NULL\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            if (!CHATGPT.equals(String.valueOf(root.getPackageName()))) {
+                GptSenderLog.write(this, "PREPARE_ABORT",
+                        "Wrong active package: " + root.getPackageName());
+                debug.append("PACKAGE: NOT CHATGPT\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            edit = input.find(root);
+            if (edit == null) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "ChatGPT input field not found");
+                debug.append("EDITTEXT: NOT FOUND\n");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.showNotFound();
+                return false;
+            }
+
+            Rect inputBounds = new Rect();
+            edit.getBoundsInScreen(inputBounds);
+            GptSenderLog.write(this, "INPUT_FOUND",
+                    "bounds=" + inputBounds + "; focused=" + edit.isFocused()
+                    + "; clickable=" + edit.isClickable());
+            debug.append("INPUT_BOUNDS=").append(inputBounds).append('\n');
+
+            if (inputBounds.isEmpty()) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "Input bounds are empty");
+                debug.append("INPUT: INVALID BOUNDS\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            if (debugOverlay != null) {
+                debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
+            }
+
+            // Use the detected input node instead of a hard-coded point.
+            // The input position changes with keyboard visibility and screen layout.
+            if (!edit.isFocused()) {
+                boolean focused = edit.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                GptSenderLog.write(this, focused ? "INPUT_FOCUS_ACCEPTED" : "INPUT_FOCUS_ACTION_REJECTED",
+                        "bounds=" + inputBounds);
+                debug.append("INPUT_FOCUS_ACTION=").append(focused).append('\n');
+            }
+
+            if (!inputCleaner.clear(edit, debug)) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "Input clear action failed");
+                debug.append("CLEAR: FAILED\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+            GptSenderLog.write(this, "INPUT_CLEAR_ACCEPTED", "Accessibility SET_TEXT empty accepted");
+
+            // Refresh the accessibility tree after changing Compose text; old nodes may be stale.
+            edit.recycle();
+            edit = null;
+            root.recycle();
+            root = null;
+
+            root = scanner.getRoot();
+            if (root == null) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "Root disappeared after clear");
+                debug.append("ROOT AFTER CLEAR: NULL\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            edit = input.find(root);
+            if (edit == null) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "Fresh input field not found after clear");
+                debug.append("FRESH EDITTEXT: NOT FOUND\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (clipboard == null) {
+                GptSenderLog.write(this, "PREPARE_ABORT", "ClipboardManager is null");
+                debug.append("CLIPBOARD: MANAGER NULL\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("PMCA result", command));
+            GptSenderLog.write(this, "CLIPBOARD_COPY_SUCCESS", "length=" + command.length());
+
+            boolean inserted = inputCleaner.insert(edit, command, debug);
+            GptSenderLog.write(this, inserted ? "INPUT_INSERT_ACTION_ACCEPTED" : "INPUT_INSERT_ACTION_FAILED",
+                    "length=" + command.length());
+            if (!inserted) {
+                debug.append("INSERT: FAILED\n");
+                DebugLogger.save(this, debug.toString());
+                DebugLogger.sendEvent(this, "PREPARE INSERT FAILED");
+                return false;
+            }
+
+            // Verify the actual text exposed by ChatGPT after the insertion action.
+            edit.recycle();
+            edit = null;
+            root.recycle();
+            root = null;
+            root = scanner.getRoot();
+            if (root == null) {
+                GptSenderLog.write(this, "PREPARE_VERIFY_FAILED", "Root missing after insertion");
+                debug.append("VERIFY ROOT: NULL\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            edit = input.find(root);
+            if (edit == null) {
+                GptSenderLog.write(this, "PREPARE_VERIFY_FAILED", "Input missing after insertion");
+                debug.append("VERIFY INPUT: NOT FOUND\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            CharSequence actualText = edit.getText();
+            String actual = actualText == null ? "" : actualText.toString();
+            boolean verified = command.equals(actual);
+            GptSenderLog.write(this, verified ? "INPUT_INSERT_VERIFIED" : "INPUT_INSERT_VERIFY_MISMATCH",
+                    "expected_length=" + command.length() + "; actual_length=" + actual.length()
+                    + "; exact_match=" + verified);
+            debug.append("INSERT_VERIFY exact_match=").append(verified)
+                    .append(" expected_chars=").append(command.length())
+                    .append(" actual_chars=").append(actual.length()).append('\n');
+
+            DebugLogger.sendEvent(this, verified ? "PREPARE INSERT SUCCESS" : "PREPARE INSERT VERIFY FAILED");
+            DebugLogger.save(this, debug.toString());
+            return verified;
+        } catch (Exception e) {
+            GptSenderDiagnostics.exception(this, "ACCESSIBILITY_SERVICE", "PREPARE_FLOW_EXCEPTION", e);
+            GptSenderLog.write(this, "PREPARE_EXCEPTION",
+                    e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage()));
+            debug.append("EXCEPTION=").append(e.getClass().getSimpleName()).append('\n');
+            DebugLogger.save(this, debug.toString());
+            return false;
+        } finally {
+            if (edit != null) try { edit.recycle(); } catch (Exception ignored) {}
+            if (root != null) try { root.recycle(); } catch (Exception ignored) {}
+        }
+    }
+
+    public boolean clickCurrentSend() {
+        GptSenderDiagnostics.log(this, "ACCESSIBILITY_SERVICE", "CLICK_CURRENT_SEND_ENTER");
+        GptSenderLog.write(this, "SEND_BEGIN", "Dynamic accessibility search for ChatGPT send button");
+        DebugLogger.sendEvent(this, "REQUEST");
+        StringBuilder debug = new StringBuilder("=== DYNAMIC CHATGPT SEND ===\n");
+
+        if (scanner == null || input == null || finder == null || clicker == null) {
+            GptSenderLog.write(this, "SEND_ABORT", "Required module is not ready");
+            debug.append("MODULES: NOT READY\n");
+            DebugLogger.save(this, debug.toString());
+            return false;
+        }
+
+        AccessibilityNodeInfo root = null;
+        AccessibilityNodeInfo edit = null;
+        SendButtonFinder.Result found = null;
+        try {
+            root = scanner.getRoot();
+            if (root == null) {
+                GptSenderLog.write(this, "SEND_ABORT", "ChatGPT accessibility root is null");
                 debug.append("ROOT: NULL\n");
                 DebugLogger.save(this, debug.toString());
                 if (debugOverlay != null) debugOverlay.showNotFound();
                 return false;
             }
 
+            if (!CHATGPT.equals(String.valueOf(root.getPackageName()))) {
+                GptSenderLog.write(this, "SEND_ABORT", "Wrong package: " + root.getPackageName());
+                debug.append("PACKAGE: NOT CHATGPT\n");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
             edit = input.find(root);
             if (edit == null) {
-                GptSenderLog.write(this, "INPUT_NOT_FOUND_AFTER_INSERT", "Fresh tree has no input field");
+                GptSenderLog.write(this, "SEND_ABORT", "Input field not found");
                 debug.append("INPUT: NOT FOUND\n");
                 DebugLogger.save(this, debug.toString());
                 if (debugOverlay != null) debugOverlay.showNotFound();
@@ -513,104 +510,78 @@ DebugLogger.sendEvent(this, "PREPARE START");
 
             Rect inputBounds = new Rect();
             edit.getBoundsInScreen(inputBounds);
-            debug.append("INPUT_BOUNDS=").append(inputBounds).append('\n');
-            GptSenderLog.write(this, "INPUT_FOUND_AFTER_INSERT", "bounds=" + inputBounds);
-            if (debugOverlay != null && !inputBounds.isEmpty())
-                debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
-
-            // Fail closed: never send if the actual ChatGPT input is empty, disabled, or off-screen.
-            CharSequence inputText = edit.getText();
-            String inputValue = inputText == null ? "" : inputText.toString();
-            boolean inputReady = edit.isEnabled()
-                    && !inputValue.trim().isEmpty()
-                    && !inputBounds.isEmpty();
-            debug.append("SEND_INPUT_STATE enabled=").append(edit.isEnabled())
-                    .append(" chars=").append(inputValue.length())
-                    .append(" bounds_valid=").append(!inputBounds.isEmpty())
-                    .append(" ready=").append(inputReady).append('\n');
+            CharSequence value = edit.getText();
+            String inputValue = value == null ? "" : value.toString();
+            boolean inputReady = edit.isEnabled() && !inputValue.trim().isEmpty() && !inputBounds.isEmpty();
             GptSenderLog.write(this, inputReady ? "SEND_INPUT_CONFIRMED" : "SEND_INPUT_REJECTED",
                     "enabled=" + edit.isEnabled() + "; chars=" + inputValue.length()
                     + "; bounds=" + inputBounds);
+            debug.append("INPUT_BOUNDS=").append(inputBounds).append('\n')
+                    .append("INPUT_CHARS=").append(inputValue.length()).append('\n');
+
             if (!inputReady) {
-                debug.append("TAP_ABORTED: input is empty, disabled, or has invalid bounds.\n");
-                GptSenderLog.write(this, "SEND_STATE_REJECTED", "Input is not ready; no gesture sent");
+                GptSenderLog.write(this, "SEND_ABORT", "Input empty, disabled, or bounds invalid");
+                debug.append("SEND_ABORT: INPUT NOT READY\n");
                 DebugLogger.save(this, debug.toString());
                 if (debugOverlay != null) debugOverlay.setClickResult(false);
                 return false;
             }
 
-            // GPTSENDER_FIXED_COORDINATES_V3: fixed user-confirmed screen point.
-            // Safety gate: never tap unless the accessibility tree confirms an enabled
-            // semantic SEND button under this exact point. Voice/online-mode buttons are rejected.
-            final int sendX = 965;
-            final int sendY = 2125;
-            debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
-            if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
-
-            // Validate the fixed point against the real display before any gesture.
-            android.util.DisplayMetrics displayMetrics = new android.util.DisplayMetrics();
-            android.view.WindowManager windowManager =
-                    (android.view.WindowManager) getSystemService(WINDOW_SERVICE);
-            if (windowManager != null) {
-                windowManager.getDefaultDisplay().getRealMetrics(displayMetrics);
-            }
-            boolean targetInBounds = displayMetrics.widthPixels > 0
-                    && displayMetrics.heightPixels > 0
-                    && sendX >= 0 && sendY >= 0
-                    && sendX < displayMetrics.widthPixels
-                    && sendY < displayMetrics.heightPixels;
-            debug.append("SEND_TARGET_DISPLAY=").append(displayMetrics.widthPixels)
-                    .append('x').append(displayMetrics.heightPixels)
-                    .append(" in_bounds=").append(targetInBounds).append('\n');
-            if (!targetInBounds) {
-                GptSenderLog.write(this, "SEND_STATE_REJECTED",
-                        "Target outside real display: x=" + sendX + ",y=" + sendY
-                        + "; display=" + displayMetrics.widthPixels + "x" + displayMetrics.heightPixels);
-                debug.append("TAP_ABORTED: target is outside display bounds.\n");
+            found = finder.find(root, edit, debug);
+            if (found == null || !found.found()) {
+                String reason = found == null ? "FINDER_RETURNED_NULL" : found.reason;
+                GptSenderLog.write(this, "SEND_BUTTON_NOT_FOUND", "reason=" + reason);
+                debug.append("SEND BUTTON: NOT FOUND reason=").append(reason).append('\n');
                 DebugLogger.save(this, debug.toString());
-                if (debugOverlay != null) debugOverlay.setClickResult(false);
+                if (debugOverlay != null) debugOverlay.showNotFound();
                 return false;
             }
 
-            if (!CHATGPT.equals(String.valueOf(root.getPackageName()))) {
-                debug.append("SEND_STATE_CHECK=REJECTED_WRONG_PACKAGE package=")
-                     .append(root.getPackageName()).append('\n');
-                GptSenderLog.write(this, "SEND_STATE_REJECTED",
-                        "Expected ChatGPT package; actual=" + root.getPackageName());
-                DebugLogger.sendEvent(this, "SEND_STATE_REJECTED");
+            Rect target = new Rect(found.bounds);
+            if (target.isEmpty()) {
+                GptSenderLog.write(this, "SEND_ABORT", "Finder returned empty button bounds");
+                debug.append("SEND BUTTON: EMPTY BOUNDS\n");
                 DebugLogger.save(this, debug.toString());
                 return false;
             }
 
-            // User-confirmed target: tap the red marker directly. No accessibility-label gate.
-            debug.append("SEND_STATE_CHECK=FIXED_USER_COORDINATE\\n");
-            GptSenderLog.write(this, "SEND_TARGET_FIXED", "x=" + sendX + ",y=" + sendY
-                    + "; accessibility-label gate bypassed; display bounds and non-empty input verified");
+            int targetX = target.centerX();
+            int targetY = target.centerY();
+            GptSenderLog.write(this, "SEND_BUTTON_FOUND",
+                    "reason=" + found.reason + "; score=" + found.score
+                    + "; candidates=" + found.candidateNumber + "; bounds=" + target);
+            if (debugOverlay != null) debugOverlay.showTarget(targetX, targetY);
 
-            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + "," + sendY
-                    + "; state=USER_CONFIRMED_FIXED_COORDINATE");
-            boolean clicked = clicker.clickAt(sendX, sendY, debug);
+            // Prefer semantic Accessibility click; fallback is limited to the freshly
+            // detected clickable target. No fixed coordinates are used.
+            boolean clicked = found.node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            GptSenderLog.write(this, clicked ? "SEND_ACCESSIBILITY_CLICK_ACCEPTED" : "SEND_ACCESSIBILITY_CLICK_REJECTED",
+                    "reason=" + found.reason + "; target=" + target);
+
+            if (!clicked) {
+                GptSenderLog.write(this, "SEND_GESTURE_FALLBACK_BEGIN", "target=" + target);
+                clicked = clicker.clickAt(targetX, targetY, debug);
+            }
+
             if (debugOverlay != null) debugOverlay.setClickResult(clicked);
-            GptSenderLog.write(this, clicked ? "FIXED_SEND_TAP_COMPLETED" : "FIXED_SEND_TAP_FAILED",
-                "x=" + sendX + ",y=" + sendY
-                    + "; gesture callback result=" + clicked
-                    + "; message delivery not independently verified");
+            GptSenderLog.write(this, clicked ? "SEND_CLICK_ACCEPTED" : "SEND_CLICK_FAILED",
+                    "target=" + target + "; reason=" + found.reason
+                    + "; message delivery is not independently verified");
             DebugLogger.sendEvent(this, clicked ? "SUCCESS" : "FAILED");
             DebugLogger.save(this, debug.toString());
             return clicked;
         } catch (Exception e) {
             GptSenderDiagnostics.exception(this, "ACCESSIBILITY_SERVICE", "SEND_FLOW_EXCEPTION", e);
             GptSenderLog.write(this, "SEND_FLOW_EXCEPTION",
-                e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage()));
+                    e.getClass().getSimpleName() + ": " + String.valueOf(e.getMessage()));
             debug.append("EXCEPTION=").append(e.getClass().getSimpleName()).append('\n');
             DebugLogger.save(this, debug.toString());
             if (debugOverlay != null) debugOverlay.showNotFound();
             return false;
         } finally {
+            if (found != null && found.node != null) try { found.node.recycle(); } catch (Exception ignored) {}
             if (edit != null) try { edit.recycle(); } catch (Exception ignored) {}
             if (root != null) try { root.recycle(); } catch (Exception ignored) {}
-            if (lastResult != null && lastResult.node != null)
-                try { lastResult.node.recycle(); } catch (Exception ignored) {}
         }
     }
 

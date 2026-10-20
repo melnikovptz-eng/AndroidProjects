@@ -21,6 +21,7 @@ public final class GptSenderDebugOverlay {
     private View inputDot;
     private View targetDot;
     private View statusDot;
+    private View coordinateDot;
 
     private int inputX;
     private int inputY;
@@ -47,6 +48,23 @@ public final class GptSenderDebugOverlay {
         manager = (WindowManager) context.getSystemService(
                 Context.WINDOW_SERVICE
         );
+    }
+
+    /** Displays one non-touchable diagnostic marker at absolute screen pixel coordinates. */
+    public void showCoordinate(int x, int y) {
+        main.post(() -> {
+            ensureCoordinateDot();
+            place(coordinateDot, x, y, Color.rgb(255, 55, 55));
+            scheduleHide();
+        });
+    }
+
+    private void ensureCoordinateDot() {
+        if (manager == null || !Settings.canDrawOverlays(context)) return;
+        if (coordinateDot == null) {
+            coordinateDot = createDot(Color.rgb(255, 55, 55));
+            add(coordinateDot, 0, 0);
+        }
     }
 
     public void showInput(int x, int y) {
@@ -215,6 +233,7 @@ public final class GptSenderDebugOverlay {
         remove(inputDot);
         remove(targetDot);
         remove(statusDot);
+        remove(coordinateDot);
 
         inputDot = null;
         targetDot = null;
@@ -222,6 +241,7 @@ public final class GptSenderDebugOverlay {
 
         hasInput = false;
         hasTarget = false;
+        coordinateDot = null;
     }
 
     private void remove(View view) {

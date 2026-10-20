@@ -1,5 +1,9 @@
 # PMCA — ARCHITECTURE
 
+## 0. Mandatory preflight before implementation
+
+Before creating a module, adapter, or application, or materially changing one, the AI/developer must read the current versions of `README.md`, `docs/PROJECT_RULES.md`, `docs/MODULE_DEVELOPMENT.md`, `docs/PMCA_SHARED_PLATFORM_RULES.md`, `docs/PMCA_LOGGING_CONTRACT.md`, this architecture, `PMCA/PROJECT_CONTRACT.md`, and the target component's passport, docs, source, tests, build configuration, and related workflows. Search for existing implementations/call sites and audit Android package/signing compatibility where applicable. Record a concise preflight and test plan. If a required file is unavailable, disclose it; do not claim complete review or start implementation before the gap is resolved.
+
 ## 1. System
 
 PMCA — Portable Modular Controller Architecture.
@@ -33,7 +37,6 @@ OUTPUT
 Controller — единственный центр управления.
 
 Controller отвечает за:
-
 - приём задач
 - создание Execution ID
 - проверку состояния
@@ -68,7 +71,6 @@ execute()
 ## 6. Module Manifest
 
 Manifest описывает:
-
 - module_id
 - name
 - version
@@ -81,11 +83,11 @@ Manifest описывает:
 - limits
 - adapter
 - tests
+- important diagnostic events and logging limitations
 
 ## 7. Parser
 
 Parser определяет:
-
 - тип входных данных
 - предполагаемый маршрут
 - параметры задачи
@@ -111,7 +113,6 @@ EXECUTION_ID
 Processing Gate решает, разрешено ли выполнение.
 
 Состояния:
-
 ALLOW
 HOLD
 CONFIRM_REQUIRED
@@ -128,7 +129,6 @@ Queue не определяет способ выполнения задачи.
 Router выбирает исполнитель или модуль.
 
 Примеры:
-
 Termux
 ChatGPT
 BLE
@@ -142,7 +142,6 @@ Router не содержит бизнес-логику модулей.
 Adapters связывают PMCA с внешней средой.
 
 Примеры:
-
 Android Adapter
 Termux Adapter
 BLE Adapter
@@ -152,24 +151,22 @@ Adapter не должен становиться частью Core.
 
 ## 13. Logger
 
-Logger записывает:
+The mandatory detailed contract is `docs/PMCA_LOGGING_CONTRACT.md`.
 
-- Execution ID
-- время
-- модуль
-- действие
-- состояние
-- результат
-- ошибку
-
-Logger должен работать независимо от UI.
+- Record real operation starts and terminal outcomes, including success, failure, timeout, rejection, and cancellation where applicable.
+- Carry execution/correlation IDs across related events.
+- Separate click/gesture completion from independently confirmed delivery.
+- Store persistent operational logs in bounded, concurrency-safe app-private storage where applicable; document memory-only exceptions.
+- Keep diagnostic traces separate and opt-in.
+- Redact secrets and user payloads by default.
+- Logging must not block the UI thread, recursively invoke command processing, or cause the original operation to be retried.
+- Audit and reuse existing logger implementations before adding another one.
 
 ## 14. State Machine
 
 State Machine контролирует состояния выполнения.
 
 Пример:
-
 NEW
 ↓
 QUEUED
@@ -179,13 +176,11 @@ RUNNING
 SUCCESS
 
 или:
-
 RUNNING
 ↓
 ERROR
 
 или:
-
 RUNNING
 ↓
 TIMEOUT
@@ -215,7 +210,6 @@ Watchdog не должен автоматически запускать бес�
 ## 19. Developer Mode
 
 Developer Mode предоставляет:
-
 - состояние PMCA
 - состояние модулей
 - Health Check
@@ -241,7 +235,6 @@ UI не обращается напрямую к внутренним функц
 Модуль должен иметь возможность быть перенесённым в другой проект.
 
 Для переносимости запрещены прямые зависимости от:
-
 - MainActivity
 - конкретного UI
 - внутренних классов другого модуля
@@ -252,7 +245,6 @@ UI не обращается напрямую к внутренним функц
 Каждое выполнение получает уникальный идентификатор.
 
 Формат:
-
 EXEC-000001
 
 Execution ID используется Logger и Developer Mode.
@@ -260,7 +252,6 @@ Execution ID используется Logger и Developer Mode.
 ## 23. Priority
 
 Приоритет архитектуры:
-
 1. Stability
 2. Correctness
 3. Simplicity
@@ -270,10 +261,6 @@ Execution ID используется Logger и Developer Mode.
 ## 24. Golden Rule
 
 Сначала контракт.
-
 Потом тест.
-
 Потом реализация.
-
 Потом интеграция.
-

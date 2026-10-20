@@ -157,6 +157,44 @@ taperClipboardReceiver =
         worker.start();
     }
 
+
+    /** Shows a diagnostic marker only; it never performs a tap. Coordinates are physical screen pixels. */
+    public static boolean showFixedTargetDiagnostic(android.content.Context context, int x, int y) {
+        android.content.Context app = context == null ? null : context.getApplicationContext();
+        TesterAccessibilityService service = null;
+        android.accessibilityservice.AccessibilityService current = TesterAccessibilityServiceHolder.service;
+        if (current instanceof TesterAccessibilityService) service = (TesterAccessibilityService) current;
+
+        android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
+        android.view.WindowManager wm = app == null ? null
+                : (android.view.WindowManager) app.getSystemService(android.content.Context.WINDOW_SERVICE);
+        if (wm != null) wm.getDefaultDisplay().getRealMetrics(metrics);
+        int width = metrics.widthPixels;
+        int height = metrics.heightPixels;
+        boolean inBounds = width > 0 && height > 0 && x >= 0 && y >= 0 && x < width && y < height;
+        boolean overlayAllowed = app != null && android.provider.Settings.canDrawOverlays(app);
+        String details = "x=" + x + "; y=" + y + "; real_width_px=" + width
+                + "; real_height_px=" + height + "; in_bounds=" + inBounds
+                + "; overlay_permission=" + overlayAllowed
+                + "; coordinate_space=physical_display_pixels; tap_performed=false";
+        GptSenderLog.write(app, "COORDINATE_DIAGNOSTIC_CHECK", details);
+
+        if (service == null) {
+            GptSenderLog.write(app, "COORDINATE_DIAGNOSTIC_FAILED",
+                    "Accessibility service is not connected; " + details);
+            return false;
+        }
+        if (!overlayAllowed || !inBounds || service.debugOverlay == null) {
+            GptSenderLog.write(app, "COORDINATE_DIAGNOSTIC_FAILED",
+                    "Cannot show marker; " + details);
+            return false;
+        }
+        service.debugOverlay.showCoordinate(x, y);
+        GptSenderLog.write(app, "COORDINATE_MARKER_REQUESTED",
+                details + "; marker_color=red; marker_auto_hide_ms=15000");
+        return true;
+    }
+
     @Override
     public void onDestroy() {
         if (debugOverlay != null) {

@@ -516,9 +516,10 @@ DebugLogger.sendEvent(this, "PREPARE START");
             if (debugOverlay != null && !inputBounds.isEmpty())
                 debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
 
-            // GPTSENDER_FIXED_COORDINATES_V1: use the screenshot-measured send point.
-            final int sendX = 602;
-            final int sendY = 1394;
+            // GPTSENDER_FIXED_COORDINATES_V2: visually confirmed by the user.
+            // Physical screen pixels: X=965, Y=2125. Keep diagnostic overlays enabled.
+            final int sendX = 965;
+            final int sendY = 2125;
             debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
             GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY);
             if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);

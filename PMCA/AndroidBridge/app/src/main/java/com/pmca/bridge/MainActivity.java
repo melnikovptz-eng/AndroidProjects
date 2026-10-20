@@ -106,6 +106,8 @@ public class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
+        PmcaLogger.initialize(getApplicationContext());
+        PmcaLogger.log("event=APP_START status=SUCCESS stage=INITIALIZE");
         controller = new PmcaController(this);
         buildScreen();
         refreshLogs();

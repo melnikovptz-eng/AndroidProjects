@@ -1,0 +1,35 @@
+name: PMCA Module Validation
+
+on:
+  pull_request:
+    paths:
+      - "GPTSenderTest/modules/**"
+      - "PMCA/**"
+      - "tools/pmca_module_test.py"
+      - "docs/MODULE_DEVELOPMENT.md"
+      - ".github/workflows/pmca-module-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "GPTSenderTest/modules/**"
+      - "PMCA/**"
+      - "tools/pmca_module_test.py"
+      - "docs/MODULE_DEVELOPMENT.md"
+      - ".github/workflows/pmca-module-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  module-passports:
+    name: Validate module contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate all module passports
+        run: python tools/pmca_module_test.py --all

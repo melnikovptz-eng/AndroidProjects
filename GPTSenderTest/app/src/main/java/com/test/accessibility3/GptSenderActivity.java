@@ -92,7 +92,7 @@ public class GptSenderActivity extends Activity {
                 log("OPERATION_BEGIN", name);
                 result = operation.call();
 
-                log("OPERATION_RESULT",
+                log(result ? "OPERATION_SUCCESS" : "OPERATION_FAILED",
                         name + ": result=" + result);
 
             } catch (Exception e) {
@@ -207,9 +207,9 @@ public class GptSenderActivity extends Activity {
                     boolean clicked =
                             TesterAccessibilityService.clickSend();
 
-                    log("SEND_CLICK_RESULT",
-                            "clicked=" + clicked
-                                    + "; delivery not confirmed");
+                    log(clicked ? "SEND_CLICK_COMPLETED" : "SEND_CLICK_FAILED",
+                            "click_api_result=" + clicked
+                                    + "; message_delivery=UNCONFIRMED");
 
                     log("SEND_CONFIRMATION_PENDING",
                             "Click is not proof of delivery");

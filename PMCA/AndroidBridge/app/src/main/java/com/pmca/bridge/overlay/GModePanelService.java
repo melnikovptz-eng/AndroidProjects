@@ -25,7 +25,6 @@ import android.widget.Toast;
 
 import com.pmca.bridge.core.PmcaController;
 import com.pmca.bridge.logging.PmcaLogger;
-import com.pmca.bridge.termux.TermuxResultService;
 
 /**
  * Compact G-mode edge panel. It deliberately reuses PMCA's existing

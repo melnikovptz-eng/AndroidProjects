@@ -9,8 +9,11 @@
   "status": "implemented-in-gptsender-test; extraction-to-library-pending",
   "description": "Discovers the active target application's accessibility root and elements.",
   "entrypoint": "com.test.accessibility3.modules.scanner.ChatGPTScanner",
-  "capabilities": ["find-active-window-root"],
+  "capabilities": ["find-active-window-root", "configurable-target-package"],
   "dependencies": ["Android AccessibilityService", "Android AccessibilityNodeInfo"],
+  "configuration": {
+    "targetPackage": "required by configurable constructor; defaults to com.openai.chatgpt for backward compatibility"
+  },
   "limitations": [
     "Available nodes and properties depend on the target application and Android version.",
     "Package-specific filtering belongs in configuration or an adapter, not in a project-neutral scanner core."

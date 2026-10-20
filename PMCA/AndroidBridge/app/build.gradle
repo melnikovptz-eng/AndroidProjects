@@ -15,9 +15,16 @@ android {
     defaultConfig {
         applicationId 'com.pmca.bridge'
         minSdk 23
+        // Keep the established target SDK for compatibility with the existing
+        // Termux/clipboard bridge behavior; this app is distributed directly, not through Play.
         targetSdk 28
         versionCode 6
         versionName "0.5.0"
+    }
+
+    lint {
+        // Android's Play Store policy check is not applicable to this sideloaded utility.
+        disable 'ExpiredTargetSdkVersion'
     }
 
     signingConfigs {

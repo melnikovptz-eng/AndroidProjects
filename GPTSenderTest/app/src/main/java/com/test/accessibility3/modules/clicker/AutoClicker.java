@@ -76,7 +76,7 @@ public class AutoClicker implements ClickApi {
     public ClickResult click(ClickRequest request, StringBuilder diagnostics) {
         StringBuilder debug = diagnostics == null ? new StringBuilder() : diagnostics;
         if (request == null || !request.isValid()) {
-            debug.append("CLICK_API_REJECTED: invalid request\\n");
+            debug.append("CLICK_API_REJECTED: invalid request\n");
             return new ClickResult(false, "INVALID_REQUEST", "Request or required fields are invalid",
                     request == null ? -1 : request.getX(), request == null ? -1 : request.getY());
         }
@@ -93,7 +93,7 @@ public class AutoClicker implements ClickApi {
                 .append(" package=").append(request.getExpectedPackage())
                 .append(" point=").append(x).append(',').append(y)
                 .append(" display=").append(metrics.widthPixels).append('x').append(metrics.heightPixels)
-                .append(" in_bounds=").append(inBounds).append('\\n');
+                .append(" in_bounds=").append(inBounds).append('\n');
         if (!inBounds) {
             return new ClickResult(false, "OUT_OF_BOUNDS",
                     "Target is outside the real display bounds", x, y);

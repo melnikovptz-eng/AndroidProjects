@@ -14,6 +14,12 @@
   ],
   "capabilities": ["find-editable-node", "set-text", "clear-text"],
   "dependencies": ["Android AccessibilityNodeInfo"],
+  "dependency_ids": [],
+  "permissions": ["Android Accessibility Service must be enabled by the user."],
+  "inputs": ["Accessibility root node; text to insert or clear."],
+  "outputs": ["Editable node or null; boolean result for clear/insert actions."],
+  "limits": ["Search is bounded by node count and elapsed time; target app must expose an editable node."],
+  "tests": ["Editable-node selection and text-action tests are pending; manual device verification is required."],
   "limitations": [
     "Text insertion depends on the target app exposing an editable accessibility node and supporting ACTION_SET_TEXT.",
     "No fixed screen coordinate should be used to locate or focus the input field."

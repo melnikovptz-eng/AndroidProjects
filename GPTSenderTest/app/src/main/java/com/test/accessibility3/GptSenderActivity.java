@@ -3,6 +3,7 @@ package com.test.accessibility3;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
+import android.net.Uri;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
@@ -215,6 +216,31 @@ public class GptSenderActivity extends Activity {
                     return clicked;
                 })
         );
+
+
+        button(root, "Показать кружок X=965 Y=2125", v -> {
+            log("COORDINATE_DIAGNOSTIC_BUTTON", "pressed; tap disabled");
+            if (!Settings.canDrawOverlays(this)) {
+                log("OVERLAY_PERMISSION_REQUIRED", "Opening Android overlay permission settings");
+                refreshLog();
+                try {
+                    Intent intent = new Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    log("OVERLAY_SETTINGS_OPEN_FAILED",
+                            e.getClass().getSimpleName() + ": " + e.getMessage());
+                    refreshLog();
+                }
+                return;
+            }
+
+            boolean shown = TesterAccessibilityService.showFixedTargetDiagnostic(this, 965, 2125);
+            log(shown ? "COORDINATE_MARKER_REQUESTED" : "COORDINATE_MARKER_FAILED",
+                    "x=965; y=2125; tap_performed=false");
+            refreshLog();
+        });
 
         button(root, "Обновить журнал", v -> refreshLog());
 

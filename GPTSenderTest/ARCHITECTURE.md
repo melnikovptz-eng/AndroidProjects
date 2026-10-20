@@ -22,3 +22,13 @@ Each module directory contains `module.json` as the machine-readable passport. A
 ## Reuse status
 
 The current source files are still inside the GPTSenderTest Android application tree. Passports and public API contracts establish the extraction boundary; moving the implementation into independently versioned Gradle Android library modules is a separate build-structure step and must preserve a working APK build.
+
+## Project constants
+
+Project-specific values belong in `app/src/main/java/com/test/accessibility3/config/GptSenderConstants.java`:
+- target application package names;
+- target IDs;
+- user-confirmed button coordinates;
+- timing values and debug defaults.
+
+This file is the single source of truth for GPTSenderTest-specific constants. Shared modules must accept project-specific values through constructors or API requests; they must not copy coordinates or package names into their own implementation. Input-field coordinates are deliberately not configured because the input must be found through Accessibility.

@@ -226,7 +226,10 @@ public final class GModePanelService extends Service {
             panel.getWindowVisibleDisplayFrame(visible);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
             int obscuredHeight = Math.max(0, screenHeight - visible.bottom);
-            int targetY = obscuredHeight > dp(150) ? obscuredHeight + dp(8) : dp(8);
+            boolean plausibleImeInset = visible.bottom > dp(100)
+                    && obscuredHeight > dp(150)
+                    && obscuredHeight < screenHeight / 2;
+            int targetY = plausibleImeInset ? obscuredHeight + dp(8) : dp(8);
             if (windowParams.y != targetY) {
                 windowParams.y = targetY;
                 try {

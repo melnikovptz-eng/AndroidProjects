@@ -13,7 +13,6 @@ import android.widget.TextView;
 import android.graphics.Color;
 import android.text.InputType;
 import android.widget.EditText;
-import android.util.Log;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -97,7 +96,7 @@ public class GptSenderActivity extends Activity {
 
             } catch (Exception e) {
                 log("OPERATION_EXCEPTION",
-                        name + ": " + Log.getStackTraceString(e));
+                        name + ": exception_type=" + e.getClass().getSimpleName());
 
             } finally {
                 long elapsed =

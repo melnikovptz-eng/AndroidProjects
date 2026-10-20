@@ -15,9 +15,9 @@ Required baseline reading:
 6. `PMCA/ARCHITECTURE.md` and `PMCA/PROJECT_CONTRACT.md` — architecture and contracts.
 7. The target module/app's `README.md`, `module.json`/passport, architecture/contract docs, build configuration, tests, and all existing implementations of the capability being changed.
 8. Relevant `.github/workflows/` files and existing CI/build instructions.
-9. Existing package/application IDs, namespace, versioning and signing/build configuration when an Android app or APK is involved.
+9. docs/ANDROID_APP_REGISTRY.md plus existing package/application IDs, namespace, versioning and signing/build configuration when an Android app or APK is involved.
 
-Then search for existing implementations and consumers before adding new code. Record a short preflight summary in the task/PR: rules read, existing implementation reused or reason for a new one, affected IDs/dependencies, tests planned, and unresolved constraints. If a required file cannot be accessed, report that limitation and do not claim the preflight is complete; ask for access or proceed only with clearly bounded non-code analysis.
+Then search for existing implementations and consumers before adding new code. Record a short preflight summary in the task/PR (use .github/pull_request_template.md where applicable): rules read, existing implementation reused or reason for a new one, affected IDs/dependencies, tests planned, and unresolved constraints. If a required file cannot be accessed, report that limitation and do not claim the preflight is complete; ask for access or proceed only with clearly bounded non-code analysis.
 
 This is a mandatory workflow gate, not optional advice. Do not start implementation until the preflight is complete.
 
@@ -27,7 +27,7 @@ This is a mandatory workflow gate, not optional advice. Do not start implementat
 2. Complete the mandatory AI preflight above.
 3. Make one coherent change per branch/PR; do not overwrite unrelated in-progress work.
 4. Keep project-specific configuration in the host project. Keep reusable behavior behind a public API.
-5. Run the module passport tester and the relevant unit tests/build before reporting success.
+5. Run python3 tools/pmca_module_test.py --all, python3 -m unittest tools/test_pmca_module_test.py, and python3 tools/pmca_android_audit.py, then run the relevant unit tests/build before reporting success.
 6. Review CI results. Do not claim a build or device behavior passed unless the result was observed.
 7. Merge only after review and validation; never silently push unfinished work to the default branch.
 

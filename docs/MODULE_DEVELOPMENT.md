@@ -1,5 +1,24 @@
 # PMCA module development and isolated testing
 
+## Mandatory preflight before implementation
+
+Before creating or substantially changing any module, the AI/developer must read:
+- `README.md`
+- `docs/PROJECT_RULES.md`
+- this document, `docs/MODULE_DEVELOPMENT.md`
+- `docs/PMCA_SHARED_PLATFORM_RULES.md`
+- `docs/PMCA_LOGGING_CONTRACT.md`
+- `PMCA/ARCHITECTURE.md`
+- `PMCA/PROJECT_CONTRACT.md`
+- the target app/module's README, passport (`module.json` or equivalent), contracts, source, tests, and build configuration;
+- relevant GitHub Actions workflows and existing implementations/call sites of the same capability.
+
+For an Android application, also inspect existing `applicationId`, `namespace`, versioning, signing configuration and APK workflows before changing them. Do not change package IDs or signing identity without a documented compatibility reason and explicit authorization where installation/update compatibility could be affected.
+
+Search before coding. Reuse or safely extend the canonical implementation; do not create a parallel logger, daemon, handler, service, or duplicate module for the same capability without a documented migration plan.
+
+Record the preflight in the task/PR: rules reviewed, current implementation found, reuse/new-implementation decision, package/dependency impact, and planned tests. If a required source cannot be read, disclose that and do not say the rules were fully reviewed. This is a mandatory gate.
+
 ## Goal
 
 A module must be understandable, testable, and diagnosable without launching the full PMCA workflow. Keep one capability per module and make dependencies explicit.
@@ -9,7 +28,6 @@ A module must be understandable, testable, and diagnosable without launching the
 A module passport is stored as `module.json` beside the module's documentation or implementation directory. It must identify the module, version, API version, entry point(s), capabilities, dependencies, and limitations. Passport metadata describes the module; it does not prove the implementation works.
 
 For new modules, add:
-
 - `module.json` — machine-readable passport;
 - implementation source — one responsibility only;
 - unit tests for deterministic logic;
@@ -45,25 +63,26 @@ A successful passport check is not a substitute for Gradle tests or a real-devic
 ## Required test cases
 
 Every module should test, as applicable:
-
 1. valid input and expected output;
 2. missing, malformed, and out-of-range input;
 3. unavailable dependency/service;
 4. timeout and cancellation;
 5. repeated request / duplicate execution;
-6. failure logging without retry loops;
-7. boundary conditions and screen/device configuration changes for UI modules;
-8. no side effects when validation fails.
+6. success and failure logging according to `docs/PMCA_LOGGING_CONTRACT.md`;
+7. failure logging without retry loops;
+8. boundary conditions and screen/device configuration changes for UI modules;
+9. no side effects when validation fails.
 
 For asynchronous operations, expose a result/callback/future with a defined completion and failure state. Avoid hidden sleeps, recursive retries, global mutable state, and direct calls back into the controller.
 
 ## Definition of done
 
+- [ ] Mandatory project-rule preflight completed and summarized.
 - [ ] Passport parses and passes `tools/pmca_module_test.py`.
 - [ ] Unit tests cover success and failure paths.
 - [ ] Android-dependent behavior has an integration/device test plan.
 - [ ] Public API, input/output, permissions, dependencies, and limitations are documented.
-- [ ] Logs record request ID, start/end, result, and failure without sensitive text.
+- [ ] Logs meet the logging contract and record real success/failure outcomes without sensitive text.
 - [ ] No uncontrolled recursion, duplicate registration, or unlimited retry.
 - [ ] Existing app builds and unrelated modules remain unchanged.
 - [ ] CI result is checked before merge.

@@ -2,8 +2,12 @@ name: GPTSenderTest Android Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - "GPTSenderTest/**"
+      - ".github/workflows/gptsender-build.yml"
+  pull_request:
+    branches: [main]
     paths:
       - "GPTSenderTest/**"
       - ".github/workflows/gptsender-build.yml"
@@ -14,8 +18,11 @@ permissions:
 
 jobs:
   build:
-    name: Build GPTSenderTest signed APK
+    name: Build GPTSenderTest APKs
     runs-on: ubuntu-latest
+    env:
+      GPTSENDER_SIGNING_AVAILABLE: ${{ secrets.GPTSENDER_KEYSTORE_B64 != '' && secrets.GPTSENDER_STORE_PASSWORD != '' && secrets.GPTSENDER_KEY_ALIAS != '' && secrets.GPTSENDER_KEY_PASSWORD != '' }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,7 +44,30 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Build GPTSenderTest debug APK
+        working-directory: GPTSenderTest
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon clean assembleDebug
+
+      - name: Verify debug APK
+        run: |
+          APK="GPTSenderTest/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          ls -lh "$APK"
+          sha256sum "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
+
+      - name: Upload GPTSenderTest debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GPTSenderTest-debug-apk
+          path: GPTSenderTest/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Prepare persistent signing key
+        if: env.GPTSENDER_SIGNING_AVAILABLE == 'true'
         env:
           GPTSENDER_KEYSTORE_B64: ${{ secrets.GPTSENDER_KEYSTORE_B64 }}
           GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_STORE_PASSWORD }}
@@ -45,29 +75,34 @@ jobs:
           GPTSENDER_KEY_PASSWORD: ${{ secrets.GPTSENDER_KEY_PASSWORD }}
         run: |
           set -e
-          for name in GPTSENDER_KEYSTORE_B64 GPTSENDER_STORE_PASSWORD GPTSENDER_KEY_ALIAS GPTSENDER_KEY_PASSWORD; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Missing GitHub Actions secret: $name"
-              exit 1
-            fi
-          done
           echo "$GPTSENDER_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/gptsender-release.jks"
           test -s "$RUNNER_TEMP/gptsender-release.jks"
+          echo "::add-mask::$GPTSENDER_STORE_PASSWORD"
+          echo "::add-mask::$GPTSENDER_KEY_PASSWORD"
           echo "GPTSENDER_KEYSTORE_FILE=$RUNNER_TEMP/gptsender-release.jks" >> "$GITHUB_ENV"
           echo "GPTSENDER_STORE_PASSWORD=$GPTSENDER_STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "GPTSENDER_KEY_ALIAS=$GPTSENDER_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "GPTSENDER_KEY_PASSWORD=$GPTSENDER_KEY_PASSWORD" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
+      - name: Build signed GPTSenderTest release APK
+        if: env.GPTSENDER_SIGNING_AVAILABLE == 'true'
         working-directory: GPTSenderTest
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon clean assembleRelease
+        env:
+          GPTSENDER_KEYSTORE_FILE: ${{ runner.temp }}/gptsender-release.jks
+          GPTSENDER_STORE_PASSWORD: ${{ secrets.GPTSENDER_STORE_PASSWORD }}
+          GPTSENDER_KEY_ALIAS: ${{ secrets.GPTSENDER_KEY_ALIAS }}
+          GPTSENDER_KEY_PASSWORD: ${{ secrets.GPTSENDER_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease
 
-      - name: Upload signed APK
+      - name: Upload signed GPTSenderTest APK
+        if: env.GPTSENDER_SIGNING_AVAILABLE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: GPTSenderTest-signed-apk
           path: GPTSenderTest/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Explain unsigned build fallback
+        if: env.GPTSENDER_SIGNING_AVAILABLE != 'true'
+        run: echo "Signing secrets are not configured; GPTSenderTest-debug-apk was built and uploaded."

@@ -1,37 +1,54 @@
 plugins {
-id 'com.android.application'
+    id 'com.android.application'
 }
+
+def pmcaKeystorePath = System.getenv("PMCA_KEYSTORE_PATH")
+def pmcaStorePassword = System.getenv("PMCA_KEYSTORE_PASSWORD")
+def pmcaKeyAlias = System.getenv("PMCA_KEY_ALIAS")
+def pmcaKeyPassword = System.getenv("PMCA_KEY_PASSWORD")
+def pmcaSigningAvailable = pmcaKeystorePath && pmcaStorePassword && pmcaKeyAlias && pmcaKeyPassword
 
 android {
-namespace 'com.pmca.bridge'
-compileSdk 35
+    namespace 'com.pmca.bridge'
+    compileSdk 35
 
-defaultConfig {
-    applicationId 'com.pmca.bridge'
-    minSdk 23
-    targetSdk 28
-    versionCode 6
-    versionName "0.5.0"
-}
-
-signingConfigs {
-    release {
-        storeFile file(System.getenv("PMCA_KEYSTORE_PATH"))
-        storePassword System.getenv("PMCA_KEYSTORE_PASSWORD")
-        keyAlias System.getenv("PMCA_KEY_ALIAS")
-        keyPassword System.getenv("PMCA_KEY_PASSWORD")
+    defaultConfig {
+        applicationId 'com.pmca.bridge'
+        minSdk 23
+        // Keep the established target SDK for compatibility with the existing
+        // Termux/clipboard bridge behavior; this app is distributed directly, not through Play.
+        targetSdk 28
+        versionCode 6
+        versionName "0.5.0"
     }
-}
 
-buildTypes {
-    release {
-        signingConfig signingConfigs.release
+    lint {
+        // Android's Play Store policy check is not applicable to this sideloaded utility.
+        disable 'ExpiredTargetSdkVersion'
     }
-}
 
-compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-}
+    signingConfigs {
+        release {
+            // Do not evaluate file(null) during debug builds.
+            if (pmcaSigningAvailable) {
+                storeFile file(pmcaKeystorePath)
+                storePassword pmcaStorePassword
+                keyAlias pmcaKeyAlias
+                keyPassword pmcaKeyPassword
+            }
+        }
+    }
 
+    buildTypes {
+        release {
+            if (pmcaSigningAvailable) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }

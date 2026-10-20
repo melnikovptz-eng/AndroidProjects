@@ -70,7 +70,7 @@ public final class ModeGPanelService extends Service {
         }
 
         createPanel();
-        launchChatGptIfAvailable();
+        if (panel != null) launchChatGptIfAvailable();
         return START_NOT_STICKY;
     }
 
@@ -150,7 +150,14 @@ public final class ModeGPanelService extends Service {
             }
         });
 
-        addIcon(box, "▢", "Скопировать результат Termux", v -> copyResult());
+        addIcon(box, "▢▢", "Скопировать результат Termux", v -> {
+            boolean ok = copyResult();
+            if (ok && v instanceof TextView) {
+                TextView icon = (TextView) v;
+                icon.setText("✓");
+                icon.postDelayed(() -> icon.setText("▢▢"), 900);
+            }
+        });
 
         panel = box;
         params = new WindowManager.LayoutParams(
@@ -210,19 +217,20 @@ public final class ModeGPanelService extends Service {
         }
     }
 
-    private void copyResult() {
+    private boolean copyResult() {
         SharedPreferences prefs = getSharedPreferences("pmca_results", MODE_PRIVATE);
         String result = prefs.getString("last_result", "");
         if (result == null || result.isEmpty()) {
             Toast.makeText(this, "Ответ Termux ещё не получен", Toast.LENGTH_SHORT).show();
             PmcaLogger.log("Режим G: копирование невозможно — результата нет");
-            return;
+            return false;
         }
         boolean ok = controller.copy(result, "PMCA результат");
         Toast.makeText(this, ok ? "Результат скопирован ✓" : "Копирование не удалось",
                 Toast.LENGTH_SHORT).show();
         PmcaLogger.log(ok ? "Режим G: результат Termux скопирован"
                 : "Режим G: ошибка копирования результата");
+        return ok;
     }
 
     private void launchChatGptIfAvailable() {

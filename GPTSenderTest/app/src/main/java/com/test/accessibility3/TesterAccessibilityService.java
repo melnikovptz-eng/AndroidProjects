@@ -518,6 +518,27 @@ DebugLogger.sendEvent(this, "PREPARE START");
             if (debugOverlay != null && !inputBounds.isEmpty())
                 debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
 
+            // Fail closed: never send if the actual ChatGPT input is empty, disabled, or off-screen.
+            CharSequence inputText = edit.getText();
+            String inputValue = inputText == null ? "" : inputText.toString();
+            boolean inputReady = edit.isEnabled()
+                    && !inputValue.trim().isEmpty()
+                    && !inputBounds.isEmpty();
+            debug.append("SEND_INPUT_STATE enabled=").append(edit.isEnabled())
+                    .append(" chars=").append(inputValue.length())
+                    .append(" bounds_valid=").append(!inputBounds.isEmpty())
+                    .append(" ready=").append(inputReady).append('\n');
+            GptSenderLog.write(this, inputReady ? "SEND_INPUT_CONFIRMED" : "SEND_INPUT_REJECTED",
+                    "enabled=" + edit.isEnabled() + "; chars=" + inputValue.length()
+                    + "; bounds=" + inputBounds);
+            if (!inputReady) {
+                debug.append("TAP_ABORTED: input is empty, disabled, or has invalid bounds.\n");
+                GptSenderLog.write(this, "SEND_STATE_REJECTED", "Input is not ready; no gesture sent");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.setClickResult(false);
+                return false;
+            }
+
             // GPTSENDER_FIXED_COORDINATES_V3: fixed user-confirmed screen point.
             // Safety gate: never tap unless the accessibility tree confirms an enabled
             // semantic SEND button under this exact point. Voice/online-mode buttons are rejected.

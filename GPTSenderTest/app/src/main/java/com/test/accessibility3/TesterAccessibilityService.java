@@ -282,7 +282,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
         GptSenderLog.write(this, inputTapped ? "FIXED_INPUT_TAP_COMPLETED" : "FIXED_INPUT_TAP_FAILED",
                 "x=" + inputX + ",y=" + inputY);
         if (!inputTapped) {
-            debug.append("FIXED INPUT TAP FAILED at ").append(inputX).append(',').append(inputY).append('\\n');
+            debug.append("FIXED INPUT TAP FAILED at ").append(inputX).append(',').append(inputY).append('\n');
             DebugLogger.save(this, debug.toString());
             return false;
         }
@@ -481,7 +481,7 @@ DebugLogger.sendEvent(this, "PREPARE START");
             // GPTSENDER_FIXED_COORDINATES_V1: use the screenshot-measured send point.
             final int sendX = 602;
             final int sendY = 1394;
-            debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\\n');
+            debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
             GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY);
             if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
 

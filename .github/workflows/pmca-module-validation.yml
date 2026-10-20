@@ -39,6 +39,8 @@ jobs:
         run: python -m unittest tools/test_pmca_module_test.py
       - name: Audit Android application IDs and version metadata
         run: python tools/pmca_android_audit.py
+      - name: Audit duplicate services and loop patterns
+        run: python tools/pmca_runtime_audit.py
 
   gptsender-build:
     name: Build GPTSenderTest debug APK and run unit tests

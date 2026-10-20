@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "module_id": "pmca.project.gptsender.config",
+  "name": "GPTSenderTest Constants",
+  "version": "1.0.0",
+  "api_version": "1.0",
+  "type": "project-configuration",
+  "category": "configuration",
+  "status": "implemented",
+  "description": "Single source of truth for GPTSenderTest package IDs, target IDs, confirmed screen coordinates, timing values, and debug defaults.",
+  "entrypoint": "com.test.accessibility3.config.GptSenderConstants",
+  "capabilities": ["centralized-configuration", "target-coordinate-configuration", "timing-configuration"],
+  "configuration": {
+    "CHATGPT_SEND_X": 965,
+    "CHATGPT_SEND_Y": 2125,
+    "CHATGPT_PACKAGE": "com.openai.chatgpt",
+    "inputCoordinates": "intentionally-not-defined; input field is discovered through Accessibility"
+  },
+  "limitations": [
+    "Coordinates are physical display pixels and may become invalid after display, orientation, or UI layout changes.",
+    "These constants are specific to GPTSenderTest; reusable modules must receive values via API or constructor."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "module_id": "pmca.module.clicker",
+  "name": "AutoClicker",
+  "version": "1.0.0",
+  "api_version": "1.0",
+  "type": "android-library-component",
+  "category": "ui-automation",
+  "status": "implemented-in-gptsender-test; extraction-to-library-pending",
+  "description": "Executes a validated UI tap request through Android AccessibilityService.",
+  "entrypoint": "com.test.accessibility3.modules.clicker.AutoClicker",
+  "public_api": [
+    "com.test.accessibility3.api.ClickApi",
+    "com.test.accessibility3.api.ClickRequest",
+    "com.test.accessibility3.api.ClickResult"
+  ],
+  "capabilities": ["coordinate-tap", "gesture-result-reporting"],
+  "dependencies": ["Android AccessibilityService", "PMCA Click API"],
+  "permissions": ["Android Accessibility Service must be enabled"],
+  "input_schema": {
+    "x": "integer >= 0, physical display pixels",
+    "y": "integer >= 0, physical display pixels",
+    "actionId": "non-empty string",
+    "expectedPackage": "non-empty package name"
+  },
+  "output_schema": {
+    "success": "boolean",
+    "status": "string",
+    "detail": "string",
+    "x": "integer",
+    "y": "integer"
+  },
+  "limitations": [
+    "A completed Android gesture does not prove that the target application processed the tap.",
+    "The host project is responsible for confirming the active package and intended target before requesting a tap."
+  ]
+}

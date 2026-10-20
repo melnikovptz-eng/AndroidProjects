@@ -245,6 +245,24 @@ public final class TermuxResultService extends IntentService {
 
             sendBroadcast(update);
 
+            // Deliver the completed Termux result to GPTSenderTest so its
+            // AccessibilityService can insert it into the ChatGPT composer.
+            // Explicit package limits delivery to our companion app.
+            try {
+                Intent gptSender = new Intent("com.test.gptsender.PMCA_SEND_RESULT");
+                gptSender.setPackage("com.test.gptsender");
+                gptSender.putExtra("text", output);
+                sendBroadcast(gptSender);
+                PmcaLogger.log(
+                        "GPTSender bridge: PMCA_SEND_RESULT broadcast dispatched; chars="
+                                + output.length());
+            } catch (Exception e) {
+                PmcaLogger.log(
+                        "GPTSender bridge: broadcast failed: "
+                                + e.getClass().getSimpleName()
+                                + ": " + String.valueOf(e.getMessage()));
+            }
+
             PmcaLogger.log(
                     "RUN_COMMAND RESULT: результат сохранён и отправлен");
 

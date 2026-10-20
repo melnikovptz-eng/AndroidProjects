@@ -4,6 +4,7 @@ Android projects and Termux builds.
 
 ## Project standards
 
+- [PMCA shared platform and isolated application rules](docs/PMCA_SHARED_PLATFORM_RULES.md) — mandatory rules for shared resources, module ownership, application/build isolation, dependency checks, and safe migration.
 - [Project rules](docs/PROJECT_RULES.md) — architecture boundaries, change workflow, logging/privacy, and versioning.
 - [Module development and testing](docs/MODULE_DEVELOPMENT.md) — how to create and test a module independently.
 - [GPTSenderTest architecture contract](GPTSenderTest/ARCHITECTURE.md) — current module boundaries and ownership.

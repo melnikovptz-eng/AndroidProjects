@@ -20,6 +20,8 @@ import com.test.accessibility3.modules.input.ChatGPTInputCleaner;
 import com.test.accessibility3.modules.scanner.ChatGPTScanner;
 import com.test.accessibility3.modules.response.TaperAutoReceiver;
 
+import java.util.ArrayDeque;
+
 public class TesterAccessibilityService extends AccessibilityService {
 
     private TaperClipboardReceiver taperClipboardReceiver;
@@ -516,14 +518,38 @@ DebugLogger.sendEvent(this, "PREPARE START");
             if (debugOverlay != null && !inputBounds.isEmpty())
                 debugOverlay.showInput(inputBounds.centerX(), inputBounds.centerY());
 
-            // GPTSENDER_FIXED_COORDINATES_V2: visually confirmed by the user.
-            // Physical screen pixels: X=965, Y=2125. Keep diagnostic overlays enabled.
+            // GPTSENDER_FIXED_COORDINATES_V3: fixed user-confirmed screen point.
+            // Safety gate: never tap unless the accessibility tree confirms an enabled
+            // semantic SEND button under this exact point. Voice/online-mode buttons are rejected.
             final int sendX = 965;
             final int sendY = 2125;
             debug.append("FIXED_SEND_POINT=").append(sendX).append(',').append(sendY).append('\n');
-            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY);
             if (debugOverlay != null) debugOverlay.showTarget(sendX, sendY);
 
+            if (!CHATGPT.equals(String.valueOf(root.getPackageName()))) {
+                debug.append("SEND_STATE_CHECK=REJECTED_WRONG_PACKAGE package=")
+                     .append(root.getPackageName()).append('\n');
+                GptSenderLog.write(this, "SEND_STATE_REJECTED",
+                        "Expected ChatGPT package; actual=" + root.getPackageName());
+                DebugLogger.sendEvent(this, "SEND_STATE_REJECTED");
+                DebugLogger.save(this, debug.toString());
+                return false;
+            }
+
+            boolean sendReady = verifySendButtonReady(root, sendX, sendY, debug);
+            GptSenderLog.write(this, sendReady ? "SEND_STATE_CONFIRMED" : "SEND_STATE_REJECTED",
+                    "x=" + sendX + ",y=" + sendY
+                    + "; requires enabled clickable semantic send control at target");
+            if (!sendReady) {
+                debug.append("TAP_ABORTED: button state not positively confirmed; no gesture sent.\n");
+                DebugLogger.sendEvent(this, "SEND_STATE_REJECTED");
+                DebugLogger.save(this, debug.toString());
+                if (debugOverlay != null) debugOverlay.setClickResult(false);
+                return false;
+            }
+
+            GptSenderLog.write(this, "FIXED_SEND_TAP_BEGIN", "x=" + sendX + ",y=" + sendY
+                    + "; state=CONFIRMED_SEND_BUTTON");
             boolean clicked = clicker.clickAt(sendX, sendY, debug);
             if (debugOverlay != null) debugOverlay.setClickResult(clicked);
             GptSenderLog.write(this, clicked ? "FIXED_SEND_TAP_COMPLETED" : "FIXED_SEND_TAP_FAILED",
@@ -547,6 +573,79 @@ DebugLogger.sendEvent(this, "PREPARE START");
             if (lastResult != null && lastResult.node != null)
                 try { lastResult.node.recycle(); } catch (Exception ignored) {}
         }
+    }
+
+    /**
+     * Fail-closed state check before a coordinate tap.
+     * Only an enabled, clickable node whose bounds contain the exact target and whose
+     * accessibility text/description/id identifies SEND is accepted. Unknown state = no tap.
+     */
+    private boolean verifySendButtonReady(AccessibilityNodeInfo root, int x, int y,
+                                          StringBuilder debug) {
+        if (root == null) {
+            debug.append("SEND_STATE_CHECK=REJECTED_ROOT_NULL\\n");
+            return false;
+        }
+
+        ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
+        queue.add(root);
+        int visited = 0;
+        boolean confirmed = false;
+        final int maxNodes = 1000;
+
+        while (!queue.isEmpty() && visited < maxNodes) {
+            AccessibilityNodeInfo node = queue.removeFirst();
+            boolean isRoot = node == root;
+            visited++;
+            try {
+                Rect bounds = new Rect();
+                node.getBoundsInScreen(bounds);
+                int childCount = node.getChildCount();
+
+                if (bounds.contains(x, y)) {
+                    String text = String.valueOf(node.getText());
+                    String desc = String.valueOf(node.getContentDescription());
+                    String id = "";
+                    try {
+                        id = String.valueOf(node.getViewIdResourceName());
+                    } catch (Exception ignored) {
+                    }
+                    String labels = (text + " " + desc + " " + id).toLowerCase(java.util.Locale.ROOT);
+                    boolean voice = labels.contains("voice") || labels.contains("microphone")
+                            || labels.contains("audio") || labels.contains("голос")
+                            || labels.contains("микрофон") || labels.contains("диктов");
+                    boolean semanticSend = labels.contains("send") || labels.contains("submit")
+                            || labels.contains("отправ") || labels.contains("послать");
+                    debug.append("TARGET_NODE bounds=").append(bounds)
+                            .append(" class=").append(node.getClassName())
+                            .append(" enabled=").append(node.isEnabled())
+                            .append(" clickable=").append(node.isClickable())
+                            .append(" labels=").append(labels).append('\\n');
+
+                    if (!voice && semanticSend && node.isEnabled() && node.isClickable()) {
+                        confirmed = true;
+                        debug.append("SEND_STATE_CHECK=CONFIRMED_SEMANTIC_SEND_BUTTON\\n");
+                    }
+                }
+
+                for (int i = 0; i < childCount && visited + queue.size() < maxNodes; i++) {
+                    AccessibilityNodeInfo child = node.getChild(i);
+                    if (child != null) queue.addLast(child);
+                }
+            } catch (Exception e) {
+                debug.append("SEND_STATE_NODE_ERROR=").append(e.getClass().getSimpleName()).append('\\n');
+            } finally {
+                if (!isRoot) {
+                    try { node.recycle(); } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        debug.append("SEND_STATE_NODES_SCANNED=").append(visited).append('\\n');
+        if (!confirmed) {
+            debug.append("SEND_STATE_CHECK=REJECTED_UNCONFIRMED_OR_VOICE_MODE\\n");
+        }
+        return confirmed;
     }
 
     public static boolean prepareChatGPTCommand(String command) {

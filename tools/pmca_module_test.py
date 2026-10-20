@@ -103,7 +103,7 @@ def main() -> int:
                 emit("ERROR", label, f"{key} must be an array of non-empty strings", issues)
         if isinstance(data.get("version"), str) and not SEMVER.fullmatch(data["version"]):
             emit("ERROR", label, "version must use MAJOR.MINOR.PATCH format", issues)
-        if isinstance(data.get("api_version"), str) and not re.fullmatch(r"^\\d+\\.\\d+(?:\\.\\d+)?(?:[-+][0-9A-Za-z.-]+)?$", data["api_version"]):
+        if isinstance(data.get("api_version"), str) and not re.fullmatch(r"^\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?$", data["api_version"]):
             emit("ERROR", label, "api_version must use MAJOR.MINOR or MAJOR.MINOR.PATCH format", issues)
         if data.get("schema_version") != "1.0":
             emit("ERROR", label, "unsupported or missing schema_version (currently 1.0)", issues)

@@ -17,6 +17,9 @@
         <service
             android:name=".overlay.FloatingPanelService"
             android:exported="false" />
+        <service
+            android:name=".overlay.GModePanelService"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

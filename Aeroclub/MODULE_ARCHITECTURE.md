@@ -8,7 +8,7 @@
 
 Разделить проект по ответственности так, чтобы каждая бизнес-функция имела одного владельца, а повторно используемые модели, правила, UI-компоненты и Android-интеграции не копировались между экраном, виджетом и административной панелью.
 
-**Важно:** этот документ задаёт целевое разбиение. Сейчас проект собирается как один Gradle-модуль `:app`; описанные ниже Gradle-библиотеки не считаются созданными, пока соответствующие каталоги, build-файлы, зависимости и проверки не появятся в репозитории. Существующий код не перемещать массово одним изменением.
+**Фактическое состояние на текущем этапе:** `:core:common`, `:core:data`, `:core:ui`, `:core:android` и `:feature:notifications` созданы как реальные Gradle-модули с исходным кодом и зависимостями. `:app` сохраняет точки входа, экран администратора, провайдер виджета и манифест. Функциональные экраны администратора пока не разделены на отдельные feature-модули; это следующий этап, а не заявленная готовность.
 
 ## 2. Целевая структура Gradle
 
@@ -34,7 +34,7 @@ Aeroclub/
     sync/                       # outbox, повторы, конфликты и синхронизация
 ```
 
-Это целевая логическая карта, а не требование немедленно создавать пустые Gradle-модули. При миграции создавать только модуль, который сразу получает реальный код и проверку. Не создавать отдельную библиотеку для каждой кнопки/мелкого класса.
+Это целевая карта. Фактически созданы `:core:common`, `:core:data`, `:core:ui`, `:core:android` и `:feature:notifications`. UI-экраны вылетов, участников, календаря, сообщений и настроек пока размещены в `AdminActivity`; выносить их нужно по одному функциональному блоку с реальными потребителями и тестами. Не создавать пустые модули и отдельные библиотеки для каждой кнопки.
 
 ## 3. Библиотеки общего использования
 
@@ -139,3 +139,19 @@ Aeroclub/
 5. Verify one instance of each responsibility before adding a worker, receiver, repository, or utility. Shared implementations must have a clear owner.
 6. UI callbacks must not block waiting for network operations. Local repository calls must stay bounded; large migrations should move out of the UI lifecycle.
 7. After each code change, run a CI build tied to the exact commit SHA. Do not infer success from an older green run.
+
+
+## 9. Фактические Gradle-модули и граф зависимостей
+
+| Модуль | Реальное содержимое | Зависит от |
+|---|---|---|
+| `:core:common` | Flight, Participant, MessageRecord, ClubSettings, FlightDateUtils; unit-тесты дат | Java standard library |
+| `:core:data` | локальные репозитории, миграции и локальный outbox | `:core:common` |
+| `:core:ui` | AeroclubUi, общая палитра, shape helper и цвета | `:core:common` |
+| `:core:android` | FlightActionLauncher, WidgetRefreshManager | `:core:common`, `:core:data` |
+| `:feature:notifications` | FlightReminderScheduler, FlightReminderReceiver, FlightReminderBootReceiver | `:core:common`, `:core:data` |
+| `:app` | MainActivity, AdminActivity, FlightWidgetProvider и manifest | общие библиотеки и notifications |
+
+Граф направлен от приложения и адаптеров к данным и общим типам; обратных зависимостей из `:core:common` и `:core:data` на UI или приложение нет. WidgetRefreshManager принимает класс провайдера параметром, поэтому библиотека не зависит от `:app`.
+
+**Не считать законченными:** отдельные UI feature-модули, реальный серверный API, авторизацию/роли, отправку FCM и подтверждаемую синхронизацию.

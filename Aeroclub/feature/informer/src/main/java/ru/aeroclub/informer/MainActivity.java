@@ -43,7 +43,7 @@ public class MainActivity extends Activity {
         FlightRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
-        flightTitle = text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true);
+        flightTitle = text(FlightPresentation.title(activeFlight), 18, NAVY, true);
         card.addView(flightTitle);
         flightDateTime = addLine(card, activeFlight == null ? "Дата и время уточняются" :
             activeFlight.date + "  •  " + activeFlight.time, 14, AeroclubUi.BODY, 2);
@@ -182,7 +182,7 @@ public class MainActivity extends Activity {
         FlightReminderScheduler.syncAll(this);
         clubLabel.setText(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ");
         Flight active = FlightRepository.getActive(this);
-        flightTitle.setText(active == null ? "Ближайший вылет" : (active.isDemo ? "ДЕМО · " : "") + active.title);
+        flightTitle.setText(FlightPresentation.title(active));
         flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
         flightPlace.setText("Место встречи: " + (active == null ? "не указано" : active.place));
         refreshStatusLabel();

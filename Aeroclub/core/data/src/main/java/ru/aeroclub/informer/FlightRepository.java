@@ -94,8 +94,9 @@ public final class FlightRepository {
     }
 
     public static synchronized Flight create(Context c, String title, String date, String time, String place, String dateIso) {
+        boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();
         String canonicalDate = FlightDateUtils.toIso(dateIso);
-        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() && !explicitIsoProvided) canonicalDate = FlightDateUtils.toIso(date);
         if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) return null;
         Flight f = new Flight(UUID.randomUUID().toString(), clean(title,"Новый вылет"),
             clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
@@ -113,8 +114,9 @@ public final class FlightRepository {
 
     public static synchronized boolean save(Context c, String id, String title, String date, String time, String place, String dateIso) {
         if (id == null || id.trim().isEmpty()) return false;
+        boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();
         String canonicalDate = FlightDateUtils.toIso(dateIso);
-        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() && !explicitIsoProvided) canonicalDate = FlightDateUtils.toIso(date);
         if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) return false;
         List<Flight> list = getFlights(c);
         boolean found = false;

@@ -55,6 +55,7 @@ public class AdminActivity extends Activity {
         draftTitle = prefs.getString("flight_title", draftTitle);
         draftPlace = prefs.getString("flight_place", draftPlace);
         FlightRepository.ensureInitialized(this);
+        ParticipantRepository.ensureInitialized(this);
         loadDraftFromActiveFlight();
         setContentView(root);
         render();
@@ -142,24 +143,23 @@ public class AdminActivity extends Activity {
         note("Локальный прототип. Эти числа не отражают участников клуба на других устройствах.");
     }
 
-    private java.util.List<String> localParticipantNames() {
-        java.util.ArrayList<String> names = new java.util.ArrayList<>();
-        String custom = getSharedPreferences("flight_informer",0).getString("custom_participants", "");
-        if (!custom.isEmpty()) {
-            for (String name : custom.split("\n")) {
-                String clean = name.trim();
-                if (!clean.isEmpty() && !names.contains(clean)) names.add(clean);
-            }
-        }
-        return names;
+    private java.util.List<Participant> localParticipants() {
+        return ParticipantRepository.getAll(this);
+    }
+
+    private String participantStatusKey(String participantId) {
+        return "participant_status_" + FlightRepository.getActiveId(this) + "_" + participantId;
+    }
+
+    private String participantStatus(Participant participant) {
+        return getSharedPreferences("flight_informer",0).getString(
+            participantStatusKey(participant.id), "Ожидается ответ");
     }
 
     private int countLocalParticipantStatus(String status) {
         int count = 0;
-        for (String name : localParticipantNames()) {
-            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
-            String saved = getSharedPreferences("flight_informer",0).getString(key, "Ожидается ответ");
-            if (status.equals(saved)) count++;
+        for (Participant participant : localParticipants()) {
+            if (status.equals(participantStatus(participant))) count++;
         }
         return count;
     }
@@ -286,21 +286,20 @@ public class AdminActivity extends Activity {
     }
 
     private void showParticipants() {
-        java.util.List<String> names = localParticipantNames();
+        java.util.List<Participant> participants = localParticipants();
         int going = countLocalParticipantStatus("Подтвердил участие");
         int notGoing = countLocalParticipantStatus("Не участвует");
         int pending = countLocalParticipantStatus("Ожидается ответ");
-        card("Сводка", "Локальных участников: " + names.size() + " • Едут: " + going +
+        card("Сводка", "Участников: " + participants.size() + " • Едут: " + going +
             " • Не едут: " + notGoing + " • Без ответа: " + pending, null, null);
-        if (names.isEmpty()) {
-            note("Пока нет добавленных участников. Демонстрационные имена не выдаются за реальные данные.");
+        if (participants.isEmpty()) {
+            note("Список пока пуст. Добавьте участников для ведения статусов по вылетам.");
         } else {
-            for (String name : names) {
-                String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
-                String state = getSharedPreferences("flight_informer",0).getString(key, "Ожидается ответ");
+            for (Participant participant : participants) {
+                String state = participantStatus(participant);
                 int color = state.equals("Не участвует") ? Color.rgb(170,65,55) :
                     state.equals("Подтвердил участие") ? GREEN : MUTED;
-                participant(name, state, color);
+                participantRow(participant, state, color);
             }
         }
         Button add = actionButton("＋  Добавить участника", true);
@@ -309,7 +308,7 @@ public class AdminActivity extends Activity {
         Button export = actionButton("Поделиться списком", false);
         export.setOnClickListener(v -> shareParticipantList());
         LinearLayout.LayoutParams ep=lp(-1,dp(48)); ep.topMargin=dp(6); content.addView(export,ep);
-        note("Список хранится локально. Участники и статусы не синхронизируются с другими устройствами.");
+        note("Участники хранятся локально. Общая база клуба появится после подключения сервера.");
     }
 
     private void showMessages() {
@@ -407,30 +406,26 @@ public class AdminActivity extends Activity {
                     Toast.makeText(this, "Введите имя участника", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
-                String old = prefs.getString("custom_participants", "");
-                for (String existing : old.split("\\n")) {
-                    if (existing.equalsIgnoreCase(name)) {
-                        Toast.makeText(this, "Участник уже есть в списке", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                Participant created = ParticipantRepository.add(this, name);
+                if (created == null) {
+                    Toast.makeText(this, "Имя пустое или такой участник уже есть", Toast.LENGTH_SHORT).show();
+                    return;
                 }
-                prefs.edit().putString("custom_participants", old.isEmpty() ? name : old + "\n" + name).apply();
-                Toast.makeText(this, "Участник добавлен на этом устройстве", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
                 render();
             }).show();
     }
 
     private void shareParticipantList() {
         Flight active = FlightRepository.getActive(this);
-        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
         StringBuilder report = new StringBuilder("Аэроклуб — участники: ");
-        if (active != null) report.append(active.title).append("\n").append(active.date).append(" • ").append(active.time).append("\n\n");
-        java.util.List<String> names = localParticipantNames();
-        if (names.isEmpty()) report.append("Локальный список участников пуст.\n");
-        for (String name : names) {
-            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
-            report.append(name).append(" — ").append(prefs.getString(key,"Ожидается ответ")).append("\n");
+        if (active != null) report.append(active.title).append("\n").append(active.date)
+            .append(" • ").append(active.time).append("\n\n");
+        java.util.List<Participant> participants = localParticipants();
+        if (participants.isEmpty()) report.append("Список участников пуст.\n");
+        for (Participant participant : participants) {
+            report.append(participant.displayName).append(" — ")
+                .append(participantStatus(participant)).append("\n");
         }
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
@@ -450,30 +445,42 @@ public class AdminActivity extends Activity {
         sendBroadcast(update);
     }
 
-    private void participant(String name, String state, int color) {
+    private void participantRow(Participant participant, String state, int color) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(dp(14),dp(12),dp(14),dp(12));
         row.setBackground(round(Color.WHITE,14,Color.rgb(220,228,236)));
-        TextView n = text(name,15,NAVY,true);
-        TextView s = text(state,13,color,false);
+        TextView n = text(participant.displayName,15,NAVY,true);
+        TextView statusView = text(state,13,color,false);
         LinearLayout.LayoutParams sp=lp(-1,-2); sp.topMargin=dp(4);
-        row.addView(n); row.addView(s,sp);
-        row.setOnClickListener(v -> {
-            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
-            String[] options = {"Подтвердил участие", "Ожидается ответ", "Не участвует"};
-            new AlertDialog.Builder(this).setTitle(name).setItems(options, (dialog, which) -> {
-                getSharedPreferences("flight_informer",0).edit().putString(key, options[which]).apply();
-                Toast.makeText(this, "Статус участника сохранён", Toast.LENGTH_SHORT).show();
-                render();
-            }).setNegativeButton("Отмена", null).show();
-        });
-        String saved = getSharedPreferences("flight_informer",0).getString("participant_status_" + FlightRepository.getActiveId(this) + "_" + name, null);
-        if (saved != null) {
-            s.setText(saved);
-            s.setTextColor(saved.equals("Не участвует") ? Color.rgb(170,65,55) :
-                saved.equals("Ожидается ответ") ? MUTED : GREEN);
-        }
+        row.addView(n); row.addView(statusView,sp);
+        row.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle(participant.displayName)
+            .setItems(new String[]{"Изменить статус","Переименовать","Удалить участника"}, (dialog, action) -> {
+                if (action == 0) {
+                    String[] options = {"Подтвердил участие","Ожидается ответ","Не участвует"};
+                    new AlertDialog.Builder(this).setTitle("Статус участника").setItems(options, (d, which) -> {
+                        getSharedPreferences("flight_informer",0).edit()
+                            .putString(participantStatusKey(participant.id), options[which]).apply();
+                        render();
+                    }).show();
+                } else if (action == 1) {
+                    EditText name = field("Имя участника", participant.displayName);
+                    new AlertDialog.Builder(this).setTitle("Переименовать участника").setView(name)
+                        .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d, which) -> {
+                            if (!ParticipantRepository.rename(this, participant.id, name.getText().toString())) {
+                                Toast.makeText(this,"Имя пустое или уже используется",Toast.LENGTH_SHORT).show();
+                            }
+                            render();
+                        }).show();
+                } else {
+                    new AlertDialog.Builder(this).setTitle("Удалить участника?")
+                        .setMessage("Будут удалены запись участника и его локальные статусы.")
+                        .setNegativeButton("Отмена",null).setPositiveButton("Удалить",(d, which) -> {
+                            ParticipantRepository.delete(this, participant.id);
+                            render();
+                        }).show();
+                }
+            }).setNegativeButton("Закрыть",null).show());
         LinearLayout.LayoutParams p=lp(-1,-2); p.bottomMargin=dp(8);
         content.addView(row,p);
     }

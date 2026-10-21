@@ -225,10 +225,11 @@ public class AdminActivity extends Activity {
             draftTitle = active.title;
             draftPlace = active.place;
             try {
-                java.util.Date parsed = new SimpleDateFormat("EEE, d MMM", Locale.forLanguageTag("ru")).parse(active.date);
+                java.util.Date parsed = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).parse(active.dateIso);
                 if (parsed != null) {
                     Calendar parsedDate = Calendar.getInstance();
                     parsedDate.setTime(parsed);
+                    flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
                     flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
                     flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
                 }
@@ -248,7 +249,7 @@ public class AdminActivity extends Activity {
             draftTitle = existing.title;
             draftPlace = existing.place;
             try {
-                java.util.Date parsed = new SimpleDateFormat("EEE, d MMM", Locale.forLanguageTag("ru")).parse(existing.date);
+                java.util.Date parsed = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).parse(existing.dateIso);
                 if (parsed != null) {
                     Calendar parsedDate = Calendar.getInstance();
                     parsedDate.setTime(parsed);
@@ -285,12 +286,12 @@ public class AdminActivity extends Activity {
                 if (draftTitle.isEmpty()) draftTitle = "Новый вылет";
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
                 if (editingFlightId == null) {
-                    Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
+                    Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso());
                     FlightRepository.activate(this, created.id);
                     FlightReminderScheduler.schedule(this,created);
                     EventLogRepository.record(this,"FLT-01","create","success",created.id);
                 } else {
-                    FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
+                    FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso());
                     FlightRepository.activate(this, editingFlightId);
                     FlightReminderScheduler.schedule(this,FlightRepository.getById(this,editingFlightId));
                     EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);
@@ -444,19 +445,28 @@ public class AdminActivity extends Activity {
     }
 
     private void showCalendar() {
-        String selectedDate = getSharedPreferences("flight_informer",0).getString("calendar_date", dateLabel());
-        card("Календарь клуба", "Выбранная дата: " + selectedDate, null, null);
+        android.content.SharedPreferences prefs=getSharedPreferences("flight_informer",0);
+        String selectedIso=prefs.getString("calendar_date_iso",
+            FlightDateUtils.toIso(prefs.getString("calendar_date",dateLabel())));
+        if(selectedIso==null || selectedIso.isEmpty()) selectedIso=FlightDateUtils.toIso(dateLabel());
+        try {
+            java.util.Date selected=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(selectedIso);
+            if(selected!=null) flightDate.setTime(selected);
+        } catch(Exception ignored) {}
+        card("Календарь клуба", "Выбранная дата: " + FlightDateUtils.toDisplay(selectedIso), null, null);
         Button choose = actionButton("Выбрать дату", true);
         choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
             flightDate.set(y,m,d);
-            getSharedPreferences("flight_informer",0).edit().putString("calendar_date",draftDateLabel()).apply();
+            String iso=draftDateIso();
+            getSharedPreferences("flight_informer",0).edit()
+                .putString("calendar_date_iso",iso).putString("calendar_date",draftDateLabel()).apply();
             render();
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         content.addView(choose, lp(-1,dp(48)));
         java.util.List<Flight> flights = FlightRepository.getFlights(this);
         int matches = 0;
         for (Flight flight : flights) {
-            if (selectedDate.equals(flight.date)) {
+            if (selectedIso.equals(flight.dateIso)) {
                 matches++;
                 boolean active = flight.id.equals(FlightRepository.getActiveId(this));
                 card(active ? "Активный вылет" : "Вылет",
@@ -473,7 +483,7 @@ public class AdminActivity extends Activity {
             }
         }
         if (matches == 0) note("На выбранную дату в локальном списке вылетов событий нет.");
-        note("Календарь показывает только сохранённые на этом устройстве вылеты.");
+        note("Календарь сравнивает полные даты; данные остаются локальными.");
     }
 
     private void showSettings() {
@@ -691,6 +701,9 @@ public class AdminActivity extends Activity {
     }
     private String draftDateLabel() {
         return new SimpleDateFormat("EEE, d MMM",Locale.forLanguageTag("ru")).format(flightDate.getTime());
+    }
+    private String draftDateIso() {
+        return new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(flightDate.getTime());
     }
     private String draftTimeLabel() {
         return new SimpleDateFormat("HH:mm",Locale.getDefault()).format(flightDate.getTime());

@@ -580,11 +580,24 @@ public class AdminActivity extends Activity {
     }
 
     private void showNotifications() {
-        boolean notificationsEnabled = FlightReminderScheduler.notificationsEnabled(this);
-        card("Локальные напоминания", notificationsEnabled
-            ? "Состояние: разрешены. Для будущих вылетов ставится напоминание за 1 час."
-            : "Состояние: уведомления запрещены в настройках Android. Разрешите их для приложения.",
-            notificationsEnabled ? "Обновить напоминания" : "Открыть настройки приложения", () -> {
+        String notificationState = FlightReminderScheduler.notificationState(this);
+        boolean notificationsEnabled = "enabled".equals(notificationState);
+        String notificationStatus;
+        if ("enabled".equals(notificationState)) {
+            notificationStatus = "Разрешены. Для будущих вылетов ставится напоминание за 1 час.";
+        } else if ("permission_required".equals(notificationState)) {
+            notificationStatus = "Android 13+: разрешение на уведомления ещё не выдано.";
+        } else if ("not_configured".equals(notificationState)) {
+            notificationStatus = "Канал напоминаний ещё не создан. Нажмите, чтобы включить.";
+        } else if ("channel_disabled".equals(notificationState)) {
+            notificationStatus = "Канал напоминаний отключён в настройках Android.";
+        } else if ("app_disabled".equals(notificationState)) {
+            notificationStatus = "Уведомления приложения отключены в настройках Android.";
+        } else {
+            notificationStatus = "Служба уведомлений недоступна на устройстве.";
+        }
+        card("Локальные напоминания", "Состояние: " + notificationStatus,
+            notificationsEnabled ? "Обновить напоминания" : "Включить / настроить", () -> {
                 if (notificationsEnabled) {
                     FlightReminderScheduler.syncAll(this);
                     Toast.makeText(this,"Расписание локальных напоминаний обновлено",Toast.LENGTH_SHORT).show();

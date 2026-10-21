@@ -21,7 +21,7 @@ public final class MessageTemplates {
 
     public static String forTemplate(Flight flight, int templateIndex, String clubName) {
         if (flight == null) return "";
-        String prefix = cleanClubName(clubName) + ": ";
+        String prefix = FlightPresentation.clubNameOrDefault(clubName) + ": ";
         String title = FlightPresentation.title(flight);
         switch (templateIndex) {
             case 0:

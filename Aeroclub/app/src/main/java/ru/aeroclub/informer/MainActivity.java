@@ -75,13 +75,19 @@ public class MainActivity extends Activity {
         going.setOnClickListener(v -> setStatus("Вы подтвердили участие"));
         no.setOnClickListener(v -> setStatus("Вы не участвуете"));
         route.setOnClickListener(v -> {
-            Intent map = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode("аэродром Северный")));
+            String place = getSharedPreferences("flight_informer", 0).getString("flight_place", "аэродром Северный");
+            Intent map = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(place)));
             try { startActivity(map); } catch (Exception ignored) { setStatus("Не найдено приложение карт"); }
         });
         telegram.setOnClickListener(v -> {
             Intent share = new Intent(Intent.ACTION_SEND);
             share.setType("text/plain");
-            share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — ближайший вылет: воскресенье, 25 октября, 10:30. Место встречи: аэродром «Северный».");
+            android.content.SharedPreferences p = getSharedPreferences("flight_informer", 0);
+            share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — " +
+                p.getString("flight_title", "ближайший вылет") + ": " +
+                p.getString("flight_date", "дата уточняется") + ", " +
+                p.getString("flight_time", "время уточняется") +
+                ". Место встречи: " + p.getString("flight_place", "уточняется") + ".");
             startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
         });
 

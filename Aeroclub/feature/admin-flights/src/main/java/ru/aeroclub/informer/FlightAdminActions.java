@@ -6,9 +6,13 @@ import android.content.Context;
 public final class FlightAdminActions {
     private FlightAdminActions() {}
 
+    public static boolean isValidTitle(String title) {
+        return title != null && !title.trim().isEmpty();
+    }
+
     public static Flight createAndActivate(Context context, String title, String date,
                                            String time, String place, String dateIso) {
-        if (title == null || title.trim().isEmpty()) {
+        if (!isValidTitle(title))
             EventLogRepository.record(context, "FLT-01", "create", "invalid_title", null);
             return null;
         }

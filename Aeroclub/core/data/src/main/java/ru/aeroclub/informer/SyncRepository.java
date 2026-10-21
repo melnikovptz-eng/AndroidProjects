@@ -3,17 +3,16 @@ package ru.aeroclub.informer;
 import android.content.Context;
 
 /**
- * Compatibility facade for callers written for the earlier server-outbox prototype.
- * In the current single-device release, domain changes are saved to LocalFilePreferences.
- * There is no configured server, so this class must not queue fake remote operations.
+ * Compatibility facade for older repository calls.
+ * In single-device mode, changes are persisted by LocalFilePreferences; no server
+ * outbox, network request, or duplicate diagnostic event is created here.
  */
 public final class SyncRepository {
     private SyncRepository() {}
 
     public static synchronized void enqueue(Context context, String entityType,
                                             String entityId, String operation) {
-        ModuleDebugLog.log(context, "DATA-01", "local_persist", "local_only",
-            "server_outbox_disabled; type=" + safe(entityType) + "; operation=" + safe(operation));
+        // Intentionally no-op: the caller has already persisted the local domain change.
     }
 
     public static synchronized void removeDemoFlightOperations(Context context, String flightId) {
@@ -30,10 +29,5 @@ public final class SyncRepository {
 
     public static synchronized String getPendingSummary(Context context, int limit) {
         return "Серверная очередь отключена. Все изменения хранятся локально на этом устройстве.";
-    }
-
-    private static String safe(String value) {
-        if (value == null) return "";
-        return value.replace('\n', ' ').replace('\r', ' ').trim();
     }
 }

@@ -1,29 +1,160 @@
 package ru.aeroclub.informer;
 
 import android.content.Context;
+import android.system.Os;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.io.*;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 /** Single-device simulator: private app file, no network, no claim of remote delivery. */
 public final class LocalFileMessageTransport implements MessageTransport {
- private static final String DIR="local_message_transport", NAME="messages.json";
- private static final int LIMIT=500;
- public static final String OUTGOING="OUTGOING", INCOMING="INCOMING", LOCAL_ONLY="LOCAL_ONLY", SIMULATED_INCOMING="SIMULATED_INCOMING";
- @Override public LocalTransportMessage send(Context c,String recipientId,String recipientLabel,String body){
-  String text=clean(body), recipient=clean(recipientId); if(c==null||text.isEmpty()||recipient.isEmpty())return null;
-  synchronized(LocalFileMessageTransport.class){List<LocalTransportMessage> all=read(c);LocalTransportMessage m=new LocalTransportMessage(UUID.randomUUID().toString(),recipient,recipient,clean(recipientLabel),OUTGOING,text,LOCAL_ONLY,System.currentTimeMillis());all.add(m);return write(c,all)?m:null;}
- }
- /** Explicit test hook only. This does not represent a message from another device. */
- public LocalTransportMessage simulateIncoming(Context c,String conversationId,String senderId,String senderLabel,String body){
-  String text=clean(body), conversation=clean(conversationId);if(c==null||text.isEmpty()||conversation.isEmpty())return null;
-  synchronized(LocalFileMessageTransport.class){List<LocalTransportMessage> all=read(c);LocalTransportMessage m=new LocalTransportMessage(UUID.randomUUID().toString(),conversation,clean(senderId),clean(senderLabel),INCOMING,text,SIMULATED_INCOMING,System.currentTimeMillis());all.add(m);return write(c,all)?m:null;}
- }
- @Override public List<LocalTransportMessage> getMessages(Context c,String conversationId){if(c==null)return Collections.emptyList();String f=clean(conversationId);synchronized(LocalFileMessageTransport.class){List<LocalTransportMessage> all=read(c);if(f.isEmpty())return Collections.unmodifiableList(all);List<LocalTransportMessage> result=new ArrayList<>();for(LocalTransportMessage m:all)if(f.equals(m.conversationId))result.add(m);return Collections.unmodifiableList(result);}}
- private static List<LocalTransportMessage> read(Context c){List<LocalTransportMessage> out=new ArrayList<>();File f=file(c);if(!f.isFile())return out;try(FileInputStream in=new FileInputStream(f);ByteArrayOutputStream bytes=new ByteArrayOutputStream()){byte[] buf=new byte[4096];int n;while((n=in.read(buf))!=-1)bytes.write(buf,0,n);JSONArray a=new JSONArray(new String(bytes.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++){JSONObject o=a.optJSONObject(i);if(o!=null)out.add(new LocalTransportMessage(o.optString("id",""),o.optString("conversationId",""),o.optString("recipientId",""),o.optString("recipientLabel",""),o.optString("direction",""),o.optString("body",""),o.optString("status",""),o.optLong("createdAt",0)));}}catch(Exception ignored){/* Preserve malformed file; don't silently overwrite it. */}return out;}
- private static boolean write(Context c,List<LocalTransportMessage> items){File tmp=null;try{JSONArray a=new JSONArray();for(int i=Math.max(0,items.size()-LIMIT);i<items.size();i++){LocalTransportMessage m=items.get(i);JSONObject o=new JSONObject();o.put("id",m.id);o.put("conversationId",m.conversationId);o.put("recipientId",m.recipientId);o.put("recipientLabel",m.recipientLabel);o.put("direction",m.direction);o.put("body",m.body);o.put("status",m.status);o.put("createdAt",m.createdAt);a.put(o);}File f=file(c),p=f.getParentFile();if(p==null||(!p.isDirectory()&&!p.mkdirs()))return false;tmp=new File(p,NAME+".tmp");try(FileOutputStream stream=new FileOutputStream(tmp,false)){stream.write(a.toString().getBytes(StandardCharsets.UTF_8));stream.flush();stream.getFD().sync();}if(f.exists()&&!f.delete())return false;if(!tmp.renameTo(f))return false;return true;}catch(Exception ignored){return false;}finally{if(tmp!=null&&tmp.exists())tmp.delete();}}
- private static File file(Context c){return new File(new File(c.getApplicationContext().getFilesDir(),DIR),NAME);}
- private static String clean(String s){return s==null?"":s.trim();}
+    static final String DIR = "local_message_transport";
+    static final String NAME = "messages.json";
+    private static final int LIMIT = 500;
+
+    public static final String OUTGOING = "OUTGOING";
+    public static final String INCOMING = "INCOMING";
+    public static final String LOCAL_ONLY = "LOCAL_ONLY";
+    public static final String SIMULATED_INCOMING = "SIMULATED_INCOMING";
+
+    @Override
+    public LocalTransportMessage send(Context context, String recipientId, String recipientLabel, String body) {
+        String text = clean(body);
+        String recipient = clean(recipientId);
+        if (context == null || text.isEmpty() || recipient.isEmpty()) return null;
+
+        synchronized (LocalFileMessageTransport.class) {
+            List<LocalTransportMessage> all = read(context);
+            if (all == null) return null; // Do not overwrite a damaged/unreadable file.
+            LocalTransportMessage message = new LocalTransportMessage(
+                    UUID.randomUUID().toString(), recipient, recipient, clean(recipientLabel),
+                    OUTGOING, text, LOCAL_ONLY, System.currentTimeMillis());
+            all.add(message);
+            return write(context, all) ? message : null;
+        }
+    }
+
+    /** Explicit test hook only; this is not a message received from another device. */
+    public LocalTransportMessage simulateIncoming(Context context, String conversationId,
+                                                   String senderId, String senderLabel, String body) {
+        String text = clean(body);
+        String conversation = clean(conversationId);
+        if (context == null || text.isEmpty() || conversation.isEmpty()) return null;
+
+        synchronized (LocalFileMessageTransport.class) {
+            List<LocalTransportMessage> all = read(context);
+            if (all == null) return null;
+            LocalTransportMessage message = new LocalTransportMessage(
+                    UUID.randomUUID().toString(), conversation, clean(senderId), clean(senderLabel),
+                    INCOMING, text, SIMULATED_INCOMING, System.currentTimeMillis());
+            all.add(message);
+            return write(context, all) ? message : null;
+        }
+    }
+
+    @Override
+    public List<LocalTransportMessage> getMessages(Context context, String conversationId) {
+        if (context == null) return Collections.emptyList();
+        String filter = clean(conversationId);
+        synchronized (LocalFileMessageTransport.class) {
+            List<LocalTransportMessage> all = read(context);
+            if (all == null) return Collections.emptyList();
+            if (filter.isEmpty()) return Collections.unmodifiableList(all);
+            List<LocalTransportMessage> result = new ArrayList<>();
+            for (LocalTransportMessage message : all) {
+                if (filter.equals(message.conversationId)) result.add(message);
+            }
+            return Collections.unmodifiableList(result);
+        }
+    }
+
+    /** Returns null for an existing but unreadable/corrupt file, preventing destructive overwrite. */
+    private static List<LocalTransportMessage> read(Context context) {
+        File file = file(context);
+        if (!file.exists()) return new ArrayList<>();
+        if (!file.isFile()) return null;
+
+        try (FileInputStream input = new FileInputStream(file);
+             ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = input.read(buffer)) != -1) bytes.write(buffer, 0, count);
+
+            JSONArray array = new JSONArray(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
+            List<LocalTransportMessage> result = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject item = array.optJSONObject(i);
+                if (item == null) continue;
+                result.add(new LocalTransportMessage(
+                        item.optString("id", ""),
+                        item.optString("conversationId", ""),
+                        item.optString("recipientId", ""),
+                        item.optString("recipientLabel", ""),
+                        item.optString("direction", ""),
+                        item.optString("body", ""),
+                        item.optString("status", ""),
+                        item.optLong("createdAt", 0)));
+            }
+            return result;
+        } catch (Exception error) {
+            return null;
+        }
+    }
+
+    private static boolean write(Context context, List<LocalTransportMessage> items) {
+        File temporary = null;
+        try {
+            JSONArray array = new JSONArray();
+            int start = Math.max(0, items.size() - LIMIT);
+            for (int i = start; i < items.size(); i++) {
+                LocalTransportMessage message = items.get(i);
+                JSONObject item = new JSONObject();
+                item.put("id", message.id);
+                item.put("conversationId", message.conversationId);
+                item.put("recipientId", message.recipientId);
+                item.put("recipientLabel", message.recipientLabel);
+                item.put("direction", message.direction);
+                item.put("body", message.body);
+                item.put("status", message.status);
+                item.put("createdAt", message.createdAt);
+                array.put(item);
+            }
+
+            File target = file(context);
+            File parent = target.getParentFile();
+            if (parent == null || (!parent.isDirectory() && !parent.mkdirs())) return false;
+            temporary = new File(parent, NAME + ".tmp");
+
+            try (FileOutputStream output = new FileOutputStream(temporary, false)) {
+                output.write(array.toString().getBytes(StandardCharsets.UTF_8));
+                output.flush();
+                output.getFD().sync();
+            }
+
+            // Atomic replacement: the previous good file is never deleted before the new one is ready.
+            Os.rename(temporary.getAbsolutePath(), target.getAbsolutePath());
+            return true;
+        } catch (Exception error) {
+            return false;
+        } finally {
+            if (temporary != null && temporary.exists()) temporary.delete();
+        }
+    }
+
+    private static File file(Context context) {
+        return new File(new File(context.getApplicationContext().getFilesDir(), DIR), NAME);
+    }
+
+    private static String clean(String value) {
+        return value == null ? "" : value.trim();
+    }
 }

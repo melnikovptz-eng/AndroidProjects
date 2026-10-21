@@ -111,7 +111,7 @@ public class AdminActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         flightSyncHandler.removeCallbacks(flightSyncPoll);
-        FlightRepository.syncFromDownload(this);
+        if (FlightRepository.syncFromDownload(this) && root != null) render();
         flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         LocalFilePreferences storage = LocalFilePreferences.get(this);
         if (!storage.isStorageHealthy() && !storageWarningShown) {

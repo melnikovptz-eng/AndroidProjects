@@ -202,16 +202,11 @@ public class AdminActivity extends Activity {
                     .setMessage((flight.isDemo ? "ДЕМО · " : "") + flight.title + "\nЭто действие нельзя отменить.")
                     .setNegativeButton("Отмена", null)
                     .setPositiveButton("Удалить", (dialog, which) -> {
-                        if (!FlightRepository.delete(this, flight.id)) {
+                        if (!FlightAdminActions.delete(this, flight.id)) {
                             Toast.makeText(this, "Вылет не удалён: он уже отсутствует или является последним.", Toast.LENGTH_LONG).show();
-                            EventLogRepository.record(this,"FLT-01","delete","rejected",flight.id);
                             render();
                             return;
                         }
-                        FlightReminderScheduler.cancel(this,flight.id);
-                        AttendanceRepository.deleteFlight(this,flight.id);
-                        MessageRepository.deleteForFlight(this,flight.id);
-                        EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
                         WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         render();
@@ -301,23 +296,17 @@ public class AdminActivity extends Activity {
                 if (draftTitle.isEmpty()) draftTitle = "Новый вылет";
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
                 if (editingFlightId == null) {
-                    Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso());
-                    if (created == null) {
+                    if (FlightAdminActions.createAndActivate(this, draftTitle, draftDateLabel(),
+                            draftTimeLabel(), draftPlace, draftDateIso()) == null) {
                         Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
-                        EventLogRepository.record(this,"FLT-01","create","invalid_date_or_time",null);
                         return;
                     }
-                    FlightRepository.activate(this, created.id);
-                    FlightReminderScheduler.schedule(this,created);
-                    EventLogRepository.record(this,"FLT-01","create","success",created.id);
                 } else {
-                    if (!FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso())) {
+                    if (!FlightAdminActions.updateActive(this, editingFlightId, draftTitle,
+                            draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso())) {
                         Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
-                        EventLogRepository.record(this,"FLT-01","update","invalid_date_or_time",editingFlightId);
                         return;
                     }
-                    FlightReminderScheduler.schedule(this,FlightRepository.getById(this,editingFlightId));
-                    EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);
                 }
                 editingFlightId = null;
                 loadDraftFromActiveFlight();

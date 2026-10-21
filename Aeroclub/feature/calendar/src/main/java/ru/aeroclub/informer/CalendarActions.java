@@ -15,8 +15,13 @@ public final class CalendarActions {
 
     public static boolean selectDate(Context context, String iso) {
         String canonical = FlightDateUtils.toIso(iso);
-        if (canonical.isEmpty()) return false;
-        return CalendarRepository.setSelectedDate(context, canonical, FlightDateUtils.toDisplay(canonical));
+        if (canonical.isEmpty()) {
+            EventLogRepository.record(context, "CAL-01", "select_date", "invalid_iso", null);
+            return false;
+        }
+        boolean saved = CalendarRepository.setSelectedDate(context, canonical, FlightDateUtils.toDisplay(canonical));
+        EventLogRepository.record(context, "CAL-01", "select_date", saved ? "success_local_only" : "save_failed", canonical);
+        return saved;
     }
 
     public static List<Flight> flightsOnDate(Context context, String iso) {

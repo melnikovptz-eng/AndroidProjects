@@ -10,7 +10,12 @@
         <activity android:name=".AdminActivity" android:exported="false" />
         <receiver android:name=".FlightReminderReceiver" android:exported="false" />
         <receiver android:name=".FlightReminderBootReceiver" android:enabled="true" android:exported="false">
-            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
         </receiver>
         <receiver android:name=".FlightWidgetProvider" android:exported="true">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="ru.aeroclub.informer.GOING"/><action android:name="ru.aeroclub.informer.NOT_GOING"/><action android:name="ru.aeroclub.informer.ROUTE"/><action android:name="ru.aeroclub.informer.SHARE"/></intent-filter>

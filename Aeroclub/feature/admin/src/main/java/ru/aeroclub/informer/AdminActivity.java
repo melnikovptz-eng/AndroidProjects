@@ -257,6 +257,8 @@ public class AdminActivity extends Activity {
                             return;
                         }
                         loadDraftFromActiveFlight();
+                        FlightReminderScheduler.cancel(this, flight.id);
+                        FlightReminderScheduler.syncAll(this);
                         WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         render();
                     }).show());
@@ -374,6 +376,7 @@ public class AdminActivity extends Activity {
             dialog.dismiss();
             loadDraftFromActiveFlight();
             WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+            FlightReminderScheduler.syncAll(this);
             Toast.makeText(this, "Сохранено на этом устройстве", Toast.LENGTH_SHORT).show();
             render();
         }));

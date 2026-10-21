@@ -4,23 +4,23 @@
     android:orientation="vertical" android:padding="12dp"
     android:background="@drawable/widget_card">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="#526477"
+        android:text="АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="@color/aero_muted"
         android:textSize="11sp" android:textStyle="bold"/>
     <TextView android:id="@+id/flight_title" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="4dp"
-        android:text="Полёт выходного дня" android:textColor="#172B4D"
+        android:text="Полёт выходного дня" android:textColor="@color/aero_navy"
         android:textSize="18sp" android:textStyle="bold" android:maxLines="1"
         android:ellipsize="end"/>
     <TextView android:id="@+id/flight_time" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="2dp"
-        android:text="Вс, 25 октября  •  10:30" android:textColor="#34465A" android:textSize="14sp"/>
+        android:text="Вс, 25 октября  •  10:30" android:textColor="@color/aero_body" android:textSize="14sp"/>
     <TextView android:id="@+id/flight_place" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="2dp"
         android:text="Место встречи: аэродром «Северный»" android:textColor="#526477"
         android:textSize="13sp" android:maxLines="1" android:ellipsize="end"/>
     <TextView android:id="@+id/flight_status" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="5dp"
-        android:text="Ответьте, будете ли вы участвовать" android:textColor="#137547" android:textSize="12sp"
+        android:text="Ответьте, будете ли вы участвовать" android:textColor="@color/aero_green" android:textSize="12sp"
         android:maxLines="1" android:ellipsize="end"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="5dp" android:orientation="horizontal">

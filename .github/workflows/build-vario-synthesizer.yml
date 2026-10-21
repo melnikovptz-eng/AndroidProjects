@@ -21,8 +21,28 @@ jobs:
           gradle-version: '8.9'
           build-root-directory: VarioSynthesizer
           arguments: assembleDebug
+      - name: Verify APK and write build manifest
+        run: |
+          APK="VarioSynthesizer/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="VarioSynthesizer/app/build/outputs/apk/debug/build-info.txt"
+          {
+            echo "project_id=VARIO"
+            echo "project_name=Vario Synthesizer"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=debug"
+            echo "application_id=ru.aeroclub.variosynth"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
       - uses: actions/upload-artifact@v4
         with:
-          name: VarioSynthesizer-debug-1
-          path: VarioSynthesizer/app/build/outputs/apk/debug/app-debug.apk
+          name: VarioSynthesizer-debug-${{ github.sha }}
+          path: |
+            VarioSynthesizer/app/build/outputs/apk/debug/app-debug.apk
+            VarioSynthesizer/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error

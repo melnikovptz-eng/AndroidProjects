@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -56,6 +57,16 @@ public class AdminActivity extends Activity {
         loadDraftFromActiveFlight();
         setContentView(root);
         render();
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1002) {
+            refreshOnResume = false;
+            FlightReminderScheduler.ensureChannel(this);
+            FlightReminderScheduler.syncAll(this);
+            render();
+        }
     }
 
     @Override protected void onResume() {
@@ -560,9 +571,14 @@ public class AdminActivity extends Activity {
                     Toast.makeText(this,"Расписание локальных напоминаний обновлено",Toast.LENGTH_SHORT).show();
                 } else {
                     refreshOnResume = true;
-                    try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        android.net.Uri.parse("package:" + getPackageName()))); }
-                    catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                    if (Build.VERSION.SDK_INT >= 33 &&
+                        checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1002);
+                    } else {
+                        try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.parse("package:" + getPackageName()))); }
+                        catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                    }
                 }
                 render();
             });

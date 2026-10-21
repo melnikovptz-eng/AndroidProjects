@@ -714,8 +714,14 @@ public class AdminActivity extends Activity {
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT, report.toString());
-        try { startActivity(Intent.createChooser(send, "Поделиться списком участников")); }
-        catch (Exception e) { Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show(); }
+        try {
+            startActivity(Intent.createChooser(send, "Поделиться списком участников"));
+            EventLogRepository.record(this, "PAR-01", "share_list", "chooser_opened_delivery_unconfirmed",
+                active == null ? null : active.id);
+        } catch (Exception e) {
+            EventLogRepository.record(this, "PAR-01", "share_list", "failed", active == null ? null : active.id);
+            Toast.makeText(this, "Нет приложения для отправки", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void participantRow(LinearLayout parent, Participant participant, String state, int color) {

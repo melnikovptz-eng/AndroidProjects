@@ -1,14 +1,9 @@
 name: Build Aeroclub Informer APK
-# CI verifies tests and the debug APK on each Aeroclub source change.
+# Run the control build manually after a complete logical implementation batch.
+# Avoid starting a new Android build for every small source/documentation commit.
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - aeroclub-informer
-    paths:
-      - 'Aeroclub/**'
-      - '.github/workflows/build-aeroclub-informer.yml'
 
 permissions:
   contents: read

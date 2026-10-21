@@ -37,8 +37,8 @@ Checkpoint — это последняя документированная то
 - Artifact: GPTSenderTest-debug-apk-166d899e1c2ab599fac0eae9854ff4103048dd81. В артефакте предусмотрен build-info.txt. После run менялся workflow Coordinate Grid, не исходники GPTSenderTest.
 
 ### COORDGRID
-- Контрольный run #2: [GitHub Actions](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), SHA: 1ad7067af89d9051de186bb5be20696d8dd3465d, branch main. На момент последней проверки run ещё выполнялся; не считать успешным до conclusion=success.
-- Перед выдачей APK проверить конечный статус и наличие artifact с build-info.txt.
+- Последний найденный успешный run: [run #2](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), SHA: 1ad7067af89d9051de186bb5be20696d8dd3465d, branch main, conclusion=success.
+- Artifact: CoordinateGrid-debug-1ad7067af89d9051de186bb5be20696d8dd3465d. В архив включён build-info.txt.
 - В GPTSenderTest/artifacts/GPTSenderTest.apk есть APK в репозитории, но без доказательства соответствия source SHA он считается **непроверенным сохранённым артефактом**, а не последней рабочей сборкой.
 
 ## 3. Однозначная идентификация сборки

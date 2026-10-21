@@ -17,11 +17,11 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Текущий HEAD ветки aeroclub-informer после обновления build manifest: d76e89ab849852f7ca367a5d6a6371f28b65df32. Последний checkpoint исходников приложения: 24b8630185caf41ebbe8143e10b525e435050721; последующие изменения затрагивают workflow/инструкции, не подтверждают новую сборку приложения.
-- Последний найденный успешный workflow run: [run #274](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39650851139).
-- SHA сборки: c573778f62c92a8c8187f0ab07d3885ee2a4a5ec.
-- **Статус артефакта: УСТАРЕЛ ОТНОСИТЕЛЬНО HEAD** — SHA run не совпадает с HEAD. Не выдавать его за сборку текущего коммита.
-- Workflow сейчас настроен на ручной запуск (workflow_dispatch). Для проверки текущего HEAD потребуется контрольный запуск после завершения логического блока.
+- Текущий HEAD ветки `aeroclub-informer`: `d7cbe2d4101151a11d509d9c60c97d63b5131f87`.
+- Последний успешный workflow run: [run #276](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39658970194), `conclusion=success`, source SHA совпадает с HEAD.
+- Artifact: `Aeroclub-Informer-debug-d7cbe2d4101151a11d509d9c60c97d63b5131f87`; APK SHA-256: `b63c7ec619e5d5472b33aa06eb6bc93675dc3aa2db6325b29002b202701e004c`.
+- **Статус артефакта: BUILD SUCCESS, актуален для HEAD.** Доступные unit-тесты прошли; часть модулей пока не содержит собственных тестов. Реальное устройство не проверено.
+- Workflow запускается при изменениях `Aeroclub/**` или самого workflow, а также вручную. В APK больше не встраивается GitHub-токен; диагностический журнал можно передать только явным действием пользователя через Android share chooser.
 
 ### VARIO
 - Последний найденный успешный run: [run #10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472).

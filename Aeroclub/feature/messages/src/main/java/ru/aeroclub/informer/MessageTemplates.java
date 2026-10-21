@@ -10,7 +10,7 @@ public final class MessageTemplates {
 
     public static String defaultReminder(Flight flight, String clubName) {
         if (flight == null) return "";
-        return cleanClubName(clubName) + ": напоминаем о вылете «" + FlightPresentation.title(flight) + "» "
+        return FlightPresentation.clubNameOrDefault(clubName) + ": напоминаем о вылете «" + FlightPresentation.title(flight) + "» "
             + flight.date + " в " + flight.time + ". Место встречи: " + flight.place
             + ". Подтвердите, пожалуйста, участие.";
     }
@@ -36,10 +36,6 @@ public final class MessageTemplates {
             default:
                 return "";
         }
-    }
-
-    private static String cleanClubName(String clubName) {
-        return clubName == null || clubName.trim().isEmpty() ? "Аэроклуб" : clubName.trim();
     }
 
 }

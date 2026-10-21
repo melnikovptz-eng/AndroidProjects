@@ -13,6 +13,8 @@ import java.util.UUID;
 public final class SyncRepository {
     private static final String PREFS="flight_informer";
     private static final String KEY="sync_outbox_json";
+    private static final String DROPPED="sync_outbox_dropped_count";
+    private static final int MAX_PENDING=500;
     private SyncRepository() {}
 
     private static SharedPreferences prefs(Context c) {
@@ -62,7 +64,18 @@ public final class SyncRepository {
             item.put("state","pending_server_configuration");
         } catch(Exception ignored) {}
         arr.put(item);
-        prefs(c).edit().putString(KEY,arr.toString()).apply();
+        int dropped = prefs(c).getInt(DROPPED, 0);
+        if (arr.length() > MAX_PENDING) {
+            JSONArray bounded = new JSONArray();
+            int first = arr.length() - MAX_PENDING;
+            for (int i = first; i < arr.length(); i++) {
+                JSONObject pending = arr.optJSONObject(i);
+                if (pending != null) bounded.put(pending);
+            }
+            dropped += arr.length() - bounded.length();
+            arr = bounded;
+        }
+        prefs(c).edit().putString(KEY,arr.toString()).putInt(DROPPED,dropped).apply();
     }
 
     public static synchronized int getPendingCount(Context c) {
@@ -70,7 +83,9 @@ public final class SyncRepository {
     }
 
     public static String getStatus(Context c) {
-        return "Ожидают синхронизации: "+getPendingCount(c)+". Сервер не настроен; отправка не выполняется.";
+        int dropped = prefs(c).getInt(DROPPED, 0);
+        return "Ожидают синхронизации: "+getPendingCount(c)+". Сервер не настроен; отправка не выполняется."
+            + (dropped > 0 ? " Старых операций удалено из-за лимита: " + dropped + "." : "");
     }
 
     public static synchronized String getPendingSummary(Context c,int limit) {

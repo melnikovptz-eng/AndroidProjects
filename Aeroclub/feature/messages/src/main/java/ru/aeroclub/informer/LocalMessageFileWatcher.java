@@ -12,11 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * Foreground-only watcher for the local message file.
- *
- * Polling is scheduled on the main looper, but file metadata and JSON reads happen
- * on one background thread. A new read is not queued while the previous read runs.
- * Stop this watcher when the messages screen stops; it is not a background service.
+ * Foreground-only file watcher. File reads run off the UI thread and never overlap.
+ * Start while the messages screen is visible and stop it when that screen stops.
  */
 public final class LocalMessageFileWatcher implements AutoCloseable {
     public interface Listener {
@@ -30,10 +27,12 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
     private final long intervalMs;
     private final MessageTransport transport;
     private final String conversationId;
+
     private Context appContext;
     private Listener listener;
     private boolean running;
     private boolean readInProgress;
+    private long generation;
     private long lastModified = Long.MIN_VALUE;
     private long lastLength = Long.MIN_VALUE;
     private Future<?> pendingRead;
@@ -52,56 +51,62 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
     public synchronized void start(Context context, Listener listener) {
         if (context == null || listener == null) return;
         stopInternal();
-        this.appContext = context.getApplicationContext();
+        appContext = context.getApplicationContext();
         this.listener = listener;
-        this.running = true;
-        this.lastModified = Long.MIN_VALUE;
-        this.lastLength = Long.MIN_VALUE;
-        poll();
+        running = true;
+        lastModified = Long.MIN_VALUE;
+        lastLength = Long.MIN_VALUE;
+        readInProgress = false;
+        final long runId = ++generation;
+        poll(runId);
     }
 
-    private void poll() {
+    private void poll(long runId) {
         synchronized (this) {
-            if (!running || readInProgress || appContext == null) {
-                if (running) main.postDelayed(this::poll, intervalMs);
+            if (!running || generation != runId || appContext == null) return;
+            if (readInProgress) {
+                main.postDelayed(() -> poll(runId), intervalMs);
                 return;
             }
-            File file = new File(new File(appContext.getFilesDir(), "local_message_transport"), "messages.json");
+
+            File file = new File(new File(appContext.getFilesDir(),
+                    LocalFileMessageTransport.DIR), LocalFileMessageTransport.NAME);
             long modified = file.isFile() ? file.lastModified() : 0L;
             long length = file.isFile() ? file.length() : 0L;
             if (modified == lastModified && length == lastLength) {
-                main.postDelayed(this::poll, intervalMs);
+                main.postDelayed(() -> poll(runId), intervalMs);
                 return;
             }
+
             lastModified = modified;
             lastLength = length;
             readInProgress = true;
             Context context = appContext;
-            Listener callback = listener;
             pendingRead = io.submit(() -> {
                 List<LocalTransportMessage> messages = Collections.emptyList();
                 boolean failed = false;
                 try {
                     messages = transport.getMessages(context, conversationId);
-                } catch (RuntimeException e) {
+                } catch (RuntimeException error) {
                     failed = true;
                 }
                 final List<LocalTransportMessage> result = messages;
-                final boolean error = failed;
+                final boolean readFailed = failed;
                 main.post(() -> {
                     Listener target;
                     synchronized (LocalMessageFileWatcher.this) {
+                        if (generation != runId) return;
                         readInProgress = false;
                         target = running ? listener : null;
                     }
                     if (target != null) {
-                        if (error) target.onReadError();
+                        if (readFailed) target.onReadError();
                         else target.onMessagesChanged(result);
                     }
                 });
             });
+            main.postDelayed(() -> poll(runId), intervalMs);
         }
-        main.postDelayed(this::poll, intervalMs);
     }
 
     public synchronized void stop() {
@@ -109,6 +114,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
     }
 
     private void stopInternal() {
+        generation++;
         running = false;
         main.removeCallbacksAndMessages(null);
         if (pendingRead != null) pendingRead.cancel(true);

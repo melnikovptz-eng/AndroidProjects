@@ -33,8 +33,8 @@ public final class FlightDateUtils {
         for(int i=0;i<starts.length;i++) if(month.startsWith(starts[i])) { monthIndex=i; break; }
         if(monthIndex<0) return "";
         Calendar result=Calendar.getInstance();
-        result.set(Calendar.MONTH,monthIndex);
         result.set(Calendar.DAY_OF_MONTH,1);
+        result.set(Calendar.MONTH,monthIndex);
         result.set(Calendar.HOUR_OF_DAY,12);
         result.set(Calendar.MINUTE,0);
         result.set(Calendar.SECOND,0);

@@ -55,7 +55,8 @@ public final class FlightRepository {
             for (int i=0; i<arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
-                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty() || !o.has("isDemo") || o.optString("id","").trim().isEmpty()) needsMigration=true;
+                    String storedIso = o.optString("dateIso", "").trim();
+                    if (!o.has("dateIso") || (!storedIso.isEmpty() && FlightDateUtils.toIso(storedIso).isEmpty()) || !o.has("isDemo") || o.optString("id","").trim().isEmpty()) needsMigration=true;
                     Flight flight = fromJson(o);
                     if (seenIds.contains(flight.id)) {
                         flight = new Flight(UUID.randomUUID().toString(), flight.title, flight.date, flight.time,

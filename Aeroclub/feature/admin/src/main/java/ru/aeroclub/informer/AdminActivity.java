@@ -83,6 +83,11 @@ public class AdminActivity extends Activity {
         }
     }
 
+    @Override protected void onPause() {
+        LocalFilePreferences.get(this).flushPendingWrites(500L);
+        super.onPause();
+    }
+
     @Override protected void onResume() {
         super.onResume();
         LocalFilePreferences storage = LocalFilePreferences.get(this);

@@ -27,9 +27,30 @@ jobs:
           build-root-directory: CoordinateGridAndroid
           arguments: assembleDebug
 
+      - name: Verify APK and write build manifest
+        run: |
+          APK="CoordinateGridAndroid/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="CoordinateGridAndroid/app/build/outputs/apk/debug/build-info.txt"
+          {
+            echo "project_id=COORDGRID"
+            echo "project_name=Coordinate Grid Android"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=debug"
+            echo "application_id=com.pmca.coordinategrid"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CoordinateGrid-debug
-          path: CoordinateGridAndroid/app/build/outputs/apk/debug/app-debug.apk
+          name: CoordinateGrid-debug-${{ github.sha }}
+          path: |
+            CoordinateGridAndroid/app/build/outputs/apk/debug/app-debug.apk
+            CoordinateGridAndroid/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error

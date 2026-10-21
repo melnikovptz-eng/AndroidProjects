@@ -252,7 +252,7 @@ public class AdminActivity extends Activity {
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(4), dp(4), dp(4), dp(4));
         EditText title = field("Название вылета", existing == null ? "Новый вылет" : existing.title);
-        EditText place = field("Место встречи", existing == null ? getSharedPreferences("flight_informer",0).getString("club_default_place", draftPlace) : existing.place);
+        EditText place = field("Место встречи", existing == null ? ClubSettingsRepository.get(this).defaultMeetingPlace : existing.place);
         form.addView(title); form.addView(place);
         Button date = smallButton("Дата: " + draftDateLabel());
         Button time = smallButton("Время: " + draftTimeLabel());
@@ -414,24 +414,27 @@ public class AdminActivity extends Activity {
     }
 
     private void showSettings() {
-        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
-        String defaultPlace = prefs.getString("club_default_place", "Аэродром «Северный»");
-        card("Профиль клуба", "Название: Аэроклуб\nМесто встречи по умолчанию: " + defaultPlace,
-            "Изменить место встречи по умолчанию", () -> {
-                EditText e = field("Место встречи по умолчанию", defaultPlace);
-                new AlertDialog.Builder(this).setTitle("Настройки клуба").setView(e)
+        ClubSettings settings = ClubSettingsRepository.get(this);
+        card("Профиль клуба", "Название: " + settings.clubName +
+            "\nМесто встречи по умолчанию: " + settings.defaultMeetingPlace,
+            "Изменить настройки клуба", () -> {
+                LinearLayout form = new LinearLayout(this);
+                form.setOrientation(LinearLayout.VERTICAL);
+                EditText club = field("Название клуба", settings.clubName);
+                EditText place = field("Место встречи по умолчанию", settings.defaultMeetingPlace);
+                form.addView(club);
+                form.addView(place);
+                new AlertDialog.Builder(this).setTitle("Настройки клуба").setView(form)
                     .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d,w) -> {
-                        String value=e.getText().toString().trim();
-                        if(value.isEmpty()) value="Не указано";
-                        prefs.edit().putString("club_default_place",value).apply();
+                        ClubSettingsRepository.save(this,club.getText().toString(),place.getText().toString());
                         Toast.makeText(this,"Настройки клуба сохранены",Toast.LENGTH_SHORT).show();
                         render();
                     }).show();
             });
-        card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный ключ.",
+        card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный отправитель.",
                 "Настроить уведомления", () -> { section="Уведомления"; render(); });
-        card("Доступ администратора", "Вход и роли пользователей не реализованы. Не публикуйте конфиденциальные данные в этом прототипе.", null, null);
-        note("Настройки клуба хранятся отдельно от полей конкретного вылета.");
+        card("Доступ администратора", "Авторизация и роли пока не подключены. Не храните конфиденциальные данные в этом прототипе.", null, null);
+        note("Настройки клуба хранятся отдельно от вылетов. Изменение адреса по умолчанию не меняет уже созданные вылеты.");
     }
 
     private void showNotifications() {

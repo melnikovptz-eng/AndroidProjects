@@ -442,6 +442,25 @@ public class AdminActivity extends Activity {
         });
         content.addView(save, lp(-1,dp(48)));
 
+        Button localPublish = actionButton("Записать для информера (локальный файл)", true);
+        localPublish.setOnClickListener(v -> {
+            String body = message.getText().toString().trim();
+            if (body.isEmpty()) {
+                Toast.makeText(this, "Введите текст сообщения", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            LocalTransportMessage savedLocal = new LocalFileMessageTransport().send(
+                this, LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL, "Объявление информера", body);
+            if (savedLocal == null) {
+                Toast.makeText(this, "Не удалось записать файл. Существующие данные сохранены.", Toast.LENGTH_LONG).show();
+                EventLogRepository.record(this, "MSG-02", "local_file_write", "error", "write_failed");
+                return;
+            }
+            EventLogRepository.record(this, "MSG-02", "local_file_write", "success", savedLocal.id);
+            Toast.makeText(this, "Записано в локальный файл. Только на этом телефоне.", Toast.LENGTH_LONG).show();
+        });
+        content.addView(localPublish, lp(-1,dp(48)));
+
         Button history = actionButton("История сообщений", false);
         history.setOnClickListener(v -> {
             if (flightId == null) {
@@ -474,7 +493,7 @@ public class AdminActivity extends Activity {
             }
         });
         content.addView(share, lp(-1,dp(48)));
-        note("История хранит черновики и факт открытия системного меню. Доставка получателю не подтверждается.");
+        note("Локальная запись обновляет файл на этом телефоне. Она не отправляет сообщение на другие устройства. «Поделиться…» открывает системное меню, доставка не подтверждается.");
     }
 
     private void showMessageHistory(String flightId, EditText editor) {

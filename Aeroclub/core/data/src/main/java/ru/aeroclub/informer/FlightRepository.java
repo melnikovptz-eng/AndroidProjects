@@ -124,7 +124,7 @@ public final class FlightRepository {
             wasDemo = old.isDemo;
             list.set(i, new Flight(id, clean(title,"Новый вылет"),
                 clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
-                clean(place,"Место встречи не указано"), old.published, canonicalDate, false));
+                clean(place,"Место встречи не указано"), wasDemo ? false : old.published, canonicalDate, false));
             found = true; break;
         }
         if (!found) return false;

@@ -59,6 +59,7 @@ public final class AttendanceRepository {
         }
         if(!replaced) target.put(record(participantId,flightId,status,now));
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
+        SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
     }
 
     public static synchronized String getResponse(Context c, String flightId) {
@@ -85,6 +86,7 @@ public final class AttendanceRepository {
             if(item!=null && !flightId.equals(item.optString("flightId"))) target.put(item);
         }
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
+        SyncRepository.enqueue(c,"attendance",flightId,"delete_flight_records");
     }
 
     public static synchronized void deleteParticipant(Context c, String participantId) {
@@ -96,6 +98,7 @@ public final class AttendanceRepository {
             if(item!=null && !participantId.equals(item.optString("participantId"))) target.put(item);
         }
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
+        SyncRepository.enqueue(c,"attendance",participantId,"delete_participant_records");
     }
 
     public static synchronized int countResponses(Context c, String flightId, String status) {

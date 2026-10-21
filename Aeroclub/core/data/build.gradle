@@ -3,7 +3,13 @@ plugins { id 'com.android.library' }
 android {
     namespace 'ru.aeroclub.data'
     compileSdk 35
-    defaultConfig { minSdk 23 }
+    buildFeatures { buildConfig true }
+    defaultConfig {
+        minSdk 23
+        def token = System.getenv("AEROCLUB_DEBUG_GITHUB_TOKEN") ?: ""
+        def escapedToken = token.replace("\\", "\\\\").replace("\"", "\\\"")
+        buildConfigField "String", "DEBUG_GITHUB_TOKEN", "\"${escapedToken}\""
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

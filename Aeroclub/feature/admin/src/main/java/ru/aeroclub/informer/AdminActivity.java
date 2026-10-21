@@ -509,7 +509,6 @@ public class AdminActivity extends Activity {
                         section = "Вылеты";
                         render();
                     });
-            }
         }
         if (matches == 0) note("На выбранную дату в локальном списке вылетов событий нет.");
         note("Календарь сравнивает полные даты; данные остаются локальными.");

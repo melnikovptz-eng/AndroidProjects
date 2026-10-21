@@ -8,7 +8,7 @@
 
 Разделить проект по ответственности так, чтобы каждая бизнес-функция имела одного владельца, а повторно используемые модели, правила, UI-компоненты и Android-интеграции не копировались между экраном, виджетом и административной панелью.
 
-**Фактическое состояние на текущем этапе:** `:core:common`, `:core:data`, `:core:ui`, `:core:android`, `:feature:notifications`, `:feature:admin` и `:feature:informer` созданы как реальные Gradle-модули с исходным кодом и зависимостями. `:app` сохраняет главную точку входа, провайдер виджета и манифест. Разделы админ-панели пока собраны в одном `AdminActivity` внутри `:feature:admin`; отдельные feature-модули для разделов остаются следующим этапом.
+**Фактическое состояние на текущем этапе:** `:core:common`, `:core:data`, `:core:ui`, `:core:android`, `:feature:notifications`, `:feature:admin` и `:feature:informer` созданы как реальные Gradle-модули с исходным кодом и зависимостями. `:app` сохраняет провайдер виджета и манифест. Разделы админ-панели пока собраны в одном `AdminActivity`; use-case модули уже выделены, отдельные UI-модули остаются следующим этапом.
 
 ## 2. Целевая структура Gradle
 
@@ -34,7 +34,7 @@ Aeroclub/
     sync/                       # outbox, повторы, конфликты и синхронизация
 ```
 
-Это целевая карта. Фактически созданы `:core:common`, `:core:data`, `:core:ui`, `:core:android`, `:feature:notifications`, `:feature:admin` и `:feature:informer`. UI-экраны вылетов, участников, календаря, сообщений и настроек пока размещены в одном `AdminActivity` внутри `:feature:admin`; выносить их нужно по одному функциональному блоку с реальными потребителями и тестами. Не создавать пустые модули и отдельные библиотеки для каждой кнопки.
+Это целевая карта. Фактически созданы core-библиотеки и feature-модули для уведомлений, вылетов, участников, календаря, сообщений, настроек, админ-панели и информера. UI-экраны вылетов, участников, календаря, сообщений и настроек пока размещены в одном `AdminActivity` внутри `:feature:admin`; выносить их нужно по одному функциональному блоку с реальными потребителями и тестами. Не создавать пустые модули и отдельные библиотеки для каждой кнопки.
 
 ## 3. Библиотеки общего использования
 
@@ -145,15 +145,20 @@ Aeroclub/
 
 | Модуль | Реальное содержимое | Зависит от |
 |---|---|---|
-| `:core:common` | Flight, Participant, MessageRecord, ClubSettings, FlightDateUtils; unit-тесты дат | Java standard library |
-| `:core:data` | локальные репозитории, миграции и ограниченный локальный outbox | `:core:common` |
-| `:core:ui` | AeroclubUi, общая палитра, shape helper и цвета | `:core:common` |
-| `:core:android` | FlightActionLauncher, WidgetRefreshManager | `:core:common`, `:core:data` |
-| `:feature:notifications` | FlightReminderScheduler, FlightReminderReceiver, FlightReminderBootReceiver | `:core:common`, `:core:data` |
-| `:feature:admin` | AdminActivity и разделы локальной админ-панели | common, data, ui, android, notifications |
-| `:feature:informer` | MainActivity — экран-превью и действия участника | common, data, ui, android, notifications |
-| `:app` | FlightWidgetProvider и манифест | общие библиотеки и feature-модули |
+| :core:common | Доменные модели, ISO/date-time validation; unit-тесты | Java standard library |
+| :core:data | Локальные репозитории, миграции, event log и ограниченный outbox | :core:common |
+| :core:ui | AeroclubUi, общая палитра, shape helper и цвета | :core:common |
+| :core:android | FlightActionLauncher, WidgetRefreshManager | :core:common, :core:data |
+| :feature:notifications | Планировщик локальных напоминаний, receiver и восстановление после перезагрузки | :core:common, :core:data |
+| :feature:admin-flights | FlightAdminActions: create/update/delete, reminder side effects, журналирование | common, data, android, notifications |
+| :feature:admin-participants | ParticipantAdminActions: CRUD, ответы, валидация и журналирование | common, data |
+| :feature:calendar | CalendarActions: ISO-дата и поиск вылетов по дате | common, data |
+| :feature:messages | MessageTemplates: единые шаблоны с пометкой демоданных | common |
+| :feature:settings | ClubSettingsActions: чтение/сохранение и журналирование | common, data |
+| :feature:admin | AdminActivity и UI разделов админ-панели | общие библиотеки и feature use cases |
+| :feature:informer | MainActivity — превью и действия участника | common, data, ui, android, notifications |
+| :app | FlightWidgetProvider, manifest и упаковка приложения | общие библиотеки и feature-модули |
 
-Граф зависимостей направлен от `:app` и feature/adapter-модулей к данным и общим типам. Обратных зависимостей из `:core:common` и `:core:data` на UI или приложение нет. WidgetRefreshManager принимает полное имя класса провайдера строкой, поэтому `:core:android` не зависит от `:app`.
+Граф ацикличен: use-case модули зависят от data/common, но репозитории не зависят от feature-модулей. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. Административные разделы UI пока остаются методами одного AdminActivity; бизнес-операции вынесены в отдельные feature-модули.
 
-**Остаётся незавершённым:** отдельные UI-модули для разделов админ-панели, реальный серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.
+Остаётся незавершённым: разбиение административного UI на отдельные экранные модули, серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.

@@ -316,7 +316,6 @@ public class AdminActivity extends Activity {
                         EventLogRepository.record(this,"FLT-01","update","invalid_date_or_time",editingFlightId);
                         return;
                     }
-                    FlightRepository.activate(this, editingFlightId);
                     FlightReminderScheduler.schedule(this,FlightRepository.getById(this,editingFlightId));
                     EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);
                 }

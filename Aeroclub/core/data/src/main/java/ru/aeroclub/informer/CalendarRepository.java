@@ -12,7 +12,7 @@ public final class CalendarRepository {
     private CalendarRepository() {}
 
     private static SharedPreferences prefs(Context context) {
-        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return LocalFilePreferences.get(context);
     }
 
     public static synchronized String getSelectedDateIso(Context context, String fallbackIso) {

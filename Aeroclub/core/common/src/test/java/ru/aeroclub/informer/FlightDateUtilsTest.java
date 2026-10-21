@@ -38,4 +38,18 @@ public class FlightDateUtilsTest {
     @Test public void formatsIsoDateForDisplay() {
         assertTrue(FlightDateUtils.toDisplay("2026-10-25").contains("25"));
     }
+
+    @Test public void acceptsLeapDayAndRejectsImpossibleCalendarDays() {
+        assertEquals("2024-02-29", FlightDateUtils.toIso("2024-02-29"));
+        assertEquals("", FlightDateUtils.toIso("2025-02-29"));
+        assertEquals("", FlightDateUtils.toIso("32 октября"));
+    }
+
+    @Test public void acceptsTimeBoundariesAndRejectsMalformedValues() {
+        assertTrue(FlightDateUtils.isValidTime("00:00"));
+        assertTrue(FlightDateUtils.isValidTime("23:59"));
+        assertFalse(FlightDateUtils.isValidTime("24:00"));
+        assertFalse(FlightDateUtils.isValidTime("12:60"));
+        assertFalse(FlightDateUtils.isValidTime("1:30"));
+    }
 }

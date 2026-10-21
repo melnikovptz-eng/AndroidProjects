@@ -22,8 +22,9 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         super.onReceive(context, intent);
         String action = intent.getAction();
         if (GOING.equals(action) || NOT_GOING.equals(action)) {
+            FlightRepository.ensureInitialized(context);
             String status = GOING.equals(action) ? "Вы подтвердили участие" : "Вы не участвуете";
-            context.getSharedPreferences(PREFS, 0).edit().putString("status", status).apply();
+            AttendanceRepository.setResponse(context, FlightRepository.getActiveId(context), status);
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             for (int id : manager.getAppWidgetIds(new ComponentName(context, FlightWidgetProvider.class))) {
                 render(context, manager, id);
@@ -32,9 +33,9 @@ public class FlightWidgetProvider extends AppWidgetProvider {
     }
 
     private static void render(Context c, AppWidgetManager m, int id) {
+        FlightRepository.ensureInitialized(c);
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.flight_widget);
-        String status = c.getSharedPreferences(PREFS, 0).getString("status",
-            "Ответьте, будете ли вы участвовать");
+        String status = AttendanceRepository.getResponse(c, FlightRepository.getActiveId(c));
         v.setTextViewText(R.id.flight_status, status);
         android.content.SharedPreferences prefs = c.getSharedPreferences(PREFS, 0);
         String title = prefs.getString("flight_title", "Полёт выходного дня");

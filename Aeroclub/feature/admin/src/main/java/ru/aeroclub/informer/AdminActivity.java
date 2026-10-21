@@ -204,7 +204,7 @@ public class AdminActivity extends Activity {
                         MessageRepository.deleteForFlight(this,flight.id);
                         EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
-                        WidgetRefreshManager.refresh(this);
+                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         render();
                     }).show());
             }
@@ -303,7 +303,7 @@ public class AdminActivity extends Activity {
                 }
                 editingFlightId = null;
                 loadDraftFromActiveFlight();
-                WidgetRefreshManager.refresh(this);
+                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                 Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -483,7 +483,7 @@ public class AdminActivity extends Activity {
                         if (!active) {
                             FlightRepository.activate(this, flight.id);
                             loadDraftFromActiveFlight();
-                            WidgetRefreshManager.refresh(this);
+                            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         }
                         section = "Вылеты";
                         render();

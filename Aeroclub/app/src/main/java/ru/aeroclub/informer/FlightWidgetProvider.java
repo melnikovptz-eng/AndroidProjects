@@ -36,23 +36,33 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         String status = c.getSharedPreferences(PREFS, 0).getString("status",
             "Ответьте, будете ли вы участвовать");
         v.setTextViewText(R.id.flight_status, status);
-        v.setTextViewText(R.id.flight_title, "Полёт выходного дня");
-        v.setTextViewText(R.id.flight_time, "Вс, 25 октября  •  10:30");
-        v.setTextViewText(R.id.flight_place, "Место встречи: аэродром «Северный»");
+        android.content.SharedPreferences prefs = c.getSharedPreferences(PREFS, 0);
+        String title = prefs.getString("flight_title", "Полёт выходного дня");
+        String date = prefs.getString("flight_date", "Вс, 25 октября");
+        String time = prefs.getString("flight_time", "10:30");
+        String place = prefs.getString("flight_place", "аэродром «Северный»");
+        v.setTextViewText(R.id.flight_title, title);
+        v.setTextViewText(R.id.flight_time, date + "  •  " + time);
+        v.setTextViewText(R.id.flight_place, "Место встречи: " + place);
 
         bindBroadcast(c, v, R.id.btn_going, GOING, 1);
         bindBroadcast(c, v, R.id.btn_not_going, NOT_GOING, 2);
 
         Intent map = new Intent(Intent.ACTION_VIEW,
-            Uri.parse("geo:0,0?q=" + Uri.encode("аэродром Северный")));
+            Uri.parse("geo:0,0?q=" + Uri.encode(c.getSharedPreferences(PREFS, 0)
+                .getString("flight_place", "аэродром Северный"))));
         PendingIntent mapPending = PendingIntent.getActivity(c, 3, map,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         v.setOnClickPendingIntent(R.id.btn_route, mapPending);
 
         Intent share = new Intent(Intent.ACTION_SEND);
         share.setType("text/plain");
-        share.putExtra(Intent.EXTRA_TEXT,
-            "Аэроклуб — ближайший вылет: воскресенье, 25 октября, 10:30. Место встречи: аэродром «Северный».");
+        android.content.SharedPreferences prefs = c.getSharedPreferences(PREFS, 0);
+        share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — " +
+            prefs.getString("flight_title", "ближайший вылет") + ": " +
+            prefs.getString("flight_date", "дата уточняется") + ", " +
+            prefs.getString("flight_time", "время уточняется") +
+            ". Место встречи: " + prefs.getString("flight_place", "уточняется") + ".");
         Intent chooser = Intent.createChooser(share, "Отправить информацию о полёте");
         PendingIntent sharePending = PendingIntent.getActivity(c, 4, chooser,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

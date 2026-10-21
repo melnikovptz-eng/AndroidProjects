@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * One-device persistence adapter for the existing repository API.
@@ -36,6 +37,7 @@ public final class LocalFilePreferences implements SharedPreferences {
     private static final int FORMAT_VERSION = 1;
     private static final Object LOCK = new Object();
     private static final Object FILE_LOCK = new Object();
+    private static final AtomicLong WRITE_VERSION = new AtomicLong();
     private static final ExecutorService DISK_WRITER = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "aeroclub-json-store");
         thread.setDaemon(true);
@@ -125,7 +127,12 @@ public final class LocalFilePreferences implements SharedPreferences {
     }
 
     private boolean writeFile(Map<String, Object> data) {
+        return writeFile(data, -1L);
+    }
+
+    private boolean writeFile(Map<String, Object> data, long expectedVersion) {
         synchronized (FILE_LOCK) {
+            if (expectedVersion >= 0 && expectedVersion != WRITE_VERSION.get()) return true;
             File parent = file.getParentFile();
             File temp = new File(parent, FILE_NAME + ".tmp");
             try {
@@ -251,6 +258,7 @@ public final class LocalFilePreferences implements SharedPreferences {
         private boolean persistChanges(boolean synchronous) {
             final Set<String> changed = new HashSet<>();
             final Map<String, Object> snapshot;
+            final long writeVersion;
             synchronized (LOCK) {
                 if (readError) return false;
                 Map<String, Object> next = copyMap(values);
@@ -266,8 +274,9 @@ public final class LocalFilePreferences implements SharedPreferences {
                     next.put(entry.getKey(), value instanceof Set ? new HashSet<>((Set<?>)value) : value);
                 }
                 snapshot = copyMap(next);
+                writeVersion = WRITE_VERSION.incrementAndGet();
                 if (synchronous) {
-                    if (!writeFile(snapshot)) {
+                    if (!writeFile(snapshot, writeVersion)) {
                         writeError = true;
                         return false;
                     }
@@ -278,7 +287,7 @@ public final class LocalFilePreferences implements SharedPreferences {
                     values.clear();
                     values.putAll(next);
                     DISK_WRITER.execute(() -> {
-                        boolean ok = writeFile(snapshot);
+                        boolean ok = writeFile(snapshot, writeVersion);
                         writeError = !ok;
                     });
                 }

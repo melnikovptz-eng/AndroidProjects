@@ -50,7 +50,7 @@ public final class ParticipantRepository {
                         if (normalized != null) {
                             if (!p.contains(newKey)) edit.putString(newKey, normalized);
                             AttendanceRepository.setResponse(c, participant.id, flight.id, normalized);
-                            if (!sourceKey.equals(newKey)) edit.remove(oldKey);
+                            if (p.contains(oldKey)) edit.remove(oldKey);
                         }
                     }
                 }

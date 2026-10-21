@@ -17,7 +17,8 @@ public class MainActivity extends Activity {
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
     private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace, localAnnouncement;
-    private LocalMessageFileWatcher messageWatcher;\n    private DebugOperation screenOpenOperation;
+    private LocalMessageFileWatcher messageWatcher;
+    private DebugOperation screenOpenOperation;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -91,6 +92,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         refreshStatusLabel();
         handleAttendanceAction(getIntent());
+        if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }
     }
 
     @Override protected void onNewIntent(Intent intent) {

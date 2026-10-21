@@ -3,12 +3,9 @@ package ru.aeroclub.informer;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.widget.RemoteViews;
-import android.widget.Toast;
 
 public class FlightWidgetProvider extends AppWidgetProvider {
     private static final String GOING = "ru.aeroclub.informer.GOING";
@@ -26,8 +23,6 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         if (intent == null) return;
         String action = intent.getAction();
         FlightRepository.ensureInitialized(context);
-        String flightId = FlightRepository.getActiveId(context);
-
         if (GOING.equals(action) || NOT_GOING.equals(action)) {
             Intent choose = new Intent(context, MainActivity.class);
             choose.putExtra("attendance_action", GOING.equals(action)

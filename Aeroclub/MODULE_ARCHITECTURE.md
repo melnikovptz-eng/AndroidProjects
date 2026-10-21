@@ -150,7 +150,7 @@ Aeroclub/
 | :core:ui | AeroclubUi, общая палитра, shape helper и цвета | :core:common |
 | :core:android | FlightActionLauncher, WidgetRefreshManager | :core:common, :core:data |
 | :feature:notifications | Планировщик локальных напоминаний, receiver и восстановление после перезагрузки | :core:common, :core:data |
-| :feature:admin-flights | FlightAdminActions: create/update/delete, reminder side effects, журналирование | common, data, android, notifications |
+| :feature:admin-flights | FlightAdminActions: create/update/delete, reminder side effects, журналирование | common, data, notifications |
 | :feature:admin-participants | ParticipantAdminActions: CRUD, ответы, валидация и журналирование | common, data |
 | :feature:calendar | CalendarActions: ISO-дата и поиск вылетов по дате | common, data |
 | :feature:messages | MessageTemplates: единые шаблоны с пометкой демоданных | common |

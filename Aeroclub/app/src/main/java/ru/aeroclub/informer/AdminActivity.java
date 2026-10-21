@@ -313,9 +313,13 @@ public class AdminActivity extends Activity {
     }
 
     private void showMessages() {
-        card("Объявление о вылете", "Полёт выходного дня\n" + dateLabel() + " • " + timeLabel() +
-             "\nМесто встречи: " + draftPlace, null, null);
-        EditText message = field("Текст сообщения", "Напоминаем о ближайшем вылете. Подтвердите, пожалуйста, участие.");
+        Flight active = FlightRepository.getActive(this);
+        String summary = active == null ? "Нет выбранного вылета" :
+            active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+        card("Объявление о вылете", summary, null, null);
+        EditText message = field("Текст сообщения", active == null ? "" :
+            "Напоминаем о вылете «" + active.title + "» " + active.date + " в " + active.time +
+            ". Место встречи: " + active.place + ". Подтвердите, пожалуйста, участие.");
         content.addView(message);
         Button preview = actionButton("Предпросмотр сообщения", false);
         preview.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Предпросмотр")
@@ -325,10 +329,11 @@ public class AdminActivity extends Activity {
         share.setOnClickListener(v -> {
             Intent send = new Intent(Intent.ACTION_SEND); send.setType("text/plain");
             send.putExtra(Intent.EXTRA_TEXT,message.getText().toString());
-            startActivity(Intent.createChooser(send,"Отправить сообщение"));
+            try { startActivity(Intent.createChooser(send,"Отправить сообщение")); }
+            catch (Exception e) { Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show(); }
         });
         content.addView(share, lp(-1,dp(48)));
-        note("Отправка всем участникам и Telegram-бот пока не подключены.");
+        note("Открывается системное меню отправки. Массовая доставка и история сообщений не подключены.");
     }
 
     private void showCalendar() {
@@ -392,22 +397,21 @@ public class AdminActivity extends Activity {
     }
 
     private void shareParticipantList() {
+        Flight active = FlightRepository.getActive(this);
         android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
-        StringBuilder report = new StringBuilder("Аэроклуб — участники: ")
-            .append(draftTitle).append("\\n").append(dateLabel()).append(" • ").append(timeLabel()).append("\\n\\n");
-        String[] demo = {"Александр Иванов","Мария Смирнова","Дмитрий Петров","Елена Соколова"};
-        for (String name : demo) report.append(name).append(" — ")
-            .append(prefs.getString("participant_status_" + name,
-                name.equals("Александр Иванов") || name.equals("Мария Смирнова") ? "Подтвердил участие" :
-                name.equals("Елена Соколова") ? "Не участвует" : "Ожидается ответ")).append("\\n");
-        String custom = prefs.getString("custom_participants", "");
-        if (!custom.isEmpty()) for (String name : custom.split("\\n"))
-            if (!name.trim().isEmpty()) report.append(name.trim()).append(" — ")
-                .append(prefs.getString("participant_status_" + name.trim(), "Ожидается ответ")).append("\\n");
+        StringBuilder report = new StringBuilder("Аэроклуб — участники: ");
+        if (active != null) report.append(active.title).append("\n").append(active.date).append(" • ").append(active.time).append("\n\n");
+        java.util.List<String> names = localParticipantNames();
+        if (names.isEmpty()) report.append("Локальный список участников пуст.\n");
+        for (String name : names) {
+            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
+            report.append(name).append(" — ").append(prefs.getString(key,"Ожидается ответ")).append("\n");
+        }
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT, report.toString());
-        startActivity(Intent.createChooser(send, "Поделиться списком участников"));
+        try { startActivity(Intent.createChooser(send, "Поделиться списком участников")); }
+        catch (Exception e) { Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show(); }
     }
 
     /** Refresh every installed home-screen widget after flight data changes. */

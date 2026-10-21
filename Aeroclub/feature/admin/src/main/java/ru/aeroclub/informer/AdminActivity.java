@@ -253,7 +253,7 @@ public class AdminActivity extends Activity {
             flightDate.set(Calendar.MINUTE,30);
             flightDate.set(Calendar.SECOND,0);
             draftTitle = "Новый вылет";
-            draftPlace = ClubSettingsRepository.get(this).defaultMeetingPlace;
+            draftPlace = ClubSettingsActions.get(this).defaultMeetingPlace;
         }
         if (existing != null) {
             draftTitle = existing.title;
@@ -277,7 +277,7 @@ public class AdminActivity extends Activity {
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(4), dp(4), dp(4), dp(4));
         EditText title = field("Название вылета", existing == null ? "Новый вылет" : existing.title);
-        EditText place = field("Место встречи", existing == null ? ClubSettingsRepository.get(this).defaultMeetingPlace : existing.place);
+        EditText place = field("Место встречи", existing == null ? ClubSettingsActions.get(this).defaultMeetingPlace : existing.place);
         form.addView(title); form.addView(place);
         Button date = smallButton("Дата: " + draftDateLabel());
         Button time = smallButton("Время: " + draftTimeLabel());

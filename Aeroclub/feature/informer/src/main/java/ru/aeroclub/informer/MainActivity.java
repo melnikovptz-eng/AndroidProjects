@@ -34,10 +34,7 @@ public class MainActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
-        GradientDrawable cardBg = new GradientDrawable();
-        cardBg.setColor(Color.WHITE);
-        cardBg.setCornerRadius(dp(18));
-        cardBg.setStroke(dp(1), AeroclubUi.BORDER);
+        GradientDrawable cardBg = AeroclubUi.rounded(this, Color.WHITE, 18, AeroclubUi.BORDER);
         card.setBackground(cardBg);
         card.addView(text("АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true));
         LinearLayout.LayoutParams cardParams = lp(-1, -2);

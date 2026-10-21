@@ -18,4 +18,5 @@ dependencies {
     implementation project(':feature:notifications')
     implementation project(':feature:admin-flights')
     implementation project(':feature:admin-participants')
+    implementation project(':feature:calendar')
 }

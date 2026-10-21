@@ -6,12 +6,16 @@ public final class FlightPresentation {
 
     public static String title(Flight flight) {
         if (flight == null) return "Ближайший вылет";
-        return demoPrefix(flight) + flight.title;
+        return demoPrefix(flight) + safeTitle(flight);
     }
 
     public static String shareHeading(Flight flight, String clubName) {
         if (flight == null) return clubNameOrDefault(clubName);
-        return demoPrefix(flight) + clubNameOrDefault(clubName) + " — " + flight.title;
+        return demoPrefix(flight) + clubNameOrDefault(clubName) + " — " + safeTitle(flight);
+    }
+
+    private static String safeTitle(Flight flight) {
+        return flight.title == null || flight.title.trim().isEmpty() ? "Вылет клуба" : flight.title.trim();
     }
 
     private static String demoPrefix(Flight flight) {

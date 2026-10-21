@@ -80,7 +80,7 @@ public final class FlightRepository {
     public static synchronized Flight create(Context c, String title, String date, String time, String place, String dateIso) {
         String canonicalDate = FlightDateUtils.toIso(dateIso);
         if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
-        if (canonicalDate.isEmpty() || !isValidTime(time)) return null;
+        if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) return null;
         Flight f = new Flight(UUID.randomUUID().toString(), clean(title,"Новый вылет"),
             clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
             clean(place,"Место встречи не указано"), false, canonicalDate, false);
@@ -114,10 +114,6 @@ public final class FlightRepository {
         SyncRepository.enqueue(c,"flight",id,"update");
         if (id.equals(getActiveId(c))) activate(c, id);
         return true;
-    }
-
-    private static boolean isValidTime(String value) {
-        return value != null && value.matches("(?:[01]\\d|2[0-3]):[0-5]\\d");
     }
 
     public static synchronized void setPublished(Context c, String id, boolean published) {

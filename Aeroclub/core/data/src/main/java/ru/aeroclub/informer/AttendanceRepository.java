@@ -64,7 +64,8 @@ public final class AttendanceRepository {
         }
         if(!replaced) target.put(record(participantId,flightId,status,now));
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
-        SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
+        Flight linkedFlight = FlightRepository.getById(c, flightId);
+        if (linkedFlight != null && !linkedFlight.isDemo) SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
     }
 
     public static synchronized void setSelectedParticipantId(Context c, String participantId) {
@@ -107,6 +108,10 @@ public final class AttendanceRepository {
     }
 
     public static synchronized void deleteFlight(Context c, String flightId) {
+        deleteFlight(c, flightId, true);
+    }
+
+    public static synchronized void deleteFlight(Context c, String flightId, boolean enqueueSync) {
         if(flightId==null || flightId.trim().isEmpty()) return;
         JSONArray source=read(prefs(c).getString(RECORDS,"[]"));
         JSONArray target=new JSONArray();
@@ -115,7 +120,7 @@ public final class AttendanceRepository {
             if(item!=null && !flightId.equals(item.optString("flightId"))) target.put(item);
         }
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
-        SyncRepository.enqueue(c,"attendance",flightId,"delete_flight_records");
+        if (enqueueSync) SyncRepository.enqueue(c,"attendance",flightId,"delete_flight_records");
     }
 
     public static synchronized void deleteParticipant(Context c, String participantId) {

@@ -340,6 +340,25 @@ public class AdminActivity extends Activity {
             ". Место встречи: " + active.place + ". Подтвердите, пожалуйста, участие.");
         content.addView(message);
 
+        Button templates = actionButton("Выбрать шаблон", false);
+        templates.setOnClickListener(v -> {
+            String[] names = {"Напоминание о вылете","Изменение данных вылета","Просьба подтвердить участие"};
+            new AlertDialog.Builder(this).setTitle("Шаблоны сообщения").setItems(names,(dialog,which) -> {
+                Flight current = FlightRepository.getActive(this);
+                if(current==null) return;
+                String body;
+                if(which==0) body="Напоминаем о вылете «"+current.title+"» "+current.date+" в "+current.time+
+                    ". Место встречи: "+current.place+". Пожалуйста, подтвердите участие.";
+                else if(which==1) body="Обновление по вылету «"+current.title+"»: "+current.date+" в "+current.time+
+                    ". Место встречи: "+current.place+". Проверьте актуальные данные.";
+                else body="Пожалуйста, подтвердите участие в вылете «"+current.title+"» "+current.date+
+                    " в "+current.time+". Место встречи: "+current.place+".";
+                message.setText(body);
+                EventLogRepository.record(this,"MSG-01","template_selected","success",current.id);
+            }).show();
+        });
+        content.addView(templates,lp(-1,dp(48)));
+
         Button preview = actionButton("Предпросмотр сообщения", false);
         preview.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Предпросмотр")
             .setMessage(message.getText().toString()).setPositiveButton("Закрыть",null).show());

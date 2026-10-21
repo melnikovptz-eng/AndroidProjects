@@ -56,7 +56,7 @@ public final class FlightRepository {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
                     String storedIso = o.optString("dateIso", "").trim();
-                    if (!o.has("dateIso") || (!storedIso.isEmpty() && FlightDateUtils.toIso(storedIso).isEmpty()) || !o.has("isDemo") || o.optString("id","").trim().isEmpty()) needsMigration=true;
+                    if (!o.has("dateIso") || (!storedIso.isEmpty() && FlightDateUtils.toIso(storedIso).isEmpty()) || !o.has("isDemo") || o.optString("id","").trim().isEmpty() || o.optString("title","").trim().isEmpty() || o.optString("place","").trim().isEmpty()) needsMigration=true;
                     Flight flight = fromJson(o);
                     if (seenIds.contains(flight.id)) {
                         flight = new Flight(UUID.randomUUID().toString(), flight.title, flight.date, flight.time,
@@ -202,9 +202,9 @@ public final class FlightRepository {
         if (id.isEmpty()) id = UUID.randomUUID().toString();
         String date = o.optString("date","Дата уточняется");
         String dateIso = o.optString("dateIso",FlightDateUtils.toIso(date));
-        return new Flight(id, o.optString("title","Вылет"),
-            date, o.optString("time","Время уточняется"),
-            o.optString("place","Место встречи не указано"), o.optBoolean("published",true),dateIso,
+        return new Flight(id, clean(o.optString("title",""), "Вылет клуба"),
+            date, clean(o.optString("time",""), "Время уточняется"),
+            clean(o.optString("place",""), "Место встречи не указано"), o.optBoolean("published",true),dateIso,
             o.optBoolean("isDemo", isLegacyDemo(o)));
     }
 

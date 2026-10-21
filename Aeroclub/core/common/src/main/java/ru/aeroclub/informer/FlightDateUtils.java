@@ -63,8 +63,8 @@ public final class FlightDateUtils {
             SimpleDateFormat input=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);
             input.setLenient(false);
             Date date=input.parse(iso);
+            if(date==null || !isValidTime(time)) return 0L;
             String[] parts=time.split(":");
-            if(date==null || parts.length!=2) return 0L;
             int hour=Integer.parseInt(parts[0]), minute=Integer.parseInt(parts[1]);
             if(hour<0||hour>23||minute<0||minute>59) return 0L;
             Calendar c=Calendar.getInstance();

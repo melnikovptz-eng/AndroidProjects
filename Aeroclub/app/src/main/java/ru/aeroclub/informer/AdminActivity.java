@@ -169,7 +169,7 @@ public class AdminActivity extends Activity {
                     } else {
                         FlightRepository.activate(this, flight.id);
                         loadDraftFromActiveFlight();
-                        WidgetRefreshManager.refresh(this);
+                        WidgetRefreshManager.refresh(this, FlightWidgetProvider.class);
                         render();
                     }
                 });

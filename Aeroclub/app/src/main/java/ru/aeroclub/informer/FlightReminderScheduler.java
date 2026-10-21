@@ -6,11 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.app.NotificationManager;
 import android.os.Build;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 /** Schedules an inexact local reminder one hour before each future flight. */
 public final class FlightReminderScheduler {
@@ -40,7 +36,6 @@ public final class FlightReminderScheduler {
         if(alarm==null) return false;
         PendingIntent pending=pendingIntent(context,flight);
         alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,start-REMINDER_LEAD_MS,pending);
-        EventLogRepository.record(context,"NTF-01","schedule_local_reminder","scheduled",flight.id);
         return true;
     }
 

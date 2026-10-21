@@ -22,7 +22,6 @@ public final class FlightReminderScheduler {
         long start=parseStart(flight);
         if(start<=System.currentTimeMillis()+REMINDER_LEAD_MS) {
             cancel(context,flight.id);
-            EventLogRepository.record(context,"NTF-01","schedule_local_reminder","not_future_enough",flight.id);
             return false;
         }
         AlarmManager alarm=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);

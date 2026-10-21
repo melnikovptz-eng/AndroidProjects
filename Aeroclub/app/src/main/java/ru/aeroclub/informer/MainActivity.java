@@ -43,9 +43,11 @@ public class MainActivity extends Activity {
         cardParams.topMargin = dp(8);
         root.addView(card, cardParams);
 
-        card.addView(text("Полёт выходного дня", 18, NAVY, true));
-        addLine(card, "Вс, 25 октября  •  10:30", 14, Color.rgb(52, 70, 90), 2);
-        addLine(card, "Место встречи: аэродром «Северный»", 13, MUTED, 2);
+        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
+        card.addView(text(prefs.getString("flight_title", "Полёт выходного дня"), 18, NAVY, true));
+        addLine(card, prefs.getString("flight_date", "Вс, 25 октября") + "  •  " +
+            prefs.getString("flight_time", "10:30"), 14, Color.rgb(52, 70, 90), 2);
+        addLine(card, "Место встречи: " + prefs.getString("flight_place", "аэродром «Северный»"), 13, MUTED, 2);
         status = text(getSharedPreferences("flight_informer", 0).getString("status",
             "Ответьте, будете ли вы участвовать"), 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);

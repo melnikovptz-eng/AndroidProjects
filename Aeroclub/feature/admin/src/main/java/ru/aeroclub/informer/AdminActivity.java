@@ -341,7 +341,7 @@ public class AdminActivity extends Activity {
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String newTitle = title.getText().toString().trim();
             String newPlace = place.getText().toString().trim();
-            if (!FlightAdminActions.isValidTitle(newTitle))
+            if (!FlightAdminActions.isValidTitle(newTitle)) {
                 title.setError("Укажите название вылета");
                 title.requestFocus();
                 return;

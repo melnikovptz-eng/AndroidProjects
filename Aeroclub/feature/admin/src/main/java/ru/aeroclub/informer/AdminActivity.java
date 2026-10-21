@@ -155,8 +155,8 @@ public class AdminActivity extends Activity {
         card("Ближайший вылет", flightSummary,
              "Открыть вылеты", () -> { section = "Вылеты"; render(); });
         int total = localParticipants().size();
-        int going = countLocalParticipantStatus("Подтвердил участие");
-        int noReply = countLocalParticipantStatus("Ожидается ответ");
+        int going = countLocalParticipantStatus(AttendanceRepository.STATUS_GOING);
+        int noReply = countLocalParticipantStatus(AttendanceRepository.STATUS_PENDING);
         LinearLayout stats = new LinearLayout(this);
         stats.setOrientation(LinearLayout.HORIZONTAL);
         stat(stats, String.valueOf(total), "локальных участников");
@@ -368,9 +368,9 @@ public class AdminActivity extends Activity {
 
     private void showParticipants() {
         java.util.List<Participant> participants = localParticipants();
-        int going = countLocalParticipantStatus("Подтвердил участие");
-        int notGoing = countLocalParticipantStatus("Не участвует");
-        int pending = countLocalParticipantStatus("Ожидается ответ");
+        int going = countLocalParticipantStatus(AttendanceRepository.STATUS_GOING);
+        int notGoing = countLocalParticipantStatus(AttendanceRepository.STATUS_NOT_GOING);
+        int pending = countLocalParticipantStatus(AttendanceRepository.STATUS_PENDING);
         card("Сводка", "Участников: " + participants.size() + " • Едут: " + going +
             " • Не едут: " + notGoing + " • Без ответа: " + pending, null, null);
 
@@ -404,8 +404,8 @@ public class AdminActivity extends Activity {
         for(Participant participant:participants) {
             if(!participant.displayName.toLowerCase(Locale.ROOT).contains(filter)) continue;
             String state=participantStatus(participant);
-            int color=state.equals("Не участвует")?Color.rgb(170,65,55):
-                state.equals("Подтвердил участие")?GREEN:MUTED;
+            int color=state.equals(AttendanceRepository.STATUS_NOT_GOING)?Color.rgb(170,65,55):
+                state.equals(AttendanceRepository.STATUS_GOING)?GREEN:MUTED;
             participantRow(parent,participant,state,color);
             shown++;
         }

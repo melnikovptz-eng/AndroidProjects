@@ -65,8 +65,13 @@ public final class FlightRepository {
     }
 
     public static synchronized Flight create(Context c, String title, String date, String time, String place) {
+        return create(c,title,date,time,place,FlightDateUtils.toIso(date));
+    }
+
+    public static synchronized Flight create(Context c, String title, String date, String time, String place, String dateIso) {
         Flight f = new Flight(UUID.randomUUID().toString(), clean(title,"Новый вылет"),
-            clean(date,"Дата уточняется"), clean(time,"Время уточняется"), clean(place,"Место встречи не указано"), false);
+            clean(date,"Дата уточняется"), clean(time,"Время уточняется"), clean(place,"Место встречи не указано"),
+            false,dateIso);
         List<Flight> list = getFlights(c);
         list.add(f);
         persist(c, list);
@@ -74,12 +79,16 @@ public final class FlightRepository {
     }
 
     public static synchronized void save(Context c, String id, String title, String date, String time, String place) {
+        save(c,id,title,date,time,place,FlightDateUtils.toIso(date));
+    }
+
+    public static synchronized void save(Context c, String id, String title, String date, String time, String place, String dateIso) {
         List<Flight> list = getFlights(c);
         boolean found = false;
         for (int i=0; i<list.size(); i++) if (list.get(i).id.equals(id)) {
             Flight old = list.get(i);
             list.set(i, new Flight(id, clean(title,"Новый вылет"), clean(date,"Дата уточняется"),
-                clean(time,"Время уточняется"), clean(place,"Место встречи не указано"), old.published));
+                clean(time,"Время уточняется"), clean(place,"Место встречи не указано"), old.published,dateIso));
             found = true; break;
         }
         if (!found) return;
@@ -93,7 +102,7 @@ public final class FlightRepository {
         for (int i=0; i<list.size(); i++) {
             Flight old = list.get(i);
             if (old.id.equals(id)) {
-                list.set(i,new Flight(old.id,old.title,old.date,old.time,old.place,published));
+                list.set(i,new Flight(old.id,old.title,old.date,old.time,old.place,published,old.dateIso));
                 found = true;
                 break;
             }
@@ -127,15 +136,17 @@ public final class FlightRepository {
 
     private static JSONObject toJson(Flight f) {
         JSONObject o = new JSONObject();
-        try { o.put("id",f.id); o.put("title",f.title); o.put("date",f.date); o.put("time",f.time); o.put("place",f.place); o.put("published",f.published); }
+        try { o.put("id",f.id); o.put("title",f.title); o.put("date",f.date); o.put("time",f.time); o.put("place",f.place); o.put("published",f.published); o.put("dateIso",f.dateIso); }
         catch (Exception ignored) {}
         return o;
     }
 
     private static Flight fromJson(JSONObject o) {
+        String date=o.optString("date","Дата уточняется");
+        String dateIso=o.optString("dateIso",FlightDateUtils.toIso(date));
         return new Flight(o.optString("id",UUID.randomUUID().toString()), o.optString("title","Вылет"),
-            o.optString("date","Дата уточняется"), o.optString("time","Время уточняется"),
-            o.optString("place","Место встречи не указано"), o.optBoolean("published",true));
+            date, o.optString("time","Время уточняется"),
+            o.optString("place","Место встречи не указано"), o.optBoolean("published",true),dateIso);
     }
 
     private static String clean(String value, String fallback) {

@@ -195,7 +195,12 @@ public class AdminActivity extends Activity {
                     .setMessage(flight.title + "\nЭто действие нельзя отменить.")
                     .setNegativeButton("Отмена", null)
                     .setPositiveButton("Удалить", (dialog, which) -> {
-                        FlightRepository.delete(this, flight.id);
+                        if (!FlightRepository.delete(this, flight.id)) {
+                            Toast.makeText(this, "Вылет не удалён: он уже отсутствует или является последним.", Toast.LENGTH_LONG).show();
+                            EventLogRepository.record(this,"FLT-01","delete","rejected",flight.id);
+                            render();
+                            return;
+                        }
                         FlightReminderScheduler.cancel(this,flight.id);
                         AttendanceRepository.deleteFlight(this,flight.id);
                         MessageRepository.deleteForFlight(this,flight.id);

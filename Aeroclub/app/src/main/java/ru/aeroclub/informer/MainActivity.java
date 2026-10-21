@@ -44,6 +44,11 @@ public class MainActivity extends Activity {
         root.addView(card, cardParams);
 
         FlightRepository.ensureInitialized(this);
+        FlightReminderScheduler.ensureChannel(this);
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+        }
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
         card.addView(text(activeFlight == null ? "Ближайший вылет" : activeFlight.title, 18, NAVY, true));

@@ -672,7 +672,22 @@ public class AdminActivity extends Activity {
                 .setPositiveButton("Закрыть",null).show();
         });
         content.addView(log,lp(-1,dp(48)));
-        note("Журнал хранит технические события без имён участников и текста сообщений.");
+        Button debugLog = actionButton("Открыть файл отладки всех модулей", false);
+        debugLog.setOnClickListener(v -> {
+            ScrollView debugScroll = new ScrollView(this);
+            TextView debugText = text(ModuleDebugLog.getRecent(this, 300), 12, NAVY, false);
+            debugText.setTextIsSelectable(true);
+            debugText.setPadding(dp(14), dp(10), dp(14), dp(10));
+            debugScroll.addView(debugText);
+            new AlertDialog.Builder(this)
+                .setTitle("Отладка модулей")
+                .setMessage("Файл: " + ModuleDebugLog.getFilePath(this))
+                .setView(debugScroll)
+                .setPositiveButton("Закрыть", null)
+                .show();
+        });
+        content.addView(debugLog, lp(-1, dp(48)));
+        note("Журнал событий и отдельный файл отладки не содержат имена участников, текст сообщений, пароли или токены.");
     }
 
         private void addParticipant() {

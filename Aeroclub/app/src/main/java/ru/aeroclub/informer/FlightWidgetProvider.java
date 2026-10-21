@@ -19,6 +19,16 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         if (action.equals("ru.aeroclub.informer.GOING") || action.equals("ru.aeroclub.informer.NOT_GOING")) {
             context.getSharedPreferences(PREFS, 0).edit().putString("status",
                 action.endsWith("GOING") && !action.endsWith("NOT_GOING") ? "Вы подтвердили участие" : "Вы не участвуете").apply();
+        } else if (action.equals("ru.aeroclub.informer.ROUTE")) {
+            Intent map = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("geo:0,0?q=" + android.net.Uri.encode("аэродром Северный")));
+            map.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { context.startActivity(map); } catch (Exception ignored) { }
+        } else if (action.equals("ru.aeroclub.informer.TELEGRAM")) {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("text/plain");
+            share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — ближайший вылет: воскресенье, 25 октября, 10:30. Место встречи: аэродром «Северный».");
+            share.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { context.startActivity(Intent.createChooser(share, "Отправить информацию о полёте").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
         }
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         for (int id : manager.getAppWidgetIds(new android.content.ComponentName(context, FlightWidgetProvider.class))) render(context, manager, id);
@@ -33,6 +43,7 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         bind(c, v, R.id.btn_going, "ru.aeroclub.informer.GOING", 1);
         bind(c, v, R.id.btn_not_going, "ru.aeroclub.informer.NOT_GOING", 2);
         bind(c, v, R.id.btn_route, "ru.aeroclub.informer.ROUTE", 3);
+        bind(c, v, R.id.btn_telegram, "ru.aeroclub.informer.TELEGRAM", 4);
         m.updateAppWidget(id, v);
     }
     private static void bind(Context c, RemoteViews v, int viewId, String action, int request) {

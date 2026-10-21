@@ -30,7 +30,7 @@ Checkpoint — это последняя документированная то
 
 ### PMCA
 - Последний найденный успешный run: [run #21](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656275187), SHA: 6276d6170bc66b12944e249ff521bd66d0c11610, branch main.
-- Artifact: PMCA-debug-apk-6276d6170bc66b12944e249ff521bd66d0c11610. В артефакте предусмотрен build-info.txt. После этого run менялись workflow других проектов; PMCA исходники и его workflow не менялись.
+- Artifacts: PMCA-debug-apk-6276d6170bc66b12944e249ff521bd66d0c11610 и PMCA-release-apk-6276d6170bc66b12944e249ff521bd66d0c11610. Оба содержат build-info.txt; run успешен, release artifact присутствует. После этого run менялись workflow других проектов; PMCA исходники и его workflow не менялись.
 
 ### GPTSENDER
 - Последний найденный успешный run: [run #46](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656310954), SHA: 166d899e1c2ab599fac0eae9854ff4103048dd81, branch main.

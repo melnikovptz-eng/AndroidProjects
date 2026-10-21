@@ -17,4 +17,5 @@ dependencies {
     implementation project(':core:android')
     implementation project(':feature:notifications')
     implementation project(':feature:admin-participants')
+    implementation project(':feature:settings')
 }

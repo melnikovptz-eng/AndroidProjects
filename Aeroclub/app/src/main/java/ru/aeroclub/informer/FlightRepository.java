@@ -126,7 +126,7 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         p.edit().putString(ACTIVE_ID, f.id).apply();
         writeLegacy(p, f);
-        SyncRepository.enqueue(c,"flight",f.id,"set_active");
+        SyncRepository.enqueue(c,"active_flight","active","set:"+f.id);
     }
 
     public static synchronized void delete(Context c, String id) {

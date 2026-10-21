@@ -5,7 +5,9 @@ import android.content.SharedPreferences;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /** Single local source of truth for participant records. */
@@ -74,14 +76,23 @@ public final class ParticipantRepository {
     public static synchronized List<Participant> getAll(Context c) {
         ensureInitialized(c);
         ArrayList<Participant> result = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+        boolean needsMigration = false;
         JSONArray arr = read(prefs(c).getString(KEY, "[]"));
         for (int i=0; i<arr.length(); i++) {
             JSONObject o = arr.optJSONObject(i);
             if (o == null) continue;
-            String id = o.optString("id", "");
+            String id = o.optString("id", "").trim();
             String name = o.optString("displayName", "").trim();
-            if (!id.isEmpty() && !name.isEmpty()) result.add(new Participant(id, name, o.optLong("createdAt", 0)));
+            if (name.isEmpty()) continue;
+            if (id.isEmpty() || seenIds.contains(id)) {
+                id = UUID.randomUUID().toString();
+                needsMigration = true;
+            }
+            seenIds.add(id);
+            result.add(new Participant(id, name, o.optLong("createdAt", 0)));
         }
+        if (needsMigration) saveAll(c, result);
         return result;
     }
 

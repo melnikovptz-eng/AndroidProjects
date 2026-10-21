@@ -265,6 +265,7 @@ public class AdminActivity extends Activity {
                     parsedDate.setTime(parsed);
                     flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
                     flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
+                    flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
                     flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
                     flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
                 }
@@ -280,6 +281,10 @@ public class AdminActivity extends Activity {
     private void editFlight(String flightId) {
         editingFlightId = flightId;
         Flight existing = flightId == null ? null : FlightRepository.getById(this, flightId);
+        if (flightId != null && existing == null) {
+            Toast.makeText(this, "Вылет больше не существует. Обновите список.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (existing == null) {
             flightDate.setTimeInMillis(System.currentTimeMillis());
             flightDate.add(Calendar.DAY_OF_MONTH,1);
@@ -323,31 +328,42 @@ public class AdminActivity extends Activity {
             flightDate.set(Calendar.HOUR_OF_DAY,h); flightDate.set(Calendar.MINUTE,m);
             time.setText("Время: " + draftTimeLabel());
         }, flightDate.get(Calendar.HOUR_OF_DAY), flightDate.get(Calendar.MINUTE), true).show());
-        new AlertDialog.Builder(this).setTitle(existing == null ? "Создать вылет" : "Редактировать вылет").setView(form)
-            .setNegativeButton("Отмена", null).setPositiveButton("Сохранить локально", (d,w) -> {
-                draftTitle = title.getText().toString().trim();
-                draftPlace = place.getText().toString().trim();
-                if (draftTitle.isEmpty()) draftTitle = "Новый вылет";
-                if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
-                if (editingFlightId == null) {
-                    if (FlightAdminActions.createAndActivate(this, draftTitle, draftDateLabel(),
-                            draftTimeLabel(), draftPlace, draftDateIso()) == null) {
-                        Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                } else {
-                    if (!FlightAdminActions.updateActive(this, editingFlightId, draftTitle,
-                            draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso())) {
-                        Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                }
-                editingFlightId = null;
-                loadDraftFromActiveFlight();
-                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
-                Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
-                render();
-            }).show();
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle(existing == null ? "Создать вылет" : "Редактировать вылет")
+            .setView(form)
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Сохранить локально", null)
+            .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String newTitle = title.getText().toString().trim();
+            String newPlace = place.getText().toString().trim();
+            if (newTitle.isEmpty()) {
+                title.setError("Укажите название вылета");
+                title.requestFocus();
+                return;
+            }
+            boolean saved;
+            if (editingFlightId == null) {
+                saved = FlightAdminActions.createAndActivate(this, newTitle, draftDateLabel(),
+                    draftTimeLabel(), newPlace, draftDateIso()) != null;
+            } else {
+                saved = FlightAdminActions.updateActive(this, editingFlightId, newTitle,
+                    draftDateLabel(), draftTimeLabel(), newPlace, draftDateIso());
+            }
+            if (!saved) {
+                Toast.makeText(this, "Не удалось сохранить. Проверьте дату и время.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            draftTitle = newTitle;
+            draftPlace = newPlace;
+            editingFlightId = null;
+            dialog.dismiss();
+            loadDraftFromActiveFlight();
+            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+            Toast.makeText(this, "Сохранено на этом устройстве", Toast.LENGTH_SHORT).show();
+            render();
+        }));
+        dialog.show();
     }
 
     private void showParticipants() {

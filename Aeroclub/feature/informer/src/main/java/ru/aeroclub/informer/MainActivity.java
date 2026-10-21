@@ -176,6 +176,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (flightTitle == null) return;
+        FlightReminderScheduler.syncAll(this);
         Flight active = FlightRepository.getActive(this);
         flightTitle.setText(active == null ? "Ближайший вылет" : (active.isDemo ? "ДЕМО · " : "") + active.title);
         flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);

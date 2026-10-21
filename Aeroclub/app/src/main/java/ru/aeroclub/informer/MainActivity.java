@@ -43,13 +43,13 @@ public class MainActivity extends Activity {
         cardParams.topMargin = dp(8);
         root.addView(card, cardParams);
 
+        FlightRepository.ensureInitialized(this);
         android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
         card.addView(text(prefs.getString("flight_title", "Полёт выходного дня"), 18, NAVY, true));
         addLine(card, prefs.getString("flight_date", "Вс, 25 октября") + "  •  " +
             prefs.getString("flight_time", "10:30"), 14, Color.rgb(52, 70, 90), 2);
         addLine(card, "Место встречи: " + prefs.getString("flight_place", "аэродром «Северный»"), 13, MUTED, 2);
-        status = text(getSharedPreferences("flight_informer", 0).getString("status",
-            "Ответьте, будете ли вы участвовать"), 12, GREEN, false);
+        status = text(AttendanceRepository.getResponse(this, FlightRepository.getActiveId(this)), 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);
         statusParams.topMargin = dp(5);
         card.addView(status, statusParams);
@@ -101,7 +101,8 @@ public class MainActivity extends Activity {
     }
 
     private void setStatus(String value) {
-        getSharedPreferences("flight_informer", 0).edit().putString("status", value).apply();
+        FlightRepository.ensureInitialized(this);
+        AttendanceRepository.setResponse(this, FlightRepository.getActiveId(this), value);
         status.setText(value);
         // Keep the home-screen widget synchronized with the preview screen.
         AppWidgetManager manager = AppWidgetManager.getInstance(this);

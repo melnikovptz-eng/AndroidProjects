@@ -122,7 +122,7 @@ public class AdminActivity extends Activity {
     private void showOverview() {
         Flight active = FlightRepository.getActive(this);
         String flightSummary = active == null ? "Нет выбранного вылета" :
-            (active.isDemo ? "ДЕМО · " : "") + active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+            (active.isDemo ? "ДЕМО · " : "") + displayFlightTitle(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Ближайший вылет", flightSummary,
              "Открыть вылеты", () -> { section = "Вылеты"; render(); });
         int total = localParticipants().size();
@@ -376,7 +376,7 @@ public class AdminActivity extends Activity {
             active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
         EditText message = field("Текст сообщения", active == null ? "" :
-            "Напоминаем о вылете «" + active.title + "» " + active.date + " в " + active.time +
+            "Напоминаем о вылете «" + displayFlightTitle(active) + "» " + active.date + " в " + active.time +
             ". Место встречи: " + active.place + ". Подтвердите, пожалуйста, участие.");
         content.addView(message);
 
@@ -387,11 +387,11 @@ public class AdminActivity extends Activity {
                 Flight current = FlightRepository.getActive(this);
                 if(current==null) return;
                 String body;
-                if(which==0) body="Напоминаем о вылете «"+current.title+"» "+current.date+" в "+current.time+
+                if(which==0) body="Напоминаем о вылете «"+displayFlightTitle(current)+"» "+current.date+" в "+current.time+
                     ". Место встречи: "+current.place+". Пожалуйста, подтвердите участие.";
-                else if(which==1) body="Обновление по вылету «"+current.title+"»: "+current.date+" в "+current.time+
+                else if(which==1) body="Обновление по вылету «"+displayFlightTitle(current)+"»: "+current.date+" в "+current.time+
                     ". Место встречи: "+current.place+". Проверьте актуальные данные.";
-                else body="Пожалуйста, подтвердите участие в вылете «"+current.title+"» "+current.date+
+                else body="Пожалуйста, подтвердите участие в вылете «"+displayFlightTitle(current)+"» "+current.date+
                     " в "+current.time+". Место встречи: "+current.place+".";
                 message.setText(body);
                 EventLogRepository.record(this,"MSG-01","template_selected","success",current.id);
@@ -691,6 +691,10 @@ public class AdminActivity extends Activity {
         Button b=new Button(this); b.setText(label); b.setAllCaps(false); b.setTextSize(12);
         b.setMinHeight(dp(40)); b.setMinimumHeight(dp(40)); b.setPadding(dp(8),0,dp(8),0);
         return b;
+    }
+
+    private String displayFlightTitle(Flight flight) {
+        return flight == null ? "Ближайший вылет" : (flight.isDemo ? "ДЕМО · " : "") + flight.title;
     }
 
     private void note(String value) {

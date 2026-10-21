@@ -380,7 +380,10 @@ public class AdminActivity extends Activity {
             String[] names = {"Напоминание о вылете","Изменение данных вылета","Просьба подтвердить участие"};
             new AlertDialog.Builder(this).setTitle("Шаблоны сообщения").setItems(names,(dialog,which) -> {
                 Flight current = FlightRepository.getActive(this);
-                if(current==null) return;
+                if(current==null) {
+                    Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 String body = MessageTemplates.forTemplate(current, which);
                 message.setText(body);
                 EventLogRepository.record(this,"MSG-01","template_selected","success",current.id);
@@ -395,6 +398,10 @@ public class AdminActivity extends Activity {
 
         Button save = actionButton("Сохранить черновик", false);
         save.setOnClickListener(v -> {
+            if (flightId == null) {
+                Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
+                return;
+            }
             MessageRecord saved = MessageRepository.saveDraft(this, flightId, message.getText().toString());
             if (saved != null) EventLogRepository.record(this,"MSG-01","save_draft","success",flightId);
             Toast.makeText(this, saved == null ? "Введите текст сообщения" : "Черновик сохранён", Toast.LENGTH_SHORT).show();
@@ -402,12 +409,22 @@ public class AdminActivity extends Activity {
         content.addView(save, lp(-1,dp(48)));
 
         Button history = actionButton("История сообщений", false);
-        history.setOnClickListener(v -> showMessageHistory(flightId,message));
+        history.setOnClickListener(v -> {
+            if (flightId == null) {
+                Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            showMessageHistory(flightId,message);
+        });
         content.addView(history, lp(-1,dp(48)));
 
         Button share = actionButton("Поделиться…", true);
         share.setOnClickListener(v -> {
             String body = message.getText().toString().trim();
+            if (flightId == null) {
+                Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
+                return;
+            }
             if (body.isEmpty()) {
                 Toast.makeText(this,"Введите текст сообщения",Toast.LENGTH_SHORT).show();
                 return;

@@ -36,7 +36,7 @@ public final class ParticipantAdminActions {
             return false;
         }
         AttendanceRepository.setResponse(context, participantId, flightId, normalized);
-        EventLogRepository.record(context, "ATT-01", "participant_response_update", "success", participantId);
+        EventLogRepository.record(context, "ATT-01", "participant_response_update", "success_local_only", participantId);
         return true;
     }
 }

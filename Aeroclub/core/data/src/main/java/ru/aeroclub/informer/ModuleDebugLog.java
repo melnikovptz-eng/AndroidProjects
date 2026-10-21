@@ -47,6 +47,12 @@ public final class ModuleDebugLog {
         return write(context, module, action, outcome, detail, Math.max(0L, durationMs), true);
     }
 
+    /** Internal diagnostics (for the uploader itself); never re-queues or recursively uploads. */
+    static boolean logInternal(Context context, String module, String action,
+                               String outcome, String detail, long durationMs) {
+        return write(context, module, action, outcome, detail, Math.max(0L, durationMs), false);
+    }
+
     private static boolean write(Context context, String module, String action,
                                  String outcome, String detail, Long durationMs,
                                  boolean queueForUpload) {

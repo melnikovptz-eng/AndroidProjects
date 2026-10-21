@@ -218,7 +218,7 @@ public class MainActivity extends Activity {
         refreshStatusLabel();
         if (messageWatcher == null) {
             messageWatcher = new LocalMessageFileWatcher(
-                MessageTransportProvider.get(), LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL);
+                new LocalFileMessageTransport(), LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL);
         }
         messageWatcher.start(this, new LocalMessageFileWatcher.Listener() {
             @Override public void onMessagesChanged(java.util.List<LocalTransportMessage> messages) {

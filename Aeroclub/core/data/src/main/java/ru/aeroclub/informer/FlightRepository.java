@@ -102,8 +102,10 @@ public final class FlightRepository {
         if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) return false;
         List<Flight> list = getFlights(c);
         boolean found = false;
+        boolean wasDemo = false;
         for (int i=0; i<list.size(); i++) if (list.get(i).id.equals(id)) {
             Flight old = list.get(i);
+            wasDemo = old.isDemo;
             list.set(i, new Flight(id, clean(title,"Новый вылет"),
                 clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
                 clean(place,"Место встречи не указано"), old.published, canonicalDate, false));
@@ -111,7 +113,7 @@ public final class FlightRepository {
         }
         if (!found) return false;
         persist(c, list);
-        SyncRepository.enqueue(c,"flight",id,"update");
+        SyncRepository.enqueue(c,"flight",id,wasDemo ? "create" : "update");
         if (id.equals(getActiveId(c))) activate(c, id);
         return true;
     }
@@ -119,17 +121,19 @@ public final class FlightRepository {
     public static synchronized void setPublished(Context c, String id, boolean published) {
         List<Flight> list = getFlights(c);
         boolean found = false;
+        boolean wasDemo = false;
         for (int i=0; i<list.size(); i++) {
             Flight old = list.get(i);
             if (old.id.equals(id)) {
                 list.set(i,new Flight(old.id,old.title,old.date,old.time,old.place,published,old.dateIso,old.isDemo));
+                wasDemo = old.isDemo;
                 found = true;
                 break;
             }
         }
         if (found) {
             persist(c,list);
-            SyncRepository.enqueue(c,"flight",id,"update_publication");
+            if (!wasDemo) SyncRepository.enqueue(c,"flight",id,"update_publication");
         }
     }
 
@@ -139,7 +143,7 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         p.edit().putString(ACTIVE_ID, f.id).apply();
         writeLegacy(p, f);
-        SyncRepository.enqueue(c,"active_flight","active","set:"+f.id);
+        if (!f.isDemo) SyncRepository.enqueue(c,"active_flight","active","set:"+f.id);
     }
 
     public static synchronized boolean delete(Context c, String id) {
@@ -149,13 +153,14 @@ public final class FlightRepository {
         String active = getActiveId(c);
         ArrayList<Flight> remaining = new ArrayList<>();
         boolean found = false;
+        boolean deletingDemo = false;
         for (Flight f : list) {
-            if (id.equals(f.id)) found = true;
+            if (id.equals(f.id)) { found = true; deletingDemo = f.isDemo; }
             else remaining.add(f);
         }
         if (!found || remaining.isEmpty()) return false;
         persist(c, remaining);
-        SyncRepository.enqueue(c,"flight",id,"delete");
+        if (!deletingDemo) SyncRepository.enqueue(c,"flight",id,"delete");
         if (id.equals(active)) activate(c, remaining.get(0).id);
         return true;
     }

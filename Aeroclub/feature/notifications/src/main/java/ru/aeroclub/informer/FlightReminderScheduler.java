@@ -64,7 +64,11 @@ public final class FlightReminderScheduler {
     public static boolean notificationsEnabled(Context context) {
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager==null) return false;
-        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N) return manager.areNotificationsEnabled();
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) return false;
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel=manager.getNotificationChannel(FlightReminderReceiver.CHANNEL_ID);
+            if(channel!=null && channel.getImportance()==NotificationManager.IMPORTANCE_NONE) return false;
+        }
         return true;
     }
 

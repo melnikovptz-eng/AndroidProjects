@@ -92,6 +92,7 @@ public class AdminActivity extends Activity {
     }
 
     private void render() {
+        ModuleDebugLog.log(this, "UI", "screen_transition", "success", "screen=" + section);
         root.removeAllViews();
         TextView eyebrow = text("АЭРОКЛУБ  •  УПРАВЛЕНИЕ", 11, MUTED, true);
         root.addView(eyebrow);

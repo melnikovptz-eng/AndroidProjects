@@ -25,6 +25,7 @@ public final class SyncRepository {
         JSONArray source=read(prefs(c).getString(KEY,"[]"));
         JSONArray arr=new JSONArray();
         boolean priorCreate=false;
+        boolean cancelCreateDelete=false;
         for(int i=0;i<source.length();i++) {
             JSONObject old=source.optJSONObject(i);
             if(old==null) continue;
@@ -37,6 +38,7 @@ public final class SyncRepository {
             String priorOperation=old.optString("operation","");
             if("create".equals(priorOperation) && "delete".equals(operation)) {
                 // Entity was never uploaded; create+delete cancels out in the outbox.
+                cancelCreateDelete=true;
                 continue;
             }
             if("create".equals(priorOperation)) {
@@ -46,7 +48,7 @@ public final class SyncRepository {
             }
             // Other pending operations are superseded by the new operation.
         }
-        if(priorCreate) {
+        if(cancelCreateDelete || priorCreate) {
             prefs(c).edit().putString(KEY,arr.toString()).apply();
             return;
         }

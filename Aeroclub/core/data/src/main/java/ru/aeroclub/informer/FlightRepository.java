@@ -185,9 +185,11 @@ public final class FlightRepository {
     }
 
     private static Flight fromJson(JSONObject o) {
-        String date=o.optString("date","Дата уточняется");
-        String dateIso=o.optString("dateIso",FlightDateUtils.toIso(date));
-        return new Flight(o.optString("id",UUID.randomUUID().toString()), o.optString("title","Вылет"),
+        String id = o.optString("id", "").trim();
+        if (id.isEmpty()) id = UUID.randomUUID().toString();
+        String date = o.optString("date","Дата уточняется");
+        String dateIso = o.optString("dateIso",FlightDateUtils.toIso(date));
+        return new Flight(id, o.optString("title","Вылет"),
             date, o.optString("time","Время уточняется"),
             o.optString("place","Место встречи не указано"), o.optBoolean("published",true),dateIso,
             o.optBoolean("isDemo", isLegacyDemo(o)));

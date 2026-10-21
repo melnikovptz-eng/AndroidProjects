@@ -48,6 +48,7 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         if (!p.contains(FLIGHTS)) ensureInitialized(c);
         ArrayList<Flight> result = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
         boolean needsMigration=false;
         try {
             JSONArray arr = new JSONArray(p.getString(FLIGHTS, "[]"));
@@ -55,7 +56,14 @@ public final class FlightRepository {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
                     if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty() || !o.has("isDemo") || o.optString("id","").trim().isEmpty()) needsMigration=true;
-                    result.add(fromJson(o));
+                    Flight flight = fromJson(o);
+                    if (seenIds.contains(flight.id)) {
+                        flight = new Flight(UUID.randomUUID().toString(), flight.title, flight.date, flight.time,
+                            flight.place, flight.published, flight.dateIso, flight.isDemo);
+                        needsMigration = true;
+                    }
+                    seenIds.add(flight.id);
+                    result.add(flight);
                 }
             }
         } catch (Exception ignored) {}

@@ -21,17 +21,44 @@ public final class ParticipantRepository {
 
     public static synchronized void ensureInitialized(Context c) {
         SharedPreferences p = prefs(c);
-        if (p.contains(KEY)) return;
-        JSONArray migrated = new JSONArray();
-        String legacy = p.getString(LEGACY, "");
-        if (legacy != null && !legacy.trim().isEmpty()) {
-            for (String line : legacy.split("\\n")) {
-                String name = line.trim();
-                if (name.isEmpty() || containsName(migrated, name)) continue;
-                migrated.put(toJson(new Participant(UUID.randomUUID().toString(), name, System.currentTimeMillis())));
+        if (!p.contains(KEY)) {
+            JSONArray migrated = new JSONArray();
+            String legacy = p.getString(LEGACY, "");
+            if (legacy != null && !legacy.trim().isEmpty()) {
+                for (String line : legacy.split("\\n")) {
+                    String name = line.trim();
+                    if (name.isEmpty() || containsName(migrated, name)) continue;
+                    migrated.put(toJson(new Participant(UUID.randomUUID().toString(), name, System.currentTimeMillis())));
+                }
+            }
+            p.edit().putString(KEY, migrated.toString()).apply();
+        }
+        // Preserve statuses written by the earlier name-based format.
+        SharedPreferences.Editor edit = p.edit();
+        boolean changed = false;
+        for (Participant participant : getAllWithoutInit(p)) {
+            for (Flight flight : FlightRepository.getFlights(c)) {
+                String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
+                String newKey = "participant_status_" + flight.id + "_" + participant.id;
+                if (p.contains(oldKey) && !p.contains(newKey)) {
+                    edit.putString(newKey, p.getString(oldKey, "Ожидается ответ"));
+                    changed = true;
+                }
             }
         }
-        p.edit().putString(KEY, migrated.toString()).apply();
+        if (changed) edit.apply();
+    }
+
+    private static List<Participant> getAllWithoutInit(SharedPreferences p) {
+        ArrayList<Participant> result = new ArrayList<>();
+        JSONArray arr = read(p.getString(KEY, "[]"));
+        for (int i=0; i<arr.length(); i++) {
+            JSONObject o = arr.optJSONObject(i);
+            if (o == null) continue;
+            String id=o.optString("id",""), name=o.optString("displayName","").trim();
+            if (!id.isEmpty() && !name.isEmpty()) result.add(new Participant(id,name,o.optLong("createdAt",0)));
+        }
+        return result;
     }
 
     public static synchronized List<Participant> getAll(Context c) {

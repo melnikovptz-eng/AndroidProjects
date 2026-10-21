@@ -1,4 +1,4 @@
-plugins { id 'com.android.application' }
+plugins { id 'com.android.application' }\n\ndependencies {\n    implementation project(':core:common')\n}
 
 android {
     namespace 'ru.aeroclub.informer'

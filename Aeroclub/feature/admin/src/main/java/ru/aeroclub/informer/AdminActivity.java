@@ -469,7 +469,7 @@ public class AdminActivity extends Activity {
                 Toast.makeText(this, "Введите текст сообщения", Toast.LENGTH_SHORT).show();
                 return;
             }
-            LocalTransportMessage savedLocal = MessageTransportProvider.get().send(
+            LocalTransportMessage savedLocal = new LocalFileMessageTransport().send(
                 this, LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL, "Объявление информера", body);
             if (savedLocal == null) {
                 Toast.makeText(this, "Не удалось записать файл. Существующие данные сохранены.", Toast.LENGTH_LONG).show();
@@ -787,7 +787,7 @@ public class AdminActivity extends Activity {
                     EditText name = field("Имя участника", participant.displayName);
                     AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("Переименовать участника").setView(name)
                         .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create();
-                    renameDialog.setOnShowListener(ignored -> renameDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    renameDialog.setOnShowListener(ignored -> renameDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
                         String newName = name.getText().toString().trim();
                         if (!ParticipantAdminActions.rename(this, participant.id, newName)) {
                             name.setError("Имя пустое или уже используется");

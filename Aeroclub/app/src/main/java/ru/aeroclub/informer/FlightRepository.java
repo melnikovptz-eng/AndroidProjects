@@ -80,6 +80,7 @@ public final class FlightRepository {
         List<Flight> list = getFlights(c);
         list.add(f);
         persist(c, list);
+        SyncRepository.enqueue(c,"flight",f.id,"create");
         return f;
     }
 
@@ -98,6 +99,7 @@ public final class FlightRepository {
         }
         if (!found) return;
         persist(c, list);
+        SyncRepository.enqueue(c,"flight",id,"update");
         if (id.equals(getActiveId(c))) activate(c, id);
     }
 
@@ -112,7 +114,10 @@ public final class FlightRepository {
                 break;
             }
         }
-        if (found) persist(c,list);
+        if (found) {
+            persist(c,list);
+            SyncRepository.enqueue(c,"flight",id,"update_publication");
+        }
     }
 
     public static synchronized void activate(Context c, String id) {
@@ -121,6 +126,7 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         p.edit().putString(ACTIVE_ID, f.id).apply();
         writeLegacy(p, f);
+        SyncRepository.enqueue(c,"flight",f.id,"set_active");
     }
 
     public static synchronized void delete(Context c, String id) {
@@ -130,6 +136,7 @@ public final class FlightRepository {
         ArrayList<Flight> remaining = new ArrayList<>();
         for (Flight f : list) if (!f.id.equals(id)) remaining.add(f);
         persist(c, remaining);
+        SyncRepository.enqueue(c,"flight",id,"delete");
         if (id != null && id.equals(active)) activate(c, remaining.get(0).id);
     }
 

@@ -468,7 +468,7 @@ public class AdminActivity extends Activity {
                 Toast.makeText(this, "Введите текст сообщения", Toast.LENGTH_SHORT).show();
                 return;
             }
-            LocalTransportMessage savedLocal = new LocalFileMessageTransport().send(
+            LocalTransportMessage savedLocal = MessageTransportProvider.get().send(
                 this, LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL, "Объявление информера", body);
             if (savedLocal == null) {
                 Toast.makeText(this, "Не удалось записать файл. Существующие данные сохранены.", Toast.LENGTH_LONG).show();

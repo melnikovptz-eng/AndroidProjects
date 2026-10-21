@@ -8,7 +8,7 @@
 
 Разделить проект по ответственности так, чтобы каждая бизнес-функция имела одного владельца, а повторно используемые модели, правила, UI-компоненты и Android-интеграции не копировались между экраном, виджетом и административной панелью.
 
-**Фактическое состояние на текущем этапе:** `:core:common`, `:core:data`, `:core:ui`, `:core:android`, `:feature:notifications`, `:feature:admin` и `:feature:informer` созданы как реальные Gradle-модули с исходным кодом и зависимостями. `:app` сохраняет провайдер виджета и манифест. Разделы админ-панели пока собраны в одном `AdminActivity`; use-case модули уже выделены, отдельные UI-модули остаются следующим этапом.
+**Фактическое состояние на текущем этапе:** созданы реальные Gradle-модули core:common, core:data, core:ui, core:android, feature:notifications, feature:admin-flights, feature:admin-participants, feature:calendar, feature:messages, feature:settings, feature:admin и feature:informer. Модуль app сохраняет провайдер виджета и манифест. AdminActivity остаётся общим навигационным UI-хостом; записи/обновления и основные сценарии вынесены в feature use cases.
 
 ## 2. Целевая структура Gradle
 
@@ -138,6 +138,7 @@ Aeroclub/
 4. All loops must terminate over a finite, validated collection. Any future API retry policy must be bounded and use backoff; no server request may recursively enqueue another request without an explicit guard.
 5. Verify one instance of each responsibility before adding a worker, receiver, repository, or utility. Shared implementations must have a clear owner.
 6. UI callbacks must not block waiting for network operations. Local repository calls must stay bounded; large migrations should move out of the UI lifecycle.
+7. Lock order is one-way: ParticipantRepository → AttendanceRepository → FlightRepository → SyncRepository. FlightRepository may enqueue to SyncRepository, but SyncRepository never calls back into repositories. FlightReminderScheduler may call FlightRepository while holding its own lock; repositories never call the scheduler while holding repository locks. Do not introduce reverse calls or wait on futures while holding these locks.
 7. After each code change, run a CI build tied to the exact commit SHA. Do not infer success from an older green run.
 
 
@@ -159,6 +160,6 @@ Aeroclub/
 | :feature:informer | MainActivity — превью, действия участника и показ локальных объявлений | common, data, ui, android, notifications, admin-participants, messages |
 | :app | FlightWidgetProvider, manifest и упаковка приложения | общие библиотеки и feature-модули |
 
-Граф ацикличен: use-case модули зависят от data/common, informer использует контракт транспорта сообщений, но модуль messages не зависит от UI informer/admin и репозитории не зависят от feature-модулей. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. Административные разделы UI пока остаются методами одного AdminActivity; бизнес-операции вынесены в отдельные feature-модули.
+Граф ацикличен: use-case модули зависят от data/common; feature:messages не зависит от UI; репозитории не зависят от feature-модулей. feature:informer использует общие сценарии participants/settings без обратной зависимости. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. AdminActivity остаётся общим навигационным UI-хостом, а операции вылетов, участников, календаря, шаблонов сообщений и настроек принадлежат отдельным feature-модулям.
 
 Остаётся незавершённым: разбиение административного UI на отдельные экранные модули, серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.

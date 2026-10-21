@@ -337,7 +337,7 @@ public class AdminActivity extends Activity {
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String newTitle = title.getText().toString().trim();
             String newPlace = place.getText().toString().trim();
-            if (newTitle.isEmpty()) {
+            if (!FlightAdminActions.isValidTitle(newTitle))
                 title.setError("Укажите название вылета");
                 title.requestFocus();
                 return;
@@ -681,7 +681,7 @@ public class AdminActivity extends Activity {
             .setNegativeButton("Отмена", null).setPositiveButton("Добавить", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String name = input.getText().toString().trim();
-            if (name.isEmpty()) {
+            if (!ParticipantAdminActions.isValidName(name))
                 input.setError("Введите имя участника");
                 input.requestFocus();
                 return;

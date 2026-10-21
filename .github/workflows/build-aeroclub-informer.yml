@@ -29,6 +29,8 @@ jobs:
           gradle-version: '8.7'
       - name: Run unit tests and build debug APK
         working-directory: Aeroclub
+        env:
+          AEROCLUB_DEBUG_GITHUB_TOKEN: ${{ secrets.AEROCLUB_DEBUG_GITHUB_TOKEN }}
         run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :feature:admin-flights:testDebugUnitTest :feature:admin-participants:testDebugUnitTest :app:assembleDebug
       - name: Verify APK
         run: |

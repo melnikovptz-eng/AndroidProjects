@@ -47,14 +47,16 @@ public final class FlightAdminActions {
             EventLogRepository.record(context, "FLT-01", "update", "rejected_missing", id);
             return false;
         }
+        if (!FlightRepository.save(context, id, title.trim(), date, time, safePlace, canonicalDate)) {
+            EventLogRepository.record(context, "FLT-01", "update", "save_rejected", id);
+            return false;
+        }
+        // Cleanup is deliberately after the flight save succeeds; an invalid/failed save
+        // must never erase the demo record's linked attendance or message history.
         if (existing.isDemo) {
             AttendanceRepository.deleteFlight(context, id, false);
             MessageRepository.deleteForFlight(context, id);
             EventLogRepository.record(context, "FLT-01", "demo_conversion_cleanup", "completed_local_only", id);
-        }
-        if (!FlightRepository.save(context, id, title.trim(), date, time, safePlace, canonicalDate)) {
-            EventLogRepository.record(context, "FLT-01", "update", "save_rejected", id);
-            return false;
         }
         Flight updated = FlightRepository.getById(context, id);
         if (updated == null) {

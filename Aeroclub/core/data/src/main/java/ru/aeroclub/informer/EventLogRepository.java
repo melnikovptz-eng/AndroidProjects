@@ -36,6 +36,7 @@ public final class EventLogRepository {
             arr=trimmed;
         }
         prefs(c).edit().putString(KEY,arr.toString()).apply();
+        ModuleDebugLog.log(c, clean(module), clean(action), clean(result), "event_journal_mirrored");
     }
 
     public static synchronized String getRecent(Context c, int limit) {

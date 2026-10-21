@@ -40,6 +40,7 @@ public class AdminActivity extends Activity {
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
     private String editingFlightId = null;
+    private boolean storageWarningShown;
     private boolean refreshOnResume = false;
     private DebugOperation screenOpenOperation;
 
@@ -84,6 +85,11 @@ public class AdminActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        LocalFilePreferences storage = LocalFilePreferences.get(this);
+        if (!storage.isStorageHealthy() && !storageWarningShown) {
+            storageWarningShown = true;
+            Toast.makeText(this, storage.getStorageStatus(), Toast.LENGTH_LONG).show();
+        }
         if (refreshOnResume && root != null) {
             refreshOnResume = false;
             FlightReminderScheduler.syncAll(this);

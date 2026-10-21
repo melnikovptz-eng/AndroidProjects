@@ -67,7 +67,7 @@ public final class FlightReminderScheduler {
     private static PendingIntent pendingIntent(Context context,Flight flight) {
         Intent intent=new Intent(context,FlightReminderReceiver.class).setAction("ru.aeroclub.informer.FLIGHT_REMINDER");
         intent.putExtra("flight_id",flight.id);
-        intent.putExtra("flight_title",flight.title);
+        intent.putExtra("flight_title",flight.isDemo ? "ДЕМО · " + flight.title : flight.title);
         intent.putExtra("flight_date",flight.date);
         intent.putExtra("flight_time",flight.time);
         intent.putExtra("flight_place",flight.place);

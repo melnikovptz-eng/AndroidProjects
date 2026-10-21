@@ -16,7 +16,7 @@ public class MainActivity extends Activity {
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
-    private TextView status, flightTitle, flightDateTime, flightPlace;
+    private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -27,13 +27,14 @@ public class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(16), dp(16), dp(16), dp(16));
-        root.setBackgroundColor(Color.rgb(245, 247, 250));
+        root.setBackgroundColor(AeroclubUi.BACKGROUND);
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
         GradientDrawable cardBg = AeroclubUi.rounded(this, Color.WHITE, 18, AeroclubUi.BORDER);
         card.setBackground(cardBg);
-        card.addView(text("АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true));
+        clubLabel = text(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true);
+        card.addView(clubLabel);
         LinearLayout.LayoutParams cardParams = lp(-1, -2);
         cardParams.topMargin = dp(8);
         root.addView(card, cardParams);
@@ -42,10 +43,11 @@ public class MainActivity extends Activity {
         FlightReminderScheduler.ensureChannel(this);
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
-        card.addView(text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true));
-        addLine(card, activeFlight == null ? "Дата и время уточняются" :
+        flightTitle = text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true);
+        card.addView(flightTitle);
+        flightDateTime = addLine(card, activeFlight == null ? "Дата и время уточняются" :
             activeFlight.date + "  •  " + activeFlight.time, 14, AeroclubUi.BODY, 2);
-        addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
+        flightPlace = addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
         status = text("Выберите участника, чтобы указать ответ", 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);
         statusParams.topMargin = dp(5);
@@ -174,6 +176,7 @@ public class MainActivity extends Activity {
         super.onResume();
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);
+        clubLabel.setText(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ");
         Flight active = FlightRepository.getActive(this);
         flightTitle.setText(active == null ? "Ближайший вылет" : (active.isDemo ? "ДЕМО · " : "") + active.title);
         flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);

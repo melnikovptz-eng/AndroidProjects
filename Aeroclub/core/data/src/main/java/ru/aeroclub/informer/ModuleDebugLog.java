@@ -90,44 +90,45 @@ public final class ModuleDebugLog {
                     output.getFD().sync();
                 }
                 // Keep the user-visible Download copy current and strictly bounded.
-                appendDownloadLog(app, text);
-                return true;
+                return appendDownloadLog(app, text);
             } catch (Exception ignored) {
                 return false;
             }
         }
     }
 
-    private static void appendDownloadLog(Context context, String line) {
+    private static boolean appendDownloadLog(Context context, String line) {
         try {
             ContentResolver resolver = context.getContentResolver();
             Uri uri = findOrCreateDownload(resolver);
-            if (uri == null) return;
+            if (uri == null) return false;
             long currentChars = queryDownloadSize(resolver, uri);
-            if (currentChars + line.length() > MAX_LOG_CHARACTERS) {
+            boolean replace = currentChars + line.length() > MAX_LOG_CHARACTERS;
+            if (replace && !"file".equals(uri.getScheme())) {
                 resolver.delete(uri, null, null);
                 uri = createDownload(resolver);
-                if (uri == null) return;
+                if (uri == null) return false;
             }
             if ("file".equals(uri.getScheme())) {
                 File file = new File(uri.getPath());
                 File parent = file.getParentFile();
-                if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return;
-                try (FileOutputStream output = new FileOutputStream(file, true)) {
+                if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return false;
+                try (FileOutputStream output = new FileOutputStream(file, !replace)) {
                     output.write(line.getBytes(StandardCharsets.UTF_8));
                     output.flush();
                     output.getFD().sync();
                 }
             } else {
                 try (OutputStream output = resolver.openOutputStream(uri, "wa")) {
-                    if (output != null) {
-                        output.write(line.getBytes(StandardCharsets.UTF_8));
-                        output.flush();
-                    }
+                    if (output == null) return false;
+                    output.write(line.getBytes(StandardCharsets.UTF_8));
+                    output.flush();
                 }
             }
+            return queryDownloadSize(resolver, uri) <= MAX_LOG_CHARACTERS;
         } catch (Exception ignored) {
-            // Internal copy remains available; status can be checked through getDownloadPath().
+            // Internal copy remains available; false explicitly reports that Downloads failed.
+            return false;
         }
     }
 

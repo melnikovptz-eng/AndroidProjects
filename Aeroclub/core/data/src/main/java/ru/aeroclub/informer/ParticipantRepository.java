@@ -19,7 +19,7 @@ public final class ParticipantRepository {
     private ParticipantRepository() {}
 
     private static SharedPreferences prefs(Context c) {
-        return c.getApplicationContext().getSharedPreferences(PREFS, 0);
+        return LocalFilePreferences.get(c);
     }
 
     public static synchronized void ensureInitialized(Context c) {

@@ -187,10 +187,10 @@ public class MainActivity extends Activity {
         DebugOperation operation = ModuleDebugLog.startOperation(this, module, action, "user_action");
         try {
             body.run();
-            operation.finish("success", "callback_returned");
+            operation.finish("dispatched", "handler_returned; outcome_recorded_by_action");
         } catch (RuntimeException error) {
             operation.finish("error", error.getClass().getSimpleName());
-            throw error;
+            android.widget.Toast.makeText(this, "Не удалось выполнить действие.", android.widget.Toast.LENGTH_SHORT).show();
         }
     }
 

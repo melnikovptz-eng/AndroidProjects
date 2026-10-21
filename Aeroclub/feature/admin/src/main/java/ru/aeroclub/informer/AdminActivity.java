@@ -832,10 +832,10 @@ public class AdminActivity extends Activity {
                 DebugOperation operation = ModuleDebugLog.startOperation(this, "ADM-01", actionName, "section=" + section);
                 try {
                     click.run();
-                    operation.finish("success", "callback_returned");
+                    operation.finish("dispatched", "handler_returned; outcome_recorded_by_action");
                 } catch (RuntimeException error) {
                     operation.finish("error", error.getClass().getSimpleName());
-                    throw error;
+                    Toast.makeText(this, "Не удалось выполнить действие.", Toast.LENGTH_SHORT).show();
                 }
             });
         }

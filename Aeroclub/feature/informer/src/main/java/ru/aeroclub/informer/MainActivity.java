@@ -19,7 +19,7 @@ public class MainActivity extends Activity {
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
-    private TextView status;
+    private TextView status, flightTitle, flightDateTime, flightPlace;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -46,10 +46,6 @@ public class MainActivity extends Activity {
 
         FlightRepository.ensureInitialized(this);
         FlightReminderScheduler.ensureChannel(this);
-        if (android.os.Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
-        }
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
         card.addView(text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true));
@@ -158,11 +154,22 @@ public class MainActivity extends Activity {
         status.setText(selected.displayName + ": " + AttendanceRepository.getResponse(this, selected.id, flightId));
     }
 
-    private void addLine(LinearLayout box, String value, int size, int color, int top) {
+    private TextView addLine(LinearLayout box, String value, int size, int color, int top) {
         TextView t = text(value, size, color, false);
         LinearLayout.LayoutParams p = lp(-1, -2);
         p.topMargin = dp(top);
         box.addView(t, p);
+        return t;
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (flightTitle == null) return;
+        Flight active = FlightRepository.getActive(this);
+        flightTitle.setText(active == null ? "Ближайший вылет" : (active.isDemo ? "ДЕМО · " : "") + active.title);
+        flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
+        flightPlace.setText("Место встречи: " + (active == null ? "не указано" : active.place));
+        refreshStatusLabel();
     }
 
     private TextView text(String value, int size, int color, boolean bold) {

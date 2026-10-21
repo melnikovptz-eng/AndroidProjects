@@ -17,11 +17,13 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Текущий HEAD ветки `aeroclub-informer`: `745eb4e715266f50a4001d66a7116e964bee3819`.
-- Последний успешный workflow run: [run #278](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39660899265), source SHA `b39615700c6625c3cede3595880c2a7097a23480`; после этого изменялась только Markdown-документация, Java/Kotlin/ресурсы/Gradle остались прежними.
-- Artifact: [Aeroclub-Informer-debug-b39615700c6625c3cede3595880c2a7097a23480](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39660899265/artifacts/12372773950); APK SHA-256: `608dd43fc5a7b63700dd9f2d155bd94fa440406b1fb35c5ca1ec2b19f8f065ef`.
-- **Статус артефакта: BUILD SUCCESS; код соответствует текущему состоянию, но build-info SHA не равен общему HEAD из-за последующих Markdown-only commits.** Доступные unit-тесты прошли; часть модулей не содержит тестов. Реальное устройство не проверено.
-- После изменения workflow Markdown-only commits не запускают сборку. В APK нет GitHub-токена; журнал передаётся только явным действием пользователя через Android share chooser. Напоминания пересчитываются после create/edit/delete и после перезагрузки/смены даты/времени/часового пояса.
+- Current branch HEAD: `4fa26960418dd2b47ebf9ae9cb6d1d586c84baa7`.
+- Latest successful workflow run: [run #280](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39662566836), source SHA matches HEAD.
+- Artifact: [Aeroclub-Informer-debug-4fa26960418dd2b47ebf9ae9cb6d1d586c84baa7](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39662566836/artifacts/12374572143); APK SHA-256: `90080ea204f410abc832149d695f9ec5f066dc530e4e383f9636709518abf6c0`.
+- **Status: BUILD SUCCESS.** Available unit tests passed; some modules have no test sources. Real device behavior remains unverified.
+- Main screen includes manual JSON message export/import via Android's file picker. Import validates format/version and records, caps input at 2 MiB, merges by unique message ID. This enables manually moving a file between installations; it is not automatic messaging or cross-device sync.
+- Other known limitations: no API/authentication/FCM/remote incoming messages; sound, reminder firing and widget updates require real-device acceptance testing.
+- Markdown-only updates do not trigger another build; rebuild after code/resources/Gradle changes or a device-test fix.
 
 ### VARIO
 - Последний найденный успешный run: [run #10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472).

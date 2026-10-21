@@ -17,6 +17,18 @@ public final class FlightReminderScheduler {
     private static final long REMINDER_LEAD_MS=60L*60L*1000L;
     private FlightReminderScheduler() {}
 
+    public static void ensureChannel(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.app.NotificationManager manager=(android.app.NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if(manager!=null) {
+                android.app.NotificationChannel channel=new android.app.NotificationChannel(
+                    FlightReminderReceiver.CHANNEL_ID,"Напоминания о вылетах",android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                channel.setDescription("Локальные напоминания перед вылетом");
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
     public static synchronized boolean schedule(Context context, Flight flight) {
         if(flight==null || flight.id==null) return false;
         long start=parseStart(flight);

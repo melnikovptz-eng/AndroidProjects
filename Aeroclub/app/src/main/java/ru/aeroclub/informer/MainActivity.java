@@ -136,7 +136,7 @@ public class MainActivity extends Activity {
                 EventLogRepository.record(this, "ATT-01", "response_update", "success", participant.id);
                 dialog.dismiss();
                 refreshStatusLabel();
-                WidgetRefreshManager.refresh(this);
+                WidgetRefreshManager.refresh(this, FlightWidgetProvider.class);
             })
             .setNegativeButton("Отмена", (dialog, which) ->
                 EventLogRepository.record(this, "ATT-01", "response_update", "cancelled", FlightRepository.getActiveId(this)))

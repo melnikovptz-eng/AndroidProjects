@@ -45,6 +45,17 @@ public final class MessageRepository {
         return result;
     }
 
+    public static synchronized void deleteForFlight(Context c, String flightId) {
+        if(flightId==null || flightId.trim().isEmpty()) return;
+        JSONArray source=read(prefs(c).getString(KEY,"[]"));
+        JSONArray target=new JSONArray();
+        for(int i=0;i<source.length();i++) {
+            JSONObject item=source.optJSONObject(i);
+            if(item!=null && !flightId.equals(item.optString("flightId"))) target.put(item);
+        }
+        prefs(c).edit().putString(KEY,target.toString()).apply();
+    }
+
     private static MessageRecord append(Context c, MessageRecord item) {
         JSONArray arr=read(prefs(c).getString(KEY,"[]"));
         JSONObject o=new JSONObject();

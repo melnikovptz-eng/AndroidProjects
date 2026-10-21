@@ -40,7 +40,8 @@ public class AdminActivity extends Activity {
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
     private String editingFlightId = null;
-    private boolean refreshOnResume = false;\n    private DebugOperation screenOpenOperation;
+    private boolean refreshOnResume = false;
+    private DebugOperation screenOpenOperation;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -58,6 +59,7 @@ public class AdminActivity extends Activity {
         loadDraftFromActiveFlight();
         setContentView(root);
         render();
+        if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }
     }
 
     private void openNotificationSettings() {

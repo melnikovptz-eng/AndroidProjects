@@ -128,3 +128,14 @@ Aeroclub/
 - Миграция старых локальных данных проверена на обновлении поверх предыдущей версии.
 - Проверки сборки и функциональные сценарии относятся к точному SHA.
 - Документы README, ТЗ и паспорта обновлены одновременно с реальными изменениями кода.
+
+
+## Runtime safety rules (mandatory)
+
+1. Repository initialization must be one-way: a repository's `ensureInitialized` may call lower-level repositories only if the dependency graph stays acyclic. Never call back into the initializer through a getter.
+2. Run legacy migrations once and mark completion atomically. Do not rescan all entities on every screen render or widget refresh.
+3. No unbounded retry loops, recursive worker starts, duplicate services, or self-rescheduling immediate work. Scheduled Android operations must use stable PendingIntent identities and explicit cancel/reschedule behavior.
+4. All loops must terminate over a finite, validated collection. Any future API retry policy must be bounded and use backoff; no server request may recursively enqueue another request without an explicit guard.
+5. Verify one instance of each responsibility before adding a worker, receiver, repository, or utility. Shared implementations must have a clear owner.
+6. UI callbacks must not block waiting for network operations. Local repository calls must stay bounded; large migrations should move out of the UI lifecycle.
+7. After each code change, run a CI build tied to the exact commit SHA. Do not infer success from an older green run.

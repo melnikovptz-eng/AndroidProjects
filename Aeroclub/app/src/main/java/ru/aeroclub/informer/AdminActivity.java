@@ -152,8 +152,7 @@ public class AdminActivity extends Activity {
     }
 
     private String participantStatus(Participant participant) {
-        return getSharedPreferences("flight_informer",0).getString(
-            participantStatusKey(participant.id), "Ожидается ответ");
+        return AttendanceRepository.getResponse(this, participant.id, FlightRepository.getActiveId(this));
     }
 
     private int countLocalParticipantStatus(String status) {
@@ -518,9 +517,9 @@ public class AdminActivity extends Activity {
                 if (action == 0) {
                     String[] options = {"Подтвердил участие","Ожидается ответ","Не участвует"};
                     new AlertDialog.Builder(this).setTitle("Статус участника").setItems(options, (d, which) -> {
-                        getSharedPreferences("flight_informer",0).edit()
-                            .putString(participantStatusKey(participant.id), options[which]).apply();
-                        EventLogRepository.record(this,"PAR-01","status_update","success",participant.id);
+                        AttendanceRepository.setResponse(this, participant.id,
+                            FlightRepository.getActiveId(this), options[which]);
+                        EventLogRepository.record(this,"ATT-01","participant_response_update","success",participant.id);
                         render();
                     }).show();
                 } else if (action == 1) {

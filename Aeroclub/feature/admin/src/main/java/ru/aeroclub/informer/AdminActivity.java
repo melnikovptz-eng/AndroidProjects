@@ -199,7 +199,7 @@ public class AdminActivity extends Activity {
         for (Flight flight : flights) {
             boolean active = flight.id.equals(activeId);
             card(active ? "АКТИВНЫЙ ВЫЛЕТ" : "Вылет",
-                (flight.isDemo ? "ДЕМО · " : "") + flight.title + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place +
+                FlightPresentation.title(flight) + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place +
                     "\nПубликация: " + (flight.published ? "отмечен опубликованным локально" : "черновик"),
                 active ? "Редактировать" : "Сделать активным", () -> {
                     if (flight.id.equals(FlightRepository.getActiveId(this))) {
@@ -233,7 +233,7 @@ public class AdminActivity extends Activity {
                 content.addView(delete, deleteParams);
                 delete.setOnClickListener(v -> new AlertDialog.Builder(this)
                     .setTitle("Удалить вылет?")
-                    .setMessage((flight.isDemo ? "ДЕМО · " : "") + flight.title + "\nЭто действие нельзя отменить.")
+                    .setMessage(FlightPresentation.title(flight) + "\nЭто действие нельзя отменить.")
                     .setNegativeButton("Отмена", null)
                     .setPositiveButton("Удалить", (dialog, which) -> {
                         if (!FlightAdminActions.delete(this, flight.id)) {
@@ -562,7 +562,7 @@ public class AdminActivity extends Activity {
             matches++;
             boolean active = flight.id.equals(FlightRepository.getActiveId(this));
                 card(active ? "Активный вылет" : "Вылет",
-                    (flight.isDemo ? "ДЕМО · " : "") + flight.title + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
+                    FlightPresentation.title(flight) + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
                     active ? "Открыть вылеты" : "Сделать активным", () -> {
                         if (!active) {
                             if (!FlightAdminActions.activate(this, flight.id)) {
@@ -703,7 +703,7 @@ public class AdminActivity extends Activity {
     private void shareParticipantList() {
         Flight active = FlightRepository.getActive(this);
         StringBuilder report = new StringBuilder(ClubSettingsActions.get(this).clubName).append(" — участники: ");
-        if (active != null) report.append(active.isDemo ? "ДЕМО · " : "").append(active.title).append("\n").append(active.date)
+        if (active != null) report.append(FlightPresentation.title(active)).append("\n").append(active.date)
             .append(" • ").append(active.time).append("\n\n");
         java.util.List<Participant> participants = localParticipants();
         if (participants.isEmpty()) report.append("Список участников пуст.\n");
@@ -827,7 +827,7 @@ public class AdminActivity extends Activity {
     }
 
     private String displayFlightTitle(Flight flight) {
-        return flight == null ? "Ближайший вылет" : (flight.isDemo ? "ДЕМО · " : "") + flight.title;
+        return flight == null ? "Ближайший вылет" : FlightPresentation.title(flight);
     }
 
     private void note(String value) {

@@ -20,4 +20,5 @@ dependencies {
     implementation project(':feature:admin-participants')
     implementation project(':feature:calendar')
     implementation project(':feature:messages')
+    implementation project(':feature:settings')
 }

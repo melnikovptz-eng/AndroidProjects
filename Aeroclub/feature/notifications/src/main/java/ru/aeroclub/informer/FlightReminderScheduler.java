@@ -69,14 +69,23 @@ public final class FlightReminderScheduler {
     }
 
     public static boolean notificationsEnabled(Context context) {
+        return "enabled".equals(notificationState(context));
+    }
+
+    public static String notificationState(Context context) {
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if(manager==null) return false;
-        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) return false;
+        if(manager==null) return "unavailable";
+        if(Build.VERSION.SDK_INT>=33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return "permission_required";
+        }
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) return "app_disabled";
         if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
             android.app.NotificationChannel channel=manager.getNotificationChannel(FlightReminderReceiver.CHANNEL_ID);
-            if(channel==null || channel.getImportance()==NotificationManager.IMPORTANCE_NONE) return false;
+            if(channel==null) return "not_configured";
+            if(channel.getImportance()==NotificationManager.IMPORTANCE_NONE) return "channel_disabled";
         }
-        return true;
+        return "enabled";
     }
 
     private static PendingIntent pendingIntent(Context context,Flight flight) {

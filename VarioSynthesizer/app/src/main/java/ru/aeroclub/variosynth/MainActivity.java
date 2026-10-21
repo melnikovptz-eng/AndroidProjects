@@ -144,6 +144,8 @@ public class MainActivity extends Activity {
                 track.play(); short[] buf=new short[512];double phase=0;long last=System.currentTimeMillis();boolean on=true;
                 while(playing.get()){
                     long elapsed=System.currentTimeMillis()-last;
+                    // Stop shortly after finger release, but keep a 40 ms minimum pulse for quick taps.
+                    if(!keyHeld.get() && elapsed>=40) break;
                     if(elapsed >= (on ? toneMs : gapMs)){
                         on=!on; last=System.currentTimeMillis();
                         if(!keyHeld.get() && !on) break;

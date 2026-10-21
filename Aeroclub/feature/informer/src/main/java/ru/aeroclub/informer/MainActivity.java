@@ -16,7 +16,8 @@ public class MainActivity extends Activity {
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
-    private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace;
+    private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace, localAnnouncement;
+    private LocalMessageFileWatcher messageWatcher;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -47,6 +48,10 @@ public class MainActivity extends Activity {
         flightDateTime = addLine(card, activeFlight == null ? "Дата и время уточняются" :
             activeFlight.date + "  •  " + activeFlight.time, 14, AeroclubUi.BODY, 2);
         flightPlace = addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
+        localAnnouncement = text("Объявления: проверка локального файла…", 12, MUTED, false);
+        LinearLayout.LayoutParams announcementParams = lp(-1, -2);
+        announcementParams.topMargin = dp(8);
+        card.addView(localAnnouncement, announcementParams);
         status = text("Выберите участника, чтобы указать ответ", 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);
         statusParams.topMargin = dp(5);
@@ -181,6 +186,40 @@ public class MainActivity extends Activity {
         flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
         flightPlace.setText("Место встречи: " + (active == null ? "не указано" : active.place));
         refreshStatusLabel();
+        if (messageWatcher == null) {
+            messageWatcher = new LocalMessageFileWatcher(
+                new LocalFileMessageTransport(), LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL);
+        }
+        messageWatcher.start(this, new LocalMessageFileWatcher.Listener() {
+            @Override public void onMessagesChanged(java.util.List<LocalTransportMessage> messages) {
+                if (localAnnouncement == null) return;
+                LocalTransportMessage newest = null;
+                for (LocalTransportMessage item : messages) {
+                    if (newest == null || item.createdAt > newest.createdAt) newest = item;
+                }
+                if (newest == null) {
+                    localAnnouncement.setText("Объявлений в локальном файле пока нет");
+                } else {
+                    localAnnouncement.setText("Локальное объявление (только этот телефон):\\n" + newest.body);
+                }
+            }
+            @Override public void onReadError() {
+                if (localAnnouncement != null) localAnnouncement.setText("Не удалось прочитать локальный файл объявлений");
+            }
+        });
+    }
+
+    @Override protected void onPause() {
+        if (messageWatcher != null) messageWatcher.stop();
+        super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        if (messageWatcher != null) {
+            messageWatcher.close();
+            messageWatcher = null;
+        }
+        super.onDestroy();
     }
 
     private TextView text(String value, int size, int color, boolean bold) {

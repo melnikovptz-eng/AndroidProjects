@@ -54,19 +54,34 @@ jobs:
         working-directory: PMCA/AndroidBridge
         run: ./gradlew --no-daemon clean assembleDebug
 
-      - name: Verify debug APK
+      - name: Verify debug APK and write build manifest
         run: |
           APK="PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           ls -lh "$APK"
-          sha256sum "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="PMCA/AndroidBridge/app/build/outputs/apk/debug/build-info.txt"
+          {
+            echo "project_id=PMCA"
+            echo "project_name=PMCA AndroidBridge"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=debug"
+            echo "application_id=com.pmca.bridge"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
 
       - name: Upload PMCA debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: PMCA-debug-apk
-          path: PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+          name: PMCA-debug-apk-${{ github.sha }}
+          path: |
+            PMCA/AndroidBridge/app/build/outputs/apk/debug/app-debug.apk
+            PMCA/AndroidBridge/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -98,21 +113,36 @@ jobs:
           PMCA_KEY_ALIAS: ${{ secrets.PMCA_KEY_ALIAS }}
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Verify signed release APK
+      - name: Verify signed release APK and write build manifest
         if: env.PMCA_SIGNING_AVAILABLE == 'true'
         run: |
           APK="PMCA/AndroidBridge/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           ls -lh "$APK"
-          sha256sum "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="PMCA/AndroidBridge/app/build/outputs/apk/release/build-info.txt"
+          {
+            echo "project_id=PMCA"
+            echo "project_name=PMCA AndroidBridge"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=release"
+            echo "application_id=com.pmca.bridge"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
 
       - name: Upload signed PMCA release APK
         if: env.PMCA_SIGNING_AVAILABLE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: PMCA-release-apk
-          path: PMCA/AndroidBridge/app/build/outputs/apk/release/app-release.apk
+          name: PMCA-release-apk-${{ github.sha }}
+          path: |
+            PMCA/AndroidBridge/app/build/outputs/apk/release/app-release.apk
+            PMCA/AndroidBridge/app/build/outputs/apk/release/build-info.txt
           if-no-files-found: error
           retention-days: 14
 

@@ -52,7 +52,6 @@ public final class ModuleDebugLog {
                 try (FileOutputStream output = new FileOutputStream(target, true)) {
                     output.write(line);
                     output.flush();
-                    output.getFD().sync();
                 }
                 return true;
             } catch (Exception ignored) {

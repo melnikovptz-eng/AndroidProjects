@@ -15,13 +15,6 @@ public final class FlightRepository {
     private static final String ACTIVE_ID = "active_flight_id";
     private FlightRepository() {}
 
-    public static final class Flight {
-        public final String id, title, date, time, place;
-        Flight(String id, String title, String date, String time, String place) {
-            this.id=id; this.title=title; this.date=date; this.time=time; this.place=place;
-        }
-    }
-
     private static SharedPreferences prefs(Context c) {
         return c.getApplicationContext().getSharedPreferences(PREFS, 0);
     }

@@ -39,8 +39,22 @@ public final class ParticipantAdminActions {
             EventLogRepository.record(context, "ATT-01", "participant_response_update", "rejected_invalid_input", participantId);
             return false;
         }
-        AttendanceRepository.setResponse(context, participantId, flightId, normalized);
-        EventLogRepository.record(context, "ATT-01", "participant_response_update", "success_local_only", participantId);
-        return true;
+
+        boolean participantExists = false;
+        for (Participant participant : ParticipantRepository.getAll(context)) {
+            if (participant.id.equals(participantId)) {
+                participantExists = true;
+                break;
+            }
+        }
+        if (!participantExists || FlightRepository.getById(context, flightId) == null) {
+            EventLogRepository.record(context, "ATT-01", "participant_response_update", "rejected_missing_participant_or_flight", participantId);
+            return false;
+        }
+
+        boolean saved = AttendanceRepository.setResponse(context, participantId, flightId, normalized);
+        EventLogRepository.record(context, "ATT-01", "participant_response_update",
+            saved ? "success_local_only" : "save_failed", participantId);
+        return saved;
     }
 }

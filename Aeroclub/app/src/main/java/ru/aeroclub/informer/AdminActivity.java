@@ -48,6 +48,9 @@ public class AdminActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
         root.setPadding(dp(16), dp(12), dp(16), dp(8));
+        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
+        draftTitle = prefs.getString("flight_title", draftTitle);
+        draftPlace = prefs.getString("flight_place", draftPlace);
         setContentView(root);
         render();
     }
@@ -145,15 +148,15 @@ public class AdminActivity extends Activity {
         EditText title = field("Название вылета", draftTitle);
         EditText place = field("Место встречи", draftPlace);
         form.addView(title); form.addView(place);
-        Button date = smallButton("Дата: " + dateLabel());
-        Button time = smallButton("Время: " + timeLabel());
+        Button date = smallButton("Дата: " + draftDateLabel());
+        Button time = smallButton("Время: " + draftTimeLabel());
         form.addView(date); form.addView(time);
         date.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
-            flightDate.set(y,m,d); date.setText("Дата: " + dateLabel());
+            flightDate.set(y,m,d); date.setText("Дата: " + draftDateLabel());
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         time.setOnClickListener(v -> new TimePickerDialog(this, (view,h,m) -> {
             flightDate.set(Calendar.HOUR_OF_DAY,h); flightDate.set(Calendar.MINUTE,m);
-            time.setText("Время: " + timeLabel());
+            time.setText("Время: " + draftTimeLabel());
         }, flightDate.get(Calendar.HOUR_OF_DAY), flightDate.get(Calendar.MINUTE), true).show());
         new AlertDialog.Builder(this).setTitle("Данные вылета").setView(form)
             .setNegativeButton("Отмена", null).setPositiveButton("Сохранить локально", (d,w) -> {
@@ -163,7 +166,7 @@ public class AdminActivity extends Activity {
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
                 getSharedPreferences("flight_informer",0).edit()
                     .putString("flight_title", draftTitle).putString("flight_place", draftPlace)
-                    .putString("flight_date", dateLabel()).putString("flight_time", timeLabel()).apply();
+                    .putString("flight_date", draftDateLabel()).putString("flight_time", draftTimeLabel()).apply();
                 Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -308,12 +311,16 @@ public class AdminActivity extends Activity {
     private int dp(int v) { return (int)(v*getResources().getDisplayMetrics().density+0.5f); }
     private String dateLabel() {
         String stored=getSharedPreferences("flight_informer",0).getString("flight_date",null);
-        if(stored!=null)return stored;
-        return new SimpleDateFormat("EEE, d MMM",Locale.forLanguageTag("ru")).format(flightDate.getTime());
+        return stored != null ? stored : draftDateLabel();
     }
     private String timeLabel() {
         String stored=getSharedPreferences("flight_informer",0).getString("flight_time",null);
-        if(stored!=null)return stored;
+        return stored != null ? stored : draftTimeLabel();
+    }
+    private String draftDateLabel() {
+        return new SimpleDateFormat("EEE, d MMM",Locale.forLanguageTag("ru")).format(flightDate.getTime());
+    }
+    private String draftTimeLabel() {
         return new SimpleDateFormat("HH:mm",Locale.getDefault()).format(flightDate.getTime());
     }
 }

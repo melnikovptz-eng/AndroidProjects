@@ -3,6 +3,12 @@ name: Build Aeroclub Informer APK
 # Avoid starting a new Android build for every small source/documentation commit.
 
 on:
+  push:
+    branches:
+      - aeroclub-informer
+    paths:
+      - 'Aeroclub/**'
+      - '.github/workflows/build-aeroclub-informer.yml'
   workflow_dispatch:
 
 permissions:
@@ -33,7 +39,21 @@ jobs:
         working-directory: Aeroclub
         env:
           AEROCLUB_DEBUG_GITHUB_TOKEN: ${{ secrets.AEROCLUB_DEBUG_GITHUB_TOKEN }}
-        run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :feature:admin-flights:testDebugUnitTest :feature:admin-participants:testDebugUnitTest :app:assembleDebug
+        run: >-
+          gradle --no-daemon --stacktrace
+          :core:common:test
+          :core:data:testDebugUnitTest
+          :core:ui:testDebugUnitTest
+          :core:android:testDebugUnitTest
+          :feature:notifications:testDebugUnitTest
+          :feature:admin:testDebugUnitTest
+          :feature:admin-flights:testDebugUnitTest
+          :feature:admin-participants:testDebugUnitTest
+          :feature:calendar:testDebugUnitTest
+          :feature:messages:testDebugUnitTest
+          :feature:settings:testDebugUnitTest
+          :feature:informer:testDebugUnitTest
+          :app:assembleDebug
       - name: Verify APK and write build manifest
         run: |
           APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"

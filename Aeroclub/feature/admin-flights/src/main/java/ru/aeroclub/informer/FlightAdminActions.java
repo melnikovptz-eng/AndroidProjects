@@ -30,7 +30,7 @@ public final class FlightAdminActions {
 
     public static boolean updateActive(Context context, String id, String title, String date,
                                        String time, String place, String dateIso) {
-        if (title == null || title.trim().isEmpty()) {
+        if (!isValidTitle(title))
             EventLogRepository.record(context, "FLT-01", "update", "invalid_title", id);
             return false;
         }

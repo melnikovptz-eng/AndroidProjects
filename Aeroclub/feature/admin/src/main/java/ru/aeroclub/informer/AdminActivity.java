@@ -420,7 +420,7 @@ public class AdminActivity extends Activity {
         Flight active = FlightRepository.getActive(this);
         String flightId = active == null ? null : active.id;
         String summary = active == null ? "Нет выбранного вылета" :
-            displayFlightTitle(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+            FlightPresentation.title(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
         EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active, ClubSettingsActions.get(this).clubName));
         content.addView(message);

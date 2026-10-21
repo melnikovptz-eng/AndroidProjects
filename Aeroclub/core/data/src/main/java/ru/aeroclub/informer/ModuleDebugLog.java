@@ -90,10 +90,46 @@ public final class ModuleDebugLog {
                     output.getFD().sync();
                 }
                 // Keep the user-visible Download copy current and strictly bounded.
-                return appendDownloadLog(app, text);
+                boolean downloadWritten = appendDownloadLog(app, text);
+                if (!downloadWritten) {
+                    // Do not silently hide a Downloads failure: retain a diagnostic in the
+                    // private recovery log without recursively trying to write Downloads.
+                    appendInternalDiagnostic(app, clean(module, 80), clean(action, 100),
+                            "downloads_write_failed", "public_path=Download/" + FILE_NAME);
+                }
+                return downloadWritten;
             } catch (Exception ignored) {
                 return false;
             }
+        }
+    }
+
+    private static void appendInternalDiagnostic(Context context, String module,
+                                                  String action, String outcome, String detail) {
+        try {
+            File dir = context.getFilesDir();
+            File target = new File(dir, "module-debug.log");
+            File backup = new File(dir, BACKUP_NAME);
+            JSONObject event = new JSONObject();
+            event.put("time", System.currentTimeMillis());
+            event.put("project", "Aeroclub Informer");
+            event.put("module", module);
+            event.put("action", action);
+            event.put("outcome", outcome);
+            event.put("detail", detail);
+            event.put("thread", clean(Thread.currentThread().getName(), 80));
+            byte[] line = (event.toString() + "\\n").getBytes(StandardCharsets.UTF_8);
+            if (target.exists() && target.length() + line.length > INTERNAL_MAX_BYTES) {
+                if (backup.exists() && !backup.delete()) return;
+                if (!target.renameTo(backup)) return;
+            }
+            try (FileOutputStream output = new FileOutputStream(target, true)) {
+                output.write(line);
+                output.flush();
+                output.getFD().sync();
+            }
+        } catch (Exception ignored) {
+            // The original operation already reports failure to its caller.
         }
     }
 

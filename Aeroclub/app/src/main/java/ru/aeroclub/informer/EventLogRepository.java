@@ -46,7 +46,7 @@ public final class EventLogRepository {
         for(int i=arr.length()-1;i>=start;i--) {
             JSONObject o=arr.optJSONObject(i);
             if(o==null) continue;
-            out.append(fmt.format(new java.util.Date(o.optLong("time",0))).append("  ")
+            out.append(fmt.format(new java.util.Date(o.optLong("time",0)))).append("  ")
                 .append(o.optString("module","")).append(" • ")
                 .append(o.optString("action","")).append(" — ")
                 .append(o.optString("result",""));

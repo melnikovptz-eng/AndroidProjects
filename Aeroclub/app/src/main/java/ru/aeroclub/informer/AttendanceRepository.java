@@ -98,9 +98,10 @@ public final class AttendanceRepository {
         JSONArray arr=read(prefs(c).getString(RECORDS,"[]"));
         for(int i=0;i<arr.length();i++) {
             JSONObject o=arr.optJSONObject(i);
-            if(o!=null && participantId.equals(o.optString("participantId")) && flightId.equals(o.optString("flightId")))
+            if(o!=null && participantId.equals(o.optString("participantId")) && flightId.equals(o.optString("flightId"))) {
                 String normalized = normalizeStatus(o.optString("status", STATUS_PENDING));
                 return normalized == null ? STATUS_PENDING : normalized;
+            }
         }
         return "Ожидается ответ";
     }

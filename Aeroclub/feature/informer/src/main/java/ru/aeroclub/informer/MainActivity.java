@@ -21,6 +21,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        ModuleDebugLog.log(this, "UI-01", "informer_onCreate", "started", "screen_created");
         getWindow().setStatusBarColor(AeroclubUi.BACKGROUND);
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
@@ -94,6 +95,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        ModuleDebugLog.log(this, "UI-01", "informer_onNewIntent", "received", "intent_received");
         setIntent(intent);
         handleAttendanceAction(intent);
     }
@@ -178,6 +180,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        ModuleDebugLog.log(this, "UI-01", "informer_onResume", "started", "screen_foreground");
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);
         clubLabel.setText(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ");
@@ -192,6 +195,7 @@ public class MainActivity extends Activity {
         }
         messageWatcher.start(this, new LocalMessageFileWatcher.Listener() {
             @Override public void onMessagesChanged(java.util.List<LocalTransportMessage> messages) {
+                ModuleDebugLog.log(MainActivity.this, "MSG-02", "announcement_refresh", "success", "count=" + messages.size());
                 if (localAnnouncement == null) return;
                 LocalTransportMessage newest = null;
                 for (LocalTransportMessage item : messages) {
@@ -204,17 +208,20 @@ public class MainActivity extends Activity {
                 }
             }
             @Override public void onReadError() {
+                ModuleDebugLog.log(MainActivity.this, "MSG-02", "announcement_refresh", "error", "read_failed");
                 if (localAnnouncement != null) localAnnouncement.setText("Не удалось прочитать локальный файл объявлений");
             }
         });
     }
 
     @Override protected void onPause() {
+        ModuleDebugLog.log(this, "UI-01", "informer_onPause", "stopped", "screen_background");
         if (messageWatcher != null) messageWatcher.stop();
         super.onPause();
     }
 
     @Override protected void onDestroy() {
+        ModuleDebugLog.log(this, "UI-01", "informer_onDestroy", "stopped", "screen_destroyed");
         if (messageWatcher != null) {
             messageWatcher.close();
             messageWatcher = null;

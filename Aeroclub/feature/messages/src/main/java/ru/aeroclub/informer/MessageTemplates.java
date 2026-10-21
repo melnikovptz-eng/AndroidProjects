@@ -43,6 +43,6 @@ public final class MessageTemplates {
     }
 
     private static String displayTitle(Flight flight) {
-        return (flight.isDemo ? "ДЕМО · " : "") + flight.title;
+        return FlightPresentation.title(flight);
     }
 }

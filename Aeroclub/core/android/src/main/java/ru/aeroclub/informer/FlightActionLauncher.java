@@ -37,7 +37,7 @@ public final class FlightActionLauncher {
             EventLogRepository.record(context, "SHR-01", "share_chooser_opened", "no_active_flight", null);
             return false;
         }
-        String body = (flight.isDemo ? "ДЕМО · " : "") + ClubSettingsRepository.get(context).clubName + " — " + flight.title + ": " + flight.date + ", " + flight.time +
+        String body = FlightPresentation.shareHeading(flight, ClubSettingsRepository.get(context).clubName) + ": " + flight.date + ", " + flight.time +
             ". Место встречи: " + flight.place + ".";
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");

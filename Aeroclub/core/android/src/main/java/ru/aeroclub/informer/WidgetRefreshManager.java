@@ -9,11 +9,11 @@ import android.content.Intent;
 public final class WidgetRefreshManager {
     private WidgetRefreshManager() {}
 
-    public static void refresh(Context context, Class<?> providerClass) {
+    public static void refresh(Context context, String providerClassName) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        int[] ids = manager.getAppWidgetIds(new ComponentName(context, providerClass));
+        int[] ids = manager.getAppWidgetIds(new ComponentName(context.getPackageName(), providerClassName));
         if (ids == null || ids.length == 0) return;
-        Intent update = new Intent(context, providerClass);
+        Intent update = new Intent().setComponent(new ComponentName(context.getPackageName(), providerClassName));
         update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
         context.sendBroadcast(update);

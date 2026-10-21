@@ -35,39 +35,9 @@ public class FlightWidgetProvider extends AppWidgetProvider {
             choose.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             context.startActivity(choose);
         } else if (ROUTE.equals(action)) {
-            Flight active = FlightRepository.getActive(context);
-            String place = active == null ? "" : active.place;
-            if (place.trim().isEmpty()) {
-                Toast.makeText(context,"Место встречи не указано",Toast.LENGTH_SHORT).show();
-                return;
-            }
-            try {
-                Intent map = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(place)));
-                map.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(map);
-                EventLogRepository.record(context,"MAP-01","open_route","intent_started",flightId);
-            } catch (Exception e) {
-                Toast.makeText(context,"Не найдено приложение для карт",Toast.LENGTH_SHORT).show();
-                EventLogRepository.record(context,"MAP-01","open_route","no_maps_app",flightId);
-            }
+            FlightActionLauncher.openRoute(context, FlightRepository.getActive(context));
         } else if (SHARE.equals(action)) {
-            Flight active = FlightRepository.getActive(context);
-            if (active == null) return;
-            String body = "Аэроклуб — " + active.title + ": " + active.date + ", " + active.time +
-                ". Место встречи: " + active.place + ".";
-            try {
-                Intent send = new Intent(Intent.ACTION_SEND);
-                send.setType("text/plain");
-                send.putExtra(Intent.EXTRA_TEXT,body);
-                Intent chooser = Intent.createChooser(send,"Отправить информацию о полёте");
-                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(chooser);
-                MessageRepository.recordShareChooserOpened(context,active.id,body);
-                EventLogRepository.record(context,"SHR-01","share_chooser_opened","delivery_unconfirmed",active.id);
-            } catch (Exception e) {
-                Toast.makeText(context,"Нет приложения для отправки",Toast.LENGTH_SHORT).show();
-                EventLogRepository.record(context,"SHR-01","share_chooser_opened","no_share_app",active.id);
-            }
+            FlightActionLauncher.shareFlight(context, FlightRepository.getActive(context));
         }
     }
 

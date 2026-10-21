@@ -4,8 +4,6 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.app.NotificationManager;
-import android.os.Build;
 import java.util.List;
 
 /** Schedules an inexact local reminder one hour before each future flight. */
@@ -14,22 +12,7 @@ public final class FlightReminderScheduler {
     private FlightReminderScheduler() {}
 
     public static void ensureChannel(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            android.app.NotificationManager manager=(android.app.NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-            if(manager!=null) {
-                android.app.NotificationChannel channel=new android.app.NotificationChannel(
-                    FlightReminderReceiver.CHANNEL_ID,"Напоминания о вылетах",android.app.NotificationManager.IMPORTANCE_DEFAULT);
-                channel.setDescription("Локальные напоминания перед вылетом");
-                channel.enableVibration(true);
-                channel.setVibrationPattern(new long[]{0, 250, 150, 250});
-                channel.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
-                    new android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build());
-                manager.createNotificationChannel(channel);
-            }
-        }
+        NotificationSoundPolicy.ensureChannel(context);
     }
 
     public static synchronized boolean schedule(Context context, Flight flight) {

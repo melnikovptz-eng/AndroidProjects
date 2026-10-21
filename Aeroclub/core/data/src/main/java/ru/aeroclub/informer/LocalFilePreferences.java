@@ -49,7 +49,9 @@ public final class LocalFilePreferences implements SharedPreferences {
                 Map<String, ?> legacy = context.getApplicationContext()
                     .getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE).getAll();
                 values.putAll(copyMap(legacy));
-                if (!writeFile(values)) readError = true;
+                // A transient first-write failure may be retried by the next repository write.
+                // There is no existing JSON file to protect from accidental replacement yet.
+                writeFile(values);
             }
         }
     }

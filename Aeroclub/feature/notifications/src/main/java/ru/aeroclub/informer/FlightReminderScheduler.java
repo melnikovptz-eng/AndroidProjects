@@ -20,6 +20,13 @@ public final class FlightReminderScheduler {
                 android.app.NotificationChannel channel=new android.app.NotificationChannel(
                     FlightReminderReceiver.CHANNEL_ID,"Напоминания о вылетах",android.app.NotificationManager.IMPORTANCE_DEFAULT);
                 channel.setDescription("Локальные напоминания перед вылетом");
+                channel.enableVibration(true);
+                channel.setVibrationPattern(new long[]{0, 250, 150, 250});
+                channel.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                    new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
                 manager.createNotificationChannel(channel);
             }
         }

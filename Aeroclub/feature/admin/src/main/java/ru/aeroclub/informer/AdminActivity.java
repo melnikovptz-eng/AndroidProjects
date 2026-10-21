@@ -688,7 +688,25 @@ public class AdminActivity extends Activity {
                 .show();
         });
         content.addView(debugLog, lp(-1, dp(48)));
-        note("Журнал событий и отдельный файл отладки не содержат имена участников, текст сообщений, пароли или токены.");
+
+        Button uploadDebug = actionButton("Отправить лог-файл в GitHub", false);
+        uploadDebug.setOnClickListener(v -> {
+            uploadDebug.setEnabled(false);
+            uploadDebug.setText("Отправка…");
+            GitHubDebugUploader.uploadNow(this, (success, message, lines) -> runOnUiThread(() -> {
+                uploadDebug.setEnabled(true);
+                uploadDebug.setText("Отправить лог-файл в GitHub");
+                new AlertDialog.Builder(this)
+                    .setTitle(success ? "Отладочный журнал" : "Ошибка отправки")
+                    .setMessage(message)
+                    .setPositiveButton("OK", null)
+                    .show();
+            }));
+        });
+        LinearLayout.LayoutParams uploadParams = lp(-1, dp(48));
+        uploadParams.topMargin = dp(8);
+        content.addView(uploadDebug, uploadParams);
+        note("Журнал событий и отдельный файл отладки не должны содержать пароли, токены или другие секреты.");
     }
 
         private void addParticipant() {

@@ -310,23 +310,47 @@ public class AdminActivity extends Activity {
         int pending = countLocalParticipantStatus("Ожидается ответ");
         card("Сводка", "Участников: " + participants.size() + " • Едут: " + going +
             " • Не едут: " + notGoing + " • Без ответа: " + pending, null, null);
-        if (participants.isEmpty()) {
-            note("Список пока пуст. Добавьте участников для ведения статусов по вылетам.");
-        } else {
-            for (Participant participant : participants) {
-                String state = participantStatus(participant);
-                int color = state.equals("Не участвует") ? Color.rgb(170,65,55) :
-                    state.equals("Подтвердил участие") ? GREEN : MUTED;
-                participantRow(participant, state, color);
+
+        EditText search = field("Поиск участника по имени", "");
+        content.addView(search,lp(-1,dp(48)));
+        LinearLayout participantList = new LinearLayout(this);
+        participantList.setOrientation(LinearLayout.VERTICAL);
+        content.addView(participantList,lp(-1,-2));
+        renderParticipantRows(participantList,participants,"");
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence value,int start,int count,int after) {}
+            @Override public void onTextChanged(CharSequence value,int start,int before,int count) {
+                renderParticipantRows(participantList,participants,value.toString());
             }
-        }
+            @Override public void afterTextChanged(android.text.Editable value) {}
+        });
+
         Button add = actionButton("＋  Добавить участника", true);
         add.setOnClickListener(v -> addParticipant());
         content.addView(add, lp(-1,dp(48)));
         Button export = actionButton("Поделиться списком", false);
         export.setOnClickListener(v -> shareParticipantList());
         LinearLayout.LayoutParams ep=lp(-1,dp(48)); ep.topMargin=dp(6); content.addView(export,ep);
-        note("Участники хранятся локально. Общая база клуба появится после подключения сервера.");
+        note("Участники и ответы хранятся локально. Общая база клуба появится после подключения сервера.");
+    }
+
+    private void renderParticipantRows(LinearLayout parent, java.util.List<Participant> participants, String query) {
+        parent.removeAllViews();
+        String filter=query==null?"":query.trim().toLowerCase(Locale.ROOT);
+        int shown=0;
+        for(Participant participant:participants) {
+            if(!participant.displayName.toLowerCase(Locale.ROOT).contains(filter)) continue;
+            String state=participantStatus(participant);
+            int color=state.equals("Не участвует")?Color.rgb(170,65,55):
+                state.equals("Подтвердил участие")?GREEN:MUTED;
+            participantRow(parent,participant,state,color);
+            shown++;
+        }
+        if(shown==0) {
+            TextView empty=text(filter.isEmpty()?"Список участников пуст.":"Ничего не найдено.",13,MUTED,false);
+            empty.setPadding(dp(4),dp(8),dp(4),dp(12));
+            parent.addView(empty,lp(-1,-2));
+        }
     }
 
     private void showMessages() {
@@ -551,7 +575,7 @@ public class AdminActivity extends Activity {
         sendBroadcast(update);
     }
 
-    private void participantRow(Participant participant, String state, int color) {
+    private void participantRow(LinearLayout parent, Participant participant, String state, int color) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(dp(14),dp(12),dp(14),dp(12));
@@ -592,7 +616,7 @@ public class AdminActivity extends Activity {
                 }
             }).setNegativeButton("Закрыть",null).show());
         LinearLayout.LayoutParams p=lp(-1,-2); p.bottomMargin=dp(8);
-        content.addView(row,p);
+        parent.addView(row,p);
     }
 
     private void card(String title, String body, String action, Runnable click) {

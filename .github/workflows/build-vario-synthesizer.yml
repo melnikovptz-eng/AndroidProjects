@@ -23,6 +23,6 @@ jobs:
           arguments: assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VarioSynthesizer-debug
+          name: VarioSynthesizer-debug-1
           path: VarioSynthesizer/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

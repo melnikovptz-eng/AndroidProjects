@@ -6,6 +6,10 @@ import android.content.Context;
 public final class ParticipantAdminActions {
     private ParticipantAdminActions() {}
 
+    public static boolean isValidName(String name) {
+        return name != null && !name.trim().isEmpty();
+    }
+
     public static Participant add(Context context, String displayName) {
         Participant participant = ParticipantRepository.add(context, displayName);
         EventLogRepository.record(context, "PAR-01", "create",

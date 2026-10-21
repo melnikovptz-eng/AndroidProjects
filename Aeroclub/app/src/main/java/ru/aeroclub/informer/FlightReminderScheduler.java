@@ -83,19 +83,28 @@ public final class FlightReminderScheduler {
     private static long parseStart(Flight flight) {
         try {
             Locale ru=Locale.forLanguageTag("ru");
-            Date date=new SimpleDateFormat("EEE, d MMM",ru).parse(flight.date);
+            Date date=null;
+            String[] patterns={"EEE, d MMM","EEE, d MMMM","d MMM","d MMMM"};
+            for(String pattern:patterns) {
+                try {
+                    date=new SimpleDateFormat(pattern,ru).parse(flight.date);
+                    if(date!=null) break;
+                } catch(Exception ignored) {}
+            }
             String[] time=flight.time.split(":");
             if(date==null || time.length!=2) return 0L;
-            Calendar c=Calendar.getInstance();
+            int hour=Integer.parseInt(time[0]), minute=Integer.parseInt(time[1]);
+            if(hour<0 || hour>23 || minute<0 || minute>59) return 0L;
             Calendar parsed=Calendar.getInstance();
             parsed.setTime(date);
+            Calendar c=Calendar.getInstance();
             c.set(Calendar.MONTH,parsed.get(Calendar.MONTH));
             c.set(Calendar.DAY_OF_MONTH,parsed.get(Calendar.DAY_OF_MONTH));
-            c.set(Calendar.HOUR_OF_DAY,Integer.parseInt(time[0]));
-            c.set(Calendar.MINUTE,Integer.parseInt(time[1]));
+            c.set(Calendar.HOUR_OF_DAY,hour);
+            c.set(Calendar.MINUTE,minute);
             c.set(Calendar.SECOND,0);
             c.set(Calendar.MILLISECOND,0);
             return c.getTimeInMillis();
         } catch(Exception ignored) { return 0L; }
     }
-}
+}}

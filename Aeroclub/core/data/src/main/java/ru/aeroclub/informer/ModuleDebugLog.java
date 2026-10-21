@@ -1,13 +1,22 @@
 package ru.aeroclub.informer;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -15,11 +24,16 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/** Shared local-only diagnostic logger. Logs remain private until the user explicitly shares them. */
+/**
+ * Shared diagnostic logger. Keeps an internal recovery copy and a bounded, AI-readable
+ * project log in the public Android Download folder. No network access is performed.
+ */
 public final class ModuleDebugLog {
-    private static final String FILE_NAME = "module-debug.log";
+    private static final String FILE_NAME = "Aeroclub_Informer_debug.log";
     private static final String BACKUP_NAME = "module-debug.log.1";
-    private static final long MAX_BYTES = 1024L * 1024L;
+    // Conservative limit so the complete log can be pasted into a ChatGPT message.
+    public static final int MAX_LOG_CHARACTERS = 80000;
+    private static final long INTERNAL_MAX_BYTES = 1024L * 1024L;
     private static final Object LOCK = new Object();
 
     private ModuleDebugLog() { }
@@ -51,20 +65,22 @@ public final class ModuleDebugLog {
         Context app = context.getApplicationContext();
         synchronized (LOCK) {
             File dir = app.getFilesDir();
-            File target = new File(dir, FILE_NAME);
+            File target = new File(dir, "module-debug.log");
             File backup = new File(dir, BACKUP_NAME);
             try {
                 JSONObject event = new JSONObject();
                 event.put("time", System.currentTimeMillis());
+                event.put("project", "Aeroclub Informer");
                 event.put("module", clean(module, 80));
                 event.put("action", clean(action, 100));
                 event.put("outcome", clean(outcome, 100));
                 event.put("detail", clean(detail, 240));
                 event.put("thread", clean(Thread.currentThread().getName(), 80));
                 if (durationMs != null) event.put("duration_ms", durationMs);
-                byte[] line = (event.toString() + "\n").getBytes(StandardCharsets.UTF_8);
+                String text = event.toString() + "\n";
+                byte[] line = text.getBytes(StandardCharsets.UTF_8);
                 if (!dir.isDirectory() && !dir.mkdirs()) return false;
-                if (target.exists() && target.length() + line.length > MAX_BYTES) {
+                if (target.exists() && target.length() + line.length > INTERNAL_MAX_BYTES) {
                     if (backup.exists() && !backup.delete()) return false;
                     if (!target.renameTo(backup)) return false;
                 }
@@ -73,6 +89,8 @@ public final class ModuleDebugLog {
                     output.flush();
                     output.getFD().sync();
                 }
+                // Keep the user-visible Download copy current and strictly bounded.
+                appendDownloadLog(app, text);
                 return true;
             } catch (Exception ignored) {
                 return false;
@@ -80,36 +98,162 @@ public final class ModuleDebugLog {
         }
     }
 
-    /** Complete local journal (rotated backup first, then active file) for explicit user sharing. */
+    private static void appendDownloadLog(Context context, String line) {
+        try {
+            ContentResolver resolver = context.getContentResolver();
+            Uri uri = findOrCreateDownload(resolver);
+            if (uri == null) return;
+            long currentChars = queryDownloadSize(resolver, uri);
+            if (currentChars + line.length() > MAX_LOG_CHARACTERS) {
+                resolver.delete(uri, null, null);
+                uri = createDownload(resolver);
+                if (uri == null) return;
+            }
+            try (OutputStream output = resolver.openOutputStream(uri, "wa")) {
+                if (output != null) {
+                    output.write(line.getBytes(StandardCharsets.UTF_8));
+                    output.flush();
+                }
+            }
+        } catch (Exception ignored) {
+            // Internal copy remains available; status can be checked through getDownloadPath().
+        }
+    }
+
+    private static Uri findOrCreateDownload(ContentResolver resolver) {
+        if (Build.VERSION.SDK_INT >= 29) {
+            Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+            String[] projection = { MediaStore.Downloads._ID };
+            String selection = MediaStore.Downloads.DISPLAY_NAME + "=? AND "
+                    + MediaStore.Downloads.RELATIVE_PATH + "=?";
+            try (Cursor cursor = resolver.query(collection, projection, selection,
+                    new String[]{FILE_NAME, Environment.DIRECTORY_DOWNLOADS + "/"}, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    return Uri.withAppendedPath(collection, cursor.getString(0));
+                }
+            }
+            return createDownload(resolver);
+        }
+        // Legacy Android versions use the public Downloads directory.
+        File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        if (!directory.isDirectory() && !directory.mkdirs()) return null;
+        return Uri.fromFile(new File(directory, FILE_NAME));
+    }
+
+    private static Uri createDownload(ContentResolver resolver) {
+        if (Build.VERSION.SDK_INT < 29) {
+            File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (!directory.isDirectory() && !directory.mkdirs()) return null;
+            return Uri.fromFile(new File(directory, FILE_NAME));
+        }
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME, FILE_NAME);
+        values.put(MediaStore.Downloads.MIME_TYPE, "text/plain");
+        values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/");
+        return resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+    }
+
+    private static long queryDownloadSize(ContentResolver resolver, Uri uri) {
+        if ("file".equals(uri.getScheme())) {
+            File file = new File(uri.getPath());
+            return file.isFile() ? readFileLimited(file, MAX_LOG_CHARACTERS + 1).length() : 0L;
+        }
+        StringBuilder text = new StringBuilder();
+        try (InputStream input = resolver.openInputStream(uri);
+             ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+            if (input == null) return 0L;
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = input.read(buffer)) != -1 && bytes.size() <= MAX_LOG_CHARACTERS * 4) {
+                bytes.write(buffer, 0, read);
+            }
+            text.append(bytes.toString("UTF-8"));
+        } catch (Exception ignored) { }
+        return text.length();
+    }
+
+    private static String readFileLimited(File file, int maxBytes) {
+        try (FileInputStream input = new FileInputStream(file);
+             ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = input.read(buffer)) != -1 && bytes.size() < maxBytes) {
+                int keep = Math.min(read, maxBytes - bytes.size());
+                bytes.write(buffer, 0, keep);
+            }
+            return bytes.toString("UTF-8");
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    /** Bounded snapshot of the public Download log; internal journal is a fallback. */
     static String getFullLogSnapshot(Context context) {
         if (context == null) return "";
         synchronized (LOCK) {
+            String publicLog = readDownloadLog(context.getApplicationContext());
+            if (!publicLog.isEmpty()) return tail(publicLog, MAX_LOG_CHARACTERS);
             File dir = context.getApplicationContext().getFilesDir();
             StringBuilder out = new StringBuilder();
             appendFile(out, new File(dir, BACKUP_NAME));
-            appendFile(out, new File(dir, FILE_NAME));
-            return out.toString();
+            appendFile(out, new File(dir, "module-debug.log"));
+            return tail(out.toString(), MAX_LOG_CHARACTERS);
         }
+    }
+
+    private static String readDownloadLog(Context context) {
+        try {
+            ContentResolver resolver = context.getContentResolver();
+            Uri uri = findExistingDownload(resolver);
+            if (uri == null) return "";
+            if ("file".equals(uri.getScheme())) return readFileLimited(new File(uri.getPath()), MAX_LOG_CHARACTERS * 4);
+            try (InputStream input = resolver.openInputStream(uri);
+                 ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+                if (input == null) return "";
+                byte[] buffer = new byte[4096];
+                int read;
+                while ((read = input.read(buffer)) != -1 && bytes.size() < MAX_LOG_CHARACTERS * 4) {
+                    int keep = Math.min(read, MAX_LOG_CHARACTERS * 4 - bytes.size());
+                    bytes.write(buffer, 0, keep);
+                }
+                return bytes.toString("UTF-8");
+            }
+        } catch (Exception ignored) { return ""; }
+    }
+
+    private static Uri findExistingDownload(ContentResolver resolver) {
+        if (Build.VERSION.SDK_INT >= 29) {
+            Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+            String selection = MediaStore.Downloads.DISPLAY_NAME + "=? AND "
+                    + MediaStore.Downloads.RELATIVE_PATH + "=?";
+            try (Cursor cursor = resolver.query(collection, new String[]{MediaStore.Downloads._ID},
+                    selection, new String[]{FILE_NAME, Environment.DIRECTORY_DOWNLOADS + "/"}, null)) {
+                if (cursor != null && cursor.moveToFirst()) return Uri.withAppendedPath(collection, cursor.getString(0));
+            }
+            return null;
+        }
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
+        return file.isFile() ? Uri.fromFile(file) : null;
+    }
+
+    private static String tail(String text, int maxChars) {
+        if (text == null || text.length() <= maxChars) return text == null ? "" : text;
+        int start = text.length() - maxChars;
+        int newline = text.indexOf('\n', start);
+        if (newline >= 0 && newline + 1 < text.length()) start = newline + 1;
+        return text.substring(start);
     }
 
     private static void appendFile(StringBuilder out, File file) {
         if (!file.isFile()) return;
-        try (FileInputStream input = new FileInputStream(file);
-             ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
-            out.append(bytes.toString("UTF-8"));
-        } catch (Exception ignored) {
-            // Keep the rest of the journal available if one rotated file cannot be read.
-        }
+        out.append(readFileLimited(file, (int) (INTERNAL_MAX_BYTES + 1)));
     }
 
     /** Returns newest active-file lines first, for the admin viewer. */
     public static String getRecent(Context context, int limit) {
         if (context == null) return "Контекст недоступен.";
         synchronized (LOCK) {
-            File file = new File(context.getApplicationContext().getFilesDir(), FILE_NAME);
+            File file = new File(context.getApplicationContext().getFilesDir(), "module-debug.log");
             if (!file.isFile()) return "Файл отладки пока не создан.";
             ArrayList<String> lines = new ArrayList<>();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -146,8 +290,12 @@ public final class ModuleDebugLog {
     }
 
     public static String getFilePath(Context context) {
-        if (context == null) return FILE_NAME;
-        return new File(context.getApplicationContext().getFilesDir(), FILE_NAME).getAbsolutePath();
+        if (context == null) return "Download/" + FILE_NAME;
+        return "Download/" + FILE_NAME;
+    }
+
+    public static String getDownloadPath() {
+        return "Download/" + FILE_NAME;
     }
 
     private static String clean(String value, int maxLength) {

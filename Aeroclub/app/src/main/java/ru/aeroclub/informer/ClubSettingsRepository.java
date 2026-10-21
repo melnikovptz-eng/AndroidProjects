@@ -24,6 +24,7 @@ public final class ClubSettingsRepository {
         SharedPreferences p=prefs(c);
         p.edit().putString(CLUB_NAME,clean(clubName,"Аэроклуб"))
             .putString(DEFAULT_PLACE,clean(defaultPlace,"Место встречи не указано")).apply();
+        SyncRepository.enqueue(c,"club_settings","club","update");
     }
 
     private static String clean(String value,String fallback) {

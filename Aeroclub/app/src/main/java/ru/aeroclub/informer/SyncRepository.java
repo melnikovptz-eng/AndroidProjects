@@ -24,12 +24,31 @@ public final class SyncRepository {
             operation==null||operation.trim().isEmpty()) return;
         JSONArray source=read(prefs(c).getString(KEY,"[]"));
         JSONArray arr=new JSONArray();
+        boolean priorCreate=false;
         for(int i=0;i<source.length();i++) {
             JSONObject old=source.optJSONObject(i);
             if(old==null) continue;
             boolean same=entityType.equals(old.optString("entityType")) &&
                 entityId.equals(old.optString("entityId"));
-            if(!same) arr.put(old);
+            if(!same) {
+                arr.put(old);
+                continue;
+            }
+            String priorOperation=old.optString("operation","");
+            if("create".equals(priorOperation) && "delete".equals(operation)) {
+                // Entity was never uploaded; create+delete cancels out in the outbox.
+                continue;
+            }
+            if("create".equals(priorOperation)) {
+                // Keep create so the server receives the current full local record.
+                arr.put(old);
+                priorCreate=true;
+            }
+            // Other pending operations are superseded by the new operation.
+        }
+        if(priorCreate) {
+            prefs(c).edit().putString(KEY,arr.toString()).apply();
+            return;
         }
         JSONObject item=new JSONObject();
         try {

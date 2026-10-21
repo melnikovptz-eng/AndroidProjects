@@ -313,6 +313,7 @@ public class AdminActivity extends Activity {
 
     private void showMessages() {
         Flight active = FlightRepository.getActive(this);
+        String flightId = active == null ? null : active.id;
         String summary = active == null ? "Нет выбранного вылета" :
             active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
@@ -320,19 +321,63 @@ public class AdminActivity extends Activity {
             "Напоминаем о вылете «" + active.title + "» " + active.date + " в " + active.time +
             ". Место встречи: " + active.place + ". Подтвердите, пожалуйста, участие.");
         content.addView(message);
+
         Button preview = actionButton("Предпросмотр сообщения", false);
         preview.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Предпросмотр")
             .setMessage(message.getText().toString()).setPositiveButton("Закрыть",null).show());
         content.addView(preview, lp(-1,dp(48)));
+
+        Button save = actionButton("Сохранить черновик", false);
+        save.setOnClickListener(v -> {
+            MessageRecord saved = MessageRepository.saveDraft(this, flightId, message.getText().toString());
+            Toast.makeText(this, saved == null ? "Введите текст сообщения" : "Черновик сохранён", Toast.LENGTH_SHORT).show();
+        });
+        content.addView(save, lp(-1,dp(48)));
+
+        Button history = actionButton("История сообщений", false);
+        history.setOnClickListener(v -> showMessageHistory(flightId));
+        content.addView(history, lp(-1,dp(48)));
+
         Button share = actionButton("Поделиться…", true);
         share.setOnClickListener(v -> {
+            String body = message.getText().toString().trim();
+            if (body.isEmpty()) {
+                Toast.makeText(this,"Введите текст сообщения",Toast.LENGTH_SHORT).show();
+                return;
+            }
             Intent send = new Intent(Intent.ACTION_SEND); send.setType("text/plain");
-            send.putExtra(Intent.EXTRA_TEXT,message.getText().toString());
-            try { startActivity(Intent.createChooser(send,"Отправить сообщение")); }
-            catch (Exception e) { Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show(); }
+            send.putExtra(Intent.EXTRA_TEXT,body);
+            try {
+                startActivity(Intent.createChooser(send,"Отправить сообщение"));
+                MessageRepository.recordShareChooserOpened(this, flightId, body);
+            } catch (Exception e) {
+                Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show();
+            }
         });
         content.addView(share, lp(-1,dp(48)));
-        note("Открывается системное меню отправки. Массовая доставка и история сообщений не подключены.");
+        note("История хранит черновики и факт открытия системного меню. Доставка получателю не подтверждается.");
+    }
+
+    private void showMessageHistory(String flightId) {
+        java.util.List<MessageRecord> history = MessageRepository.getHistory(this, flightId);
+        if (history.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("История сообщений")
+                .setMessage("Для этого вылета ещё нет сохранённых сообщений.")
+                .setPositiveButton("Закрыть",null).show();
+            return;
+        }
+        StringBuilder body = new StringBuilder();
+        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+        for (MessageRecord item : history) {
+            body.append(format.format(new Date(item.updatedAt))).append("\n")
+                .append(item.state).append("\n").append(item.text).append("\n\n");
+        }
+        ScrollView scroll = new ScrollView(this);
+        TextView text = text(body.toString(),14,NAVY,false);
+        text.setPadding(dp(14),dp(10),dp(14),dp(10));
+        scroll.addView(text);
+        new AlertDialog.Builder(this).setTitle("История сообщений").setView(scroll)
+            .setPositiveButton("Закрыть",null).show();
     }
 
     private void showCalendar() {

@@ -52,7 +52,7 @@ public class MainActivity extends Activity {
         }
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
-        card.addView(text(activeFlight == null ? "Ближайший вылет" : activeFlight.title, 18, NAVY, true));
+        card.addView(text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true));
         addLine(card, activeFlight == null ? "Дата и время уточняются" :
             activeFlight.date + "  •  " + activeFlight.time, 14, AeroclubUi.BODY, 2);
         addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);

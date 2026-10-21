@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
         tp=lp(-1,-2); tp.topMargin=dp(22); root.addView(card,tp);
         card.addView(text("БЛИЖАЙШИЙ ВЫЛЕТ",11,muted,true));
         TextView event=text("Полёт выходного дня",21,navy,true); tp=lp(-1,-2); tp.topMargin=dp(10); card.addView(event,tp);
-        addLine(card,"Сб, 25 октября · 10:30",15,navy,8);
+        addLine(card,"Вс, 25 октября · 10:30",15,navy,8);
         addLine(card,"Место встречи: аэродром «Северный»",14,muted,5);
         TextView status=text("Статус: ждём ваш ответ",13,Color.rgb(19,117,71),false);
         tp=lp(-1,-2); tp.topMargin=dp(12); card.addView(status,tp);

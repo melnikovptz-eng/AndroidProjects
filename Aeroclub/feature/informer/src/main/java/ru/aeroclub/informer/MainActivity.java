@@ -163,10 +163,7 @@ public class MainActivity extends Activity {
                     added = transport.importFrom(this, input);
                 }
                 android.widget.Toast.makeText(this, "Импортировано новых записей: " + added, android.widget.Toast.LENGTH_LONG).show();
-                if (localAnnouncement != null) {
-                    messageWatcher = null;
-                    refreshAnnouncementWatcher();
-                }
+                if (localAnnouncement != null) refreshAnnouncementWatcher();
             }
         } catch (Exception error) {
             ModuleDebugLog.log(this, "MSG-02", "file_exchange", "error", error.getClass().getSimpleName());

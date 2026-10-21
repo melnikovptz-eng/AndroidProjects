@@ -2,6 +2,12 @@ name: Build Aeroclub Informer APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - aeroclub-informer
+    paths:
+      - 'Aeroclub/**'
+      - '.github/workflows/build-aeroclub-informer.yml'
 
 permissions:
   contents: read

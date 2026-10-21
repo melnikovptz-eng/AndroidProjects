@@ -13,15 +13,37 @@ public class FlightReminderReceiver extends BroadcastReceiver {
     public static final String CHANNEL_ID = "aeroclub_flight_reminders_v2";
 
     @Override public void onReceive(Context context, Intent intent) {
-        String flightId=intent==null?null:intent.getStringExtra("flight_id");
-        String title=intent==null?"":intent.getStringExtra("flight_title");
-        String date=intent==null?"":intent.getStringExtra("flight_date");
-        String time=intent==null?"":intent.getStringExtra("flight_time");
-        String place=intent==null?"":intent.getStringExtra("flight_place");
-        if(title==null || title.trim().isEmpty()) title="Ближайший вылет";
-        if(date==null) date="";
-        if(time==null) time="";
-        if(place==null) place="";
+        String flightId = intent == null ? null : intent.getStringExtra("flight_id");
+        if (flightId == null || flightId.trim().isEmpty()) {
+            EventLogRepository.record(context, "NTF-01", "local_reminder_delivered", "rejected_missing_flight_id", null);
+            return;
+        }
+
+        // Always read the current record from the local source of truth. A stale alarm
+        // must not announce a deleted flight or old date/place from PendingIntent extras.
+        Flight currentFlight = FlightRepository.getById(context, flightId);
+        if (currentFlight == null) {
+            FlightReminderScheduler.cancel(context, flightId);
+            EventLogRepository.record(context, "NTF-01", "local_reminder_delivered", "skipped_flight_deleted", flightId);
+            return;
+        }
+        long flightStart = FlightDateUtils.toMillis(currentFlight.dateIso, currentFlight.time);
+        long now = System.currentTimeMillis();
+        if (flightStart <= now) {
+            EventLogRepository.record(context, "NTF-01", "local_reminder_delivered", "skipped_flight_time_passed", flightId);
+            return;
+        }
+        long reminderLead = 60L * 60L * 1000L;
+        if (flightStart - now > reminderLead + 2L * 60L * 1000L) {
+            FlightReminderScheduler.schedule(context, currentFlight);
+            EventLogRepository.record(context, "NTF-01", "local_reminder_delivered", "stale_alarm_rescheduled", flightId);
+            return;
+        }
+
+        String title = FlightPresentation.title(currentFlight);
+        String date = currentFlight.date == null ? "" : currentFlight.date;
+        String time = currentFlight.time == null ? "" : currentFlight.time;
+        String place = currentFlight.place == null ? "" : currentFlight.place;
 
         // Ensure the sound-enabled channel exists even if this receiver is invoked
         // independently of the scheduler. Android 8+ channel sound is immutable;

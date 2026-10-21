@@ -40,11 +40,11 @@ public class AdminActivity extends Activity {
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
     private String editingFlightId = null;
-    private boolean refreshOnResume = false;
+    private boolean refreshOnResume = false;\n    private DebugOperation screenOpenOperation;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        ModuleDebugLog.log(this, "ADM-01", "admin_onCreate", "started", "admin_screen_created");
+        screenOpenOperation = ModuleDebugLog.startOperation(this, "ADM-01", "admin_screen_open", "admin_screen_created");
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);

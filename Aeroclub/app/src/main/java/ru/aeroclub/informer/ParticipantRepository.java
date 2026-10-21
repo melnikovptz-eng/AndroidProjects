@@ -38,8 +38,9 @@ public final class ParticipantRepository {
         // matrix on every UI render. The marker is written even when there was nothing to migrate.
         if (!p.getBoolean(STATUS_MIGRATION_DONE, false)) {
             SharedPreferences.Editor edit = p.edit();
+            List<Flight> flights = FlightRepository.getFlights(c);
             for (Participant participant : getAllWithoutInit(p)) {
-                for (Flight flight : FlightRepository.getFlights(c)) {
+                for (Flight flight : flights) {
                     String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
                     String newKey = "participant_status_" + flight.id + "_" + participant.id;
                     if (p.contains(oldKey) && !p.contains(newKey)) {

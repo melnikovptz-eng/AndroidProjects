@@ -95,6 +95,7 @@ public final class FlightRepository {
     }
 
     public static synchronized Flight create(Context c, String title, String date, String time, String place, String dateIso) {
+        if (!FlightValidation.isValidTitle(title)) return null;
         boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();
         String canonicalDate = FlightDateUtils.toIso(dateIso);
         if (canonicalDate.isEmpty() && !explicitIsoProvided) canonicalDate = FlightDateUtils.toIso(date);

@@ -21,8 +21,24 @@ public final class FlightAdminActions {
 
     public static boolean updateActive(Context context, String id, String title, String date,
                                        String time, String place, String dateIso) {
-        if (!FlightRepository.save(context, id, title, date, time, place, dateIso)) {
+        String canonicalDate = FlightDateUtils.toIso(dateIso);
+        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) {
             EventLogRepository.record(context, "FLT-01", "update", "invalid_date_or_time", id);
+            return false;
+        }
+        Flight existing = FlightRepository.getById(context, id);
+        if (existing == null) {
+            EventLogRepository.record(context, "FLT-01", "update", "rejected_missing", id);
+            return false;
+        }
+        if (existing.isDemo) {
+            AttendanceRepository.deleteFlight(context, id, false);
+            MessageRepository.deleteForFlight(context, id);
+            EventLogRepository.record(context, "FLT-01", "demo_conversion_cleanup", "completed_local_only", id);
+        }
+        if (!FlightRepository.save(context, id, title, date, time, place, canonicalDate)) {
+            EventLogRepository.record(context, "FLT-01", "update", "save_rejected", id);
             return false;
         }
         Flight updated = FlightRepository.getById(context, id);

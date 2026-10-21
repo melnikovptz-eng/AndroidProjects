@@ -116,7 +116,7 @@ public final class GitHubDebugUploader {
                     payload.put("content", Base64.encodeToString(uploadContent.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP));
                     HttpURLConnection connection = null;
                     try {
-                        URL url = new URL("https://api.github.com/repos/" + REPOSITORY + "/contents/" + path);
+                        URL url = new URL("https://api.github.com/repos/" + DebugUploadConfig.REPOSITORY + "/contents/" + path);
                         connection = (HttpURLConnection) url.openConnection();
                         connection.setRequestMethod("PUT");
                         connection.setConnectTimeout(CONNECT_TIMEOUT_MS);

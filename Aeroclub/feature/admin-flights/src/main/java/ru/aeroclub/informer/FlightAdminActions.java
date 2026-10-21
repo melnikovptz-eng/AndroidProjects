@@ -21,8 +21,9 @@ public final class FlightAdminActions {
 
     public static boolean updateActive(Context context, String id, String title, String date,
                                        String time, String place, String dateIso) {
+        boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();
         String canonicalDate = FlightDateUtils.toIso(dateIso);
-        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() && !explicitIsoProvided) canonicalDate = FlightDateUtils.toIso(date);
         if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) {
             EventLogRepository.record(context, "FLT-01", "update", "invalid_date_or_time", id);
             return false;

@@ -450,10 +450,8 @@ public class AdminActivity extends Activity {
     }
 
     private void showCalendar() {
-        android.content.SharedPreferences prefs=getSharedPreferences("flight_informer",0);
-        String selectedIso=prefs.getString("calendar_date_iso",
-            FlightDateUtils.toIso(prefs.getString("calendar_date",dateLabel())));
-        if(selectedIso==null || selectedIso.isEmpty()) selectedIso=FlightDateUtils.toIso(dateLabel());
+        String selectedIso = CalendarRepository.getSelectedDateIso(this, draftDateIso());
+        if (selectedIso.isEmpty()) selectedIso = draftDateIso();
         try {
             java.util.Date selected=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(selectedIso);
             if(selected!=null) flightDate.setTime(selected);
@@ -463,8 +461,10 @@ public class AdminActivity extends Activity {
         choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
             flightDate.set(y,m,d);
             String iso=draftDateIso();
-            getSharedPreferences("flight_informer",0).edit()
-                .putString("calendar_date_iso",iso).putString("calendar_date",draftDateLabel()).apply();
+            if (!CalendarRepository.setSelectedDate(this, iso, draftDateLabel())) {
+                Toast.makeText(this, "Не удалось сохранить выбранную дату", Toast.LENGTH_SHORT).show();
+                return;
+            }
             render();
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         content.addView(choose, lp(-1,dp(48)));
@@ -705,14 +705,6 @@ public class AdminActivity extends Activity {
     }
     private LinearLayout.LayoutParams lp(int w,int h) { return new LinearLayout.LayoutParams(w,h); }
     private int dp(int v) { return (int)(v*getResources().getDisplayMetrics().density+0.5f); }
-    private String dateLabel() {
-        String stored=getSharedPreferences("flight_informer",0).getString("flight_date",null);
-        return stored != null ? stored : draftDateLabel();
-    }
-    private String timeLabel() {
-        String stored=getSharedPreferences("flight_informer",0).getString("flight_time",null);
-        return stored != null ? stored : draftTimeLabel();
-    }
     private String draftDateLabel() {
         return new SimpleDateFormat("EEE, d MMM",Locale.forLanguageTag("ru")).format(flightDate.getTime());
     }

@@ -3,7 +3,7 @@
 Обновлено: 2026-10-21. Журнал — компактный checkpoint для ИИ, а не замена тестам и не утверждение, что все функции готовы. Старые записи не удалять; новые добавлять сверху соответствующей секции. Если SHA проекта изменился, читать diff после checkpoint, а не сканировать весь репозиторий.
 
 ## AEROCLUB — Aeroclub Informer
-- **Checkpoint:** ветка aeroclub-informer, HEAD на момент реестра: 24b8630185caf41ebbe8143e10b525e435050721.
+- **Checkpoint:** ветка aeroclub-informer; HEAD после добавления build manifest и branch-инструкции: d76e89ab849852f7ca367a5d6a6371f28b65df32. Последний checkpoint кода приложения — 24b8630185caf41ebbe8143e10b525e435050721; более поздние изменения только в workflow/инструкциях.
 - **Подтверждённые изменения в исходниках по истории текущей ветки:**
   - локальное JSON-хранилище с миграцией старых SharedPreferences, атомарной записью и последовательной асинхронной записью;
   - отображение состояния локального хранилища и попытка сброса ожидающих записей при уходе Activity в паузу;
@@ -15,37 +15,38 @@
   - прокрутка информера улучшена для небольших экранов; принудительный звук нажатия не добавляется;
   - исправлено сохранение года даты при редактировании вылета;
   - workflow контрольной сборки настроен на ручной запуск.
-- **Последняя подтверждённая CI-сборка:** run #274, SHA c573778f62c92a8c8187f0ab07d3885ee2a4a5ec, success. Она старше текущего HEAD и не подтверждает сборку SHA 24b8630.
+- **Последняя подтверждённая CI-сборка:** run #274, SHA c573778f62c92a8c8187f0ab07d3885ee2a4a5ec, success. Она старше checkpoint кода приложения и не подтверждает сборку SHA 24b8630.
 - **Не подтверждено:** полное соответствие всех экранов дизайну/ТЗ, фактическое воспроизведение звуков на телефоне, устройствовая проверка уведомлений/виджета, сборка текущего HEAD.
-- **Следующий шаг:** завершить аудит модулей по паспортам и после логического блока выполнить одну контрольную сборку.
+- **Изменение workflow:** добавлен build-info.txt с проектом, веткой, source SHA, run ID, variant, application ID и SHA-256; артефакт включает manifest. Commit workflow: d76e89ab849852f7ca367a5d6a6371f28b65df32.
+- **Следующий шаг:** завершить аудит модулей по паспортам и после логического блока вручную запустить одну контрольную сборку текущего кода.
 
 ## PMCA — Portable Modular Controller Architecture
 - **Корень:** PMCA/; Android-приложение/bridge: PMCA/AndroidBridge/.
 - **Зафиксированные проектные правила:** центральный контроллер, единый владелец каждой функции, защита от дублирования обработчиков/демонов, сохранение существующих данных и резервных копий, явные контракты модулей.
-- **CI:** .github/workflows/pmca-android-build.yml; собирает debug APK, release — только при наличии ключей подписи.
-- **Текущий source SHA и последний успешный build run:** в этом checkpoint не подтверждены. Не выдавать APK до проверки конкретного run и SHA.
+- **CI:** .github/workflows/pmca-android-build.yml; собирает debug APK, release — только при наличии ключей подписи. Артефакты теперь включают build-info.txt, SHA-256 и source SHA в имени.
+- **Последний подтверждённый build:** [run #21](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656275187), success, SHA 6276d6170bc66b12944e249ff521bd66d0c11610. После него менялись только workflow других проектов; исходники PMCA и его workflow не менялись.
 - **Не считать проверенным:** текущее состояние установленного APK, фактическую работу на телефоне и отсутствие дублей процессов без соответствующих диагностических результатов.
 - **Следующий шаг:** перед работой прочитать PMCA/README.md, PROJECT_PASSPORT.md, CURRENT_STATE.md, PROJECT_CONTRACT.md, ARCHITECTURE.md, MODULE_REGISTRY.md, CLIPBOARD_AUTOCOPY_SPEC.md, DECISIONS.md, HANDOFF.md; читать RECOVERY.md только при восстановлении после сбоя.
 
 ## VARIO — Vario Synthesizer
 - **Корень:** VarioSynthesizer/.
-- **Последний найденный успешный CI run:** #9, ветка rebuild/vario-synthesizer-v1, SHA 2a3b1fd653371298ab4434b086ea4c27c10c1461.
-- **Статус:** сборка run #9 успешна; соответствие текущему HEAD и реальная работа звука на устройстве отдельно не подтверждены этим журналом.
+- **Последний найденный успешный CI run:** [#10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472), ветка rebuild/vario-synthesizer-v1, SHA 47312aed9b983cbe61e841641cda3e3f6e60176f.
+- **Статус:** сборка run #10 успешна; артефакт содержит build-info.txt с package ID и SHA-256. Реальная работа звука на устройстве отдельно не подтверждена.
 - **Важно:** Vario Synthesizer — отдельный проект. WAV-профили, сохранённые как примеры в Aeroclub, не означают объединение приложений.
 - **Следующий шаг:** при запросе последнего APK сверить HEAD ветки и взять артефакт именно из run #9 или более нового успешного run.
 
 ## GPTSENDER — GPTSenderTest
 - **Корень:** GPTSenderTest/; workflow: .github/workflows/gptsender-build.yml.
 - **Назначение:** отдельное приложение для проверки вставки текста в поле сообщения ChatGPT и нажатия Send; это не модуль PMCA и не часть Aeroclub.
-- **Известно:** в репозитории присутствует GPTSenderTest/artifacts/GPTSenderTest.apk; workflow предусматривает debug APK и условный signed release APK.
+- **Известно:** в репозитории присутствует GPTSenderTest/artifacts/GPTSenderTest.apk; workflow предусматривает debug APK и условный signed release APK. Workflow обновлён: artifact name включает source SHA, а архив содержит build-info.txt.
 - **Статус APK в artifacts/:** не считать последним рабочим без source SHA, run ID и checksum.
 - **Требование проекта:** лог gpt_sender.log должен фиксировать исход каждого действия, включая успешную отправку; debug-оверлей областей обнаружения не должен блокировать кнопки приложения. Текущую реализацию этих требований проверять по коду/тесту, не считать автоматически завершённой.
-- **Последний подтверждённый CI run/SHA:** не зафиксирован в этом checkpoint.
+- **Последний подтверждённый CI run:** [#46](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656310954), success, SHA 166d899e1c2ab599fac0eae9854ff4103048dd81. После run менялся только workflow Coordinate Grid, не исходники GPTSenderTest.
 
 ## COORDGRID — Coordinate Grid Android
 - **Корень:** CoordinateGridAndroid/; workflow: .github/workflows/build-coordinate-grid.yml.
-- **Известно:** workflow собирает debug APK и публикует Actions artifact.
-- **Последний подтверждённый CI run/SHA и устройствовая проверка:** не зафиксированы в этом checkpoint.
+- **Известно:** workflow собирает debug APK и публикует Actions artifact с build-info.txt, SHA-256 и source SHA в имени.
+- **Контрольный run #2:** [GitHub Actions](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), SHA 1ad7067af89d9051de186bb5be20696d8dd3465d; на момент последней проверки выполнялся. Не объявлять BUILD_PASS до завершения.
 - **Следующий шаг:** при работе сначала проверить README/Gradle-конфигурацию и соответствующий workflow, затем сохранить результат в этот журнал.
 
 ## Формат новой записи

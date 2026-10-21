@@ -827,7 +827,17 @@ public class AdminActivity extends Activity {
         if(action!=null) {
             Button b=smallButton(action);
             LinearLayout.LayoutParams bp=lp(-1,dp(44)); bp.topMargin=dp(8); box.addView(b,bp);
-            if(click!=null) b.setOnClickListener(v->click.run());
+            if (click != null) b.setOnClickListener(v -> {
+                String actionName = "admin_action_" + action.trim().replace(' ', '_');
+                DebugOperation operation = ModuleDebugLog.startOperation(this, "ADM-01", actionName, "section=" + section);
+                try {
+                    click.run();
+                    operation.finish("success", "callback_returned");
+                } catch (RuntimeException error) {
+                    operation.finish("error", error.getClass().getSimpleName());
+                    throw error;
+                }
+            });
         }
         LinearLayout.LayoutParams p=lp(-1,-2); p.bottomMargin=dp(10); content.addView(box,p);
     }

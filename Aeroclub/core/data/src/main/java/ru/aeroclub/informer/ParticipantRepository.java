@@ -84,7 +84,10 @@ public final class ParticipantRepository {
             if (o == null) continue;
             String id = o.optString("id", "").trim();
             String name = o.optString("displayName", "").trim();
-            if (name.isEmpty()) continue;
+            if (name.isEmpty()) {
+                name = "Участник без имени " + (i + 1);
+                needsMigration = true;
+            }
             if (id.isEmpty() || seenIds.contains(id)) {
                 id = UUID.randomUUID().toString();
                 needsMigration = true;

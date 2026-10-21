@@ -19,6 +19,7 @@ public class MainActivity extends Activity {
     private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace, localAnnouncement;
     private LocalMessageFileWatcher messageWatcher;
     private DebugOperation screenOpenOperation;
+    private boolean storageWarningShown;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -208,6 +209,11 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        LocalFilePreferences storage = LocalFilePreferences.get(this);
+        if (!storage.isStorageHealthy() && !storageWarningShown) {
+            storageWarningShown = true;
+            android.widget.Toast.makeText(this, storage.getStorageStatus(), android.widget.Toast.LENGTH_LONG).show();
+        }
         ModuleDebugLog.log(this, "UI-01", "informer_onResume", "started", "screen_foreground");
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);

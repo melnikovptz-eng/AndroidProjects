@@ -83,4 +83,4 @@ public final class FlightReminderScheduler {
     private static long parseStart(Flight flight) {
         return FlightDateUtils.toMillis(flight.dateIso,flight.time);
     }
-}}
+}

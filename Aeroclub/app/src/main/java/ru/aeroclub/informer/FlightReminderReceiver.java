@@ -25,6 +25,11 @@ public class FlightReminderReceiver extends BroadcastReceiver {
 
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager==null) return;
+        if(Build.VERSION.SDK_INT>=33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            EventLogRepository.record(context,"NTF-01","local_reminder_delivered","permission_denied",flightId);
+            return;
+        }
         if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
             NotificationChannel channel=new NotificationChannel(CHANNEL_ID,"Напоминания о вылетах",NotificationManager.IMPORTANCE_DEFAULT);
             channel.setDescription("Локальные напоминания перед вылетом");

@@ -74,7 +74,7 @@ public final class FlightReminderScheduler {
         if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) return false;
         if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
             android.app.NotificationChannel channel=manager.getNotificationChannel(FlightReminderReceiver.CHANNEL_ID);
-            if(channel!=null && channel.getImportance()==NotificationManager.IMPORTANCE_NONE) return false;
+            if(channel==null || channel.getImportance()==NotificationManager.IMPORTANCE_NONE) return false;
         }
         return true;
     }

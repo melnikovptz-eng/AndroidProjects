@@ -115,7 +115,7 @@ public class MainActivity extends Activity {
                 .setTitle("Нет участников")
                 .setMessage("Сначала добавьте участника в панели администратора. Ответ не сохранён.")
                 .setPositiveButton("Открыть панель", (dialog, which) ->
-                    startActivity(new Intent(this, AdminActivity.class)))
+                    startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))))
                 .setNegativeButton("Закрыть", null)
                 .show();
             EventLogRepository.record(this, "ATT-01", "response_update", "no_participants", FlightRepository.getActiveId(this));

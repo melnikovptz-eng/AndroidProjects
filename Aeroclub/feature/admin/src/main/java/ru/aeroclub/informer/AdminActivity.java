@@ -468,7 +468,7 @@ public class AdminActivity extends Activity {
         card("Объявление о вылете", summary, null, null);
         EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active, ClubSettingsActions.get(this).clubName));
         content.addView(message);
-        recipientButton = actionButton("Кому: " + recipientLabel + " — изменить", false);
+        recipientButton = actionButton(recipientButtonText() + " — изменить", false);
         recipientButton.setOnClickListener(v -> chooseMessageRecipient());
         content.addView(recipientButton, lp(-1, dp(48)));
 
@@ -546,7 +546,15 @@ public class AdminActivity extends Activity {
                 return;
             }
             Intent send = new Intent(Intent.ACTION_SEND); send.setType("text/plain");
-            String addressedBody = "Кому: " + recipientLabel + "\n\n" + body;
+            java.util.List<Participant> recipients = resolveMessageRecipients();
+            if (recipients.isEmpty()) {
+                Toast.makeText(this, "В выбранной группе нет участников. Сообщение не отправлено.", Toast.LENGTH_LONG).show();
+                EventLogRepository.record(this, "MSG-01", "share_chooser_opened", "blocked_empty_recipient_set", flightId);
+                return;
+            }
+            StringBuilder recipientNames = new StringBuilder();
+            for (Participant person : recipients) { if (recipientNames.length() > 0) recipientNames.append(", "); recipientNames.append(person.displayName); }
+            String addressedBody = "Адресат: " + recipientLabel + "\nПолучатели (локальный список, доставка не подтверждена): " + recipientNames + "\n\n" + body;
             send.putExtra(Intent.EXTRA_TEXT,addressedBody);
             try {
                 startActivity(Intent.createChooser(send,"Отправить сообщение"));
@@ -571,7 +579,35 @@ public class AdminActivity extends Activity {
                 new AlertDialog.Builder(this).setTitle("Выберите группу").setItems(groups,(d,index)->{recipientMode="GROUP";recipientId=ids[index];recipientLabel=groups[index];updateRecipientButton();}).setNegativeButton("Отмена",null).show();}
         }).setNegativeButton("Отмена",null).show();
     }
-    private void updateRecipientButton(){if(recipientButton!=null)recipientButton.setText("Кому: "+recipientLabel+" — изменить");EventLogRepository.record(this,"MSG-01","recipient_selected","local_only",recipientMode+":"+recipientId);}
+    private String recipientButtonText() {
+        java.util.List<Participant> recipients = resolveMessageRecipients();
+        if ("ONE".equals(recipientMode)) return "Кому: " + recipientLabel;
+        return "Кому: " + recipientLabel + " (" + recipients.size() + ")";
+    }
+
+    private java.util.List<Participant> resolveMessageRecipients() {
+        java.util.List<Participant> all = localParticipants();
+        java.util.List<Participant> result = new java.util.ArrayList<>();
+        String flightId = selectedMessageFlightId == null ? FlightRepository.getActiveId(this) : selectedMessageFlightId;
+        for (Participant participant : all) {
+            if ("ONE".equals(recipientMode)) {
+                if (participant.id.equals(recipientId)) result.add(participant);
+            } else if ("GROUP".equals(recipientMode) && "group:going".equals(recipientId)) {
+                if (AttendanceRepository.STATUS_GOING.equals(AttendanceRepository.getResponse(this, participant.id, flightId))) result.add(participant);
+            } else if ("GROUP".equals(recipientMode) && "group:pending".equals(recipientId)) {
+                if (AttendanceRepository.STATUS_PENDING.equals(AttendanceRepository.getResponse(this, participant.id, flightId))) result.add(participant);
+            } else {
+                result.add(participant);
+            }
+        }
+        return result;
+    }
+
+    private void updateRecipientButton() {
+        if (recipientButton != null) recipientButton.setText(recipientButtonText() + " — изменить");
+        EventLogRepository.record(this, "MSG-01", "recipient_selected", "local_only",
+            recipientMode + ":" + recipientId + ":count=" + resolveMessageRecipients().size());
+    }
 
     private void showMessageHistory(String flightId, EditText editor) {
         java.util.List<MessageRecord> history = MessageRepository.getHistory(this, flightId);

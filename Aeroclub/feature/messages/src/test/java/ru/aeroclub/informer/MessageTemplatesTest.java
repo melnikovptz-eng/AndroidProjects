@@ -21,6 +21,11 @@ public class MessageTemplatesTest {
         assertFalse(body.contains("ДЕМО"));
     }
 
+    @Test public void templatesUseConfiguredClubName() {
+        assertTrue(MessageTemplates.defaultReminder(sample(false), "Клуб Небо").startsWith("Клуб Небо:"));
+        assertTrue(MessageTemplates.forTemplate(sample(false), 1, "Клуб Небо").startsWith("Клуб Небо:"));
+    }
+
     @Test public void unknownTemplateReturnsEmptyText() {
         assertEquals("", MessageTemplates.forTemplate(sample(false), 99));
     }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="aero_background">#F5F7FA</color>
+    <color name="aero_white">#FFFFFF</color>
+    <color name="aero_navy">#172B4D</color>
+    <color name="aero_muted">#526477</color>
+    <color name="aero_blue">#195EA8</color>
+    <color name="aero_green">#137547</color>
+    <color name="aero_border">#DCE4EC</color>
+    <color name="aero_body">#34465A</color>
+</resources>

@@ -51,9 +51,6 @@ public class AdminActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
         root.setPadding(dp(16), dp(12), dp(16), dp(8));
-        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
-        draftTitle = prefs.getString("flight_title", draftTitle);
-        draftPlace = prefs.getString("flight_place", draftPlace);
         FlightRepository.ensureInitialized(this);
         ParticipantRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
@@ -146,10 +143,6 @@ public class AdminActivity extends Activity {
 
     private java.util.List<Participant> localParticipants() {
         return ParticipantRepository.getAll(this);
-    }
-
-    private String participantStatusKey(String participantId) {
-        return "participant_status_" + FlightRepository.getActiveId(this) + "_" + participantId;
     }
 
     private String participantStatus(Participant participant) {
@@ -618,7 +611,7 @@ public class AdminActivity extends Activity {
         row.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle(participant.displayName)
             .setItems(new String[]{"Изменить статус","Переименовать","Удалить участника"}, (dialog, action) -> {
                 if (action == 0) {
-                    String[] options = {"Подтвердил участие","Ожидается ответ","Не участвует"};
+                    String[] options = {AttendanceRepository.STATUS_GOING, AttendanceRepository.STATUS_PENDING, AttendanceRepository.STATUS_NOT_GOING};
                     new AlertDialog.Builder(this).setTitle("Статус участника").setItems(options, (d, which) -> {
                         AttendanceRepository.setResponse(this, participant.id,
                             FlightRepository.getActiveId(this), options[which]);

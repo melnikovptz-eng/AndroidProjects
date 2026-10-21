@@ -4,23 +4,6 @@ name: Build Aeroclub Informer APK
 # Avoid starting a new Android build for every small source/documentation commit.
 
 on:
-  push:
-    branches:
-      - aeroclub-informer
-    paths:
-      - 'Aeroclub/**/*.java'
-      - 'Aeroclub/**/*.kt'
-      - 'Aeroclub/**/*.xml'
-      - 'Aeroclub/**/*.gradle'
-      - 'Aeroclub/**/*.gradle.kts'
-      - 'Aeroclub/**/*.properties'
-      - 'Aeroclub/**/src/main/res/**'
-      - 'Aeroclub/gradlew'
-      - 'Aeroclub/gradle/**'
-      - 'Aeroclub/settings.gradle'
-      - 'Aeroclub/build.gradle'
-      - 'Aeroclub/gradle.properties'
-      - '.github/workflows/build-aeroclub-informer.yml'
   workflow_dispatch:
 
 permissions:

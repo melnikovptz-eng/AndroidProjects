@@ -193,6 +193,7 @@ public class AdminActivity extends Activity {
                     .setNegativeButton("Отмена", null)
                     .setPositiveButton("Удалить", (dialog, which) -> {
                         FlightRepository.delete(this, flight.id);
+                        EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
                         refreshFlightWidget();
                         render();
@@ -273,9 +274,11 @@ public class AdminActivity extends Activity {
                 if (editingFlightId == null) {
                     Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
                     FlightRepository.activate(this, created.id);
+                    EventLogRepository.record(this,"FLT-01","create","success",created.id);
                 } else {
                     FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
                     FlightRepository.activate(this, editingFlightId);
+                    EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);
                 }
                 editingFlightId = null;
                 loadDraftFromActiveFlight();
@@ -350,6 +353,7 @@ public class AdminActivity extends Activity {
             try {
                 startActivity(Intent.createChooser(send,"Отправить сообщение"));
                 MessageRepository.recordShareChooserOpened(this, flightId, body);
+                EventLogRepository.record(this,"MSG-01","share_chooser_opened","delivery_unconfirmed",flightId);
             } catch (Exception e) {
                 Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show();
             }
@@ -438,11 +442,16 @@ public class AdminActivity extends Activity {
     }
 
     private void showNotifications() {
-        card("Напоминание о вылете", "Можно подготовить текст напоминания и поделиться им через приложения на телефоне.", "Подготовить сообщение", () -> { section="Сообщения"; render(); });
-        card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Экран показывает состояние, а не имитирует успешную рассылку.", null, null);
-        card("Статус", "Локальный прототип • сервер не подключён", null, null);
+        card("Напоминание о вылете", "Можно подготовить текст напоминания и поделиться им через приложения на телефоне.",
+            "Подготовить сообщение", () -> { section="Сообщения"; render(); });
+        card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Экран не имитирует успешную рассылку.", null, null);
+        Button log = actionButton("Открыть журнал событий", false);
+        log.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Журнал событий")
+            .setMessage(EventLogRepository.getRecent(this,80))
+            .setPositiveButton("Закрыть",null).show());
+        content.addView(log,lp(-1,dp(48)));
+        note("Журнал хранит технические события без имён участников и текста сообщений.");
     }
-
 
 
     private void addParticipant() {
@@ -459,6 +468,7 @@ public class AdminActivity extends Activity {
                     Toast.makeText(this, "Имя пустое или такой участник уже есть", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                EventLogRepository.record(this,"PAR-01","create","success",created.id);
                 Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -509,6 +519,7 @@ public class AdminActivity extends Activity {
                     new AlertDialog.Builder(this).setTitle("Статус участника").setItems(options, (d, which) -> {
                         getSharedPreferences("flight_informer",0).edit()
                             .putString(participantStatusKey(participant.id), options[which]).apply();
+                        EventLogRepository.record(this,"PAR-01","status_update","success",participant.id);
                         render();
                     }).show();
                 } else if (action == 1) {
@@ -517,6 +528,8 @@ public class AdminActivity extends Activity {
                         .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d, which) -> {
                             if (!ParticipantRepository.rename(this, participant.id, name.getText().toString())) {
                                 Toast.makeText(this,"Имя пустое или уже используется",Toast.LENGTH_SHORT).show();
+                            } else {
+                                EventLogRepository.record(this,"PAR-01","rename","success",participant.id);
                             }
                             render();
                         }).show();
@@ -525,6 +538,7 @@ public class AdminActivity extends Activity {
                         .setMessage("Будут удалены запись участника и его локальные статусы.")
                         .setNegativeButton("Отмена",null).setPositiveButton("Удалить",(d, which) -> {
                             ParticipantRepository.delete(this, participant.id);
+                            EventLogRepository.record(this,"PAR-01","delete","success",participant.id);
                             render();
                         }).show();
                 }

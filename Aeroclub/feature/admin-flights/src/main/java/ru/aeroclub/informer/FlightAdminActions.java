@@ -21,6 +21,11 @@ public final class FlightAdminActions {
 
     public static boolean updateActive(Context context, String id, String title, String date,
                                        String time, String place, String dateIso) {
+        if (title == null || title.trim().isEmpty()) {
+            EventLogRepository.record(context, "FLT-01", "update", "invalid_title", id);
+            return false;
+        }
+        String safePlace = cleanPlace(context, place);
         boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();
         String canonicalDate = FlightDateUtils.toIso(dateIso);
         if (canonicalDate.isEmpty() && !explicitIsoProvided) canonicalDate = FlightDateUtils.toIso(date);
@@ -38,7 +43,7 @@ public final class FlightAdminActions {
             MessageRepository.deleteForFlight(context, id);
             EventLogRepository.record(context, "FLT-01", "demo_conversion_cleanup", "completed_local_only", id);
         }
-        if (!FlightRepository.save(context, id, title, date, time, place, canonicalDate)) {
+        if (!FlightRepository.save(context, id, title.trim(), date, time, safePlace, canonicalDate)) {
             EventLogRepository.record(context, "FLT-01", "update", "save_rejected", id);
             return false;
         }
@@ -85,6 +90,13 @@ public final class FlightAdminActions {
         MessageRepository.deleteForFlight(context, id);
         EventLogRepository.record(context, "FLT-01", "delete", "success", id);
         return true;
+    }
+
+    private static String cleanPlace(Context context, String place) {
+        if (place != null && !place.trim().isEmpty()) return place.trim();
+        ClubSettings settings = ClubSettingsRepository.get(context);
+        return settings.defaultMeetingPlace == null || settings.defaultMeetingPlace.trim().isEmpty()
+            ? "Место встречи не указано" : settings.defaultMeetingPlace.trim();
     }
 
     private static void recordReminderState(Context context, Flight flight) {

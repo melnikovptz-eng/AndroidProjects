@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
                 int min=AudioTrack.getMinBufferSize(RATE,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
                 track=new AudioTrack(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build(),
                     new AudioFormat.Builder().setSampleRate(RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),
-                    Math.max(min,RATE/4),AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
+                    Math.max(min,((RATE/4+1)&~1)),AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
                 synchronized(this){currentTrack=track;}
                 track.setVolume(1.0f);
                 track.play(); short[] buf=new short[512];double phase=0;long last=System.currentTimeMillis();boolean on=true;
@@ -197,7 +197,7 @@ public class MainActivity extends Activity {
     private void playOne(int hz,long ms)throws Exception{
         int min=AudioTrack.getMinBufferSize(RATE,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
         AudioTrack track=new AudioTrack(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build(),
-          new AudioFormat.Builder().setSampleRate(RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),Math.max(min,RATE/4),AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
+          new AudioFormat.Builder().setSampleRate(RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),Math.max(min,((RATE/4+1)&~1)),AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
         track.play();short[] buf=new short[512];double phase=0;long samples=ms*RATE/1000;
         try{while(samples>0&&playing.get()){int n=(int)Math.min(buf.length,samples);for(int i=0;i<n;i++){buf[i]=(short)(Math.sin(phase)*6500);phase+=2*Math.PI*hz/RATE;}track.write(buf,0,n);samples-=n;}}finally{try{track.stop();}catch(Exception ignored){}track.release();}
     }

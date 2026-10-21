@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * AEROCLUB_DEBUG_GITHUB_TOKEN; never place a real token in source control.
  */
 public final class GitHubDebugUploader {
-    private static final String REPOSITORY = "melnikovptz-eng/Aeroclub-Debug";
     private static final String BRANCH = "main";
     private static final int BATCH_THRESHOLD = 50;
     private static final int CONNECT_TIMEOUT_MS = 12000;
@@ -95,7 +94,7 @@ public final class GitHubDebugUploader {
         }
         EXECUTOR.execute(() -> {
             boolean success = false;
-            String message;
+            String message = "Отправка не завершена";
             int lines = 0;
             try {
                 String token = ru.aeroclub.data.BuildConfig.DEBUG_GITHUB_TOKEN;

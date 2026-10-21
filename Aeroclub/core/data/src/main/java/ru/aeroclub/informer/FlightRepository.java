@@ -99,7 +99,7 @@ public final class FlightRepository {
         if (id == null || id.trim().isEmpty()) return false;
         String canonicalDate = FlightDateUtils.toIso(dateIso);
         if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
-        if (canonicalDate.isEmpty() || !isValidTime(time)) return false;
+        if (canonicalDate.isEmpty() || !FlightDateUtils.isValidTime(time)) return false;
         List<Flight> list = getFlights(c);
         boolean found = false;
         for (int i=0; i<list.size(); i++) if (list.get(i).id.equals(id)) {

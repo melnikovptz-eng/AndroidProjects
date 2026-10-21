@@ -12,8 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * Foreground-only file watcher. File reads run off the UI thread and never overlap.
- * Start while the messages screen is visible and stop it when that screen stops.
+ * Foreground-only file watcher. Both metadata checks and JSON reads run on one
+ * background executor. At most one check/read cycle can be in flight.
  */
 public final class LocalMessageFileWatcher implements AutoCloseable {
     public interface Listener {
@@ -31,7 +31,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
     private Context appContext;
     private Listener listener;
     private boolean running;
-    private boolean readInProgress;
+    private boolean checkInProgress;
     private long generation;
     private long lastModified = Long.MIN_VALUE;
     private long lastLength = Long.MIN_VALUE;
@@ -54,67 +54,85 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
         appContext = context.getApplicationContext();
         this.listener = listener;
         running = true;
-        ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_start", "success", "interval_ms=" + intervalMs);
+        ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_start", "success",
+                "interval_ms=" + intervalMs);
         lastModified = Long.MIN_VALUE;
         lastLength = Long.MIN_VALUE;
-        readInProgress = false;
+        checkInProgress = false;
         final long runId = ++generation;
         poll(runId);
     }
 
+    /** Schedules exactly one metadata/read cycle; the next cycle starts after completion. */
     private void poll(long runId) {
+        final Context context;
         synchronized (this) {
-            if (!running || generation != runId || appContext == null) return;
-            if (readInProgress) {
-                main.postDelayed(() -> poll(runId), intervalMs);
-                return;
-            }
+            if (!running || generation != runId || appContext == null || checkInProgress) return;
+            checkInProgress = true;
+            context = appContext;
+        }
 
-            File file = new File(new File(appContext.getFilesDir(),
-                    LocalFileMessageTransport.DIR), LocalFileMessageTransport.NAME);
-            long modified = file.isFile() ? file.lastModified() : 0L;
-            long length = file.isFile() ? file.length() : 0L;
-            if (modified == lastModified && length == lastLength) {
-                main.postDelayed(() -> poll(runId), intervalMs);
-                return;
+        try {
+            pendingRead = io.submit(() -> checkFile(runId, context));
+        } catch (RuntimeException error) {
+            synchronized (this) {
+                if (generation == runId) checkInProgress = false;
             }
-
-            readInProgress = true;
-            Context context = appContext;
-            pendingRead = io.submit(() -> {
-                List<LocalTransportMessage> messages = Collections.emptyList();
-                boolean failed = false;
-                try {
-                    messages = transport.getMessages(context, conversationId);
-                } catch (RuntimeException error) {
-                    failed = true;
-                    ModuleDebugLog.log(context, "MSG-02", "file_watcher_read", "error", error.getClass().getSimpleName());
-                }
-                final List<LocalTransportMessage> result = messages;
-                final boolean readFailed = failed;
-                main.post(() -> {
-                    Listener target;
-                    synchronized (LocalMessageFileWatcher.this) {
-                        if (generation != runId) return;
-                        readInProgress = false;
-                        if (!readFailed) {
-                            lastModified = modified;
-                            lastLength = length;
-                        }
-                        target = running ? listener : null;
-                    }
-                    if (target != null) {
-                        if (readFailed) target.onReadError();
-                        else target.onMessagesChanged(result);
-                    }
-                });
-            });
-            main.postDelayed(() -> poll(runId), intervalMs);
+            ModuleDebugLog.log(context, "MSG-02", "file_watcher_schedule", "error",
+                    error.getClass().getSimpleName());
         }
     }
 
+    private void checkFile(long runId, Context context) {
+        File file = new File(new File(context.getFilesDir(),
+                LocalFileMessageTransport.DIR), LocalFileMessageTransport.NAME);
+        long modified = file.isFile() ? file.lastModified() : 0L;
+        long length = file.isFile() ? file.length() : 0L;
+        boolean changed;
+        synchronized (this) {
+            if (!running || generation != runId) return;
+            changed = modified != lastModified || length != lastLength;
+        }
+
+        List<LocalTransportMessage> messages = Collections.emptyList();
+        boolean failed = false;
+        if (changed) {
+            try {
+                messages = transport.getMessages(context, conversationId);
+            } catch (RuntimeException error) {
+                failed = true;
+                ModuleDebugLog.log(context, "MSG-02", "file_watcher_read", "error",
+                        error.getClass().getSimpleName());
+            }
+        }
+
+        final List<LocalTransportMessage> result = messages;
+        final boolean readFailed = failed;
+        final boolean metadataChanged = changed;
+        main.post(() -> {
+            Listener target;
+            synchronized (LocalMessageFileWatcher.this) {
+                if (generation != runId || !running) return;
+                if (metadataChanged && !readFailed) {
+                    lastModified = modified;
+                    lastLength = length;
+                }
+                checkInProgress = false;
+                target = listener;
+                pendingRead = null;
+            }
+
+            if (target != null && metadataChanged) {
+                if (readFailed) target.onReadError();
+                else target.onMessagesChanged(result);
+            }
+            main.postDelayed(() -> poll(runId), intervalMs);
+        });
+    }
+
     public synchronized void stop() {
-        if (running) ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_stop", "success", "foreground_poll_stopped");
+        if (running) ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_stop",
+                "success", "foreground_poll_stopped");
         stopInternal();
     }
 
@@ -124,7 +142,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
         main.removeCallbacksAndMessages(null);
         if (pendingRead != null) pendingRead.cancel(true);
         pendingRead = null;
-        readInProgress = false;
+        checkInProgress = false;
         listener = null;
         appContext = null;
     }

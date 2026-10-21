@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams adminParams = lp(-1, dp(48));
         adminParams.topMargin = dp(12);
         root.addView(admin, adminParams);
-        admin.setOnClickListener(v -> startActivity(new Intent(this, AdminActivity.class)));
+        admin.setOnClickListener(v -> startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))));
 
         setContentView(root);
         refreshStatusLabel();

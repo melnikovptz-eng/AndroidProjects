@@ -16,7 +16,6 @@ public final class FlightAdminActions {
             EventLogRepository.record(context, "FLT-01", "create", "invalid_title", null);
             return null;
         }
-        }
         String safePlace = cleanPlace(context, place);
         Flight created = FlightRepository.create(context, title.trim(), date, time, safePlace, dateIso);
         if (created == null) {
@@ -34,7 +33,6 @@ public final class FlightAdminActions {
         if (!isValidTitle(title)) {
             EventLogRepository.record(context, "FLT-01", "update", "invalid_title", id);
             return false;
-        }
         }
         String safePlace = cleanPlace(context, place);
         boolean explicitIsoProvided = dateIso != null && !dateIso.trim().isEmpty();

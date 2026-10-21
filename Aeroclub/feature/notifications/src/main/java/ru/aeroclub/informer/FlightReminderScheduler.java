@@ -41,6 +41,10 @@ public final class FlightReminderScheduler {
 
     public static synchronized void syncAll(Context context) {
         List<Flight> flights=FlightRepository.getFlights(context);
+        if (!notificationsEnabled(context)) {
+            for (Flight flight : flights) cancel(context, flight.id);
+            return;
+        }
         for(Flight flight:flights) schedule(context,flight);
     }
 

@@ -11,14 +11,14 @@ public final class FlightPresentation {
 
     public static String shareHeading(Flight flight, String clubName) {
         if (flight == null) return cleanClubName(clubName);
-        return demoPrefix(flight) + cleanClubName(clubName) + " — " + flight.title;
+        return demoPrefix(flight) + clubNameOrDefault(clubName) + " — " + flight.title;
     }
 
     private static String demoPrefix(Flight flight) {
         return flight != null && flight.isDemo ? "ДЕМО · " : "";
     }
 
-    private static String cleanClubName(String clubName) {
+    public static String clubNameOrDefault(String clubName) {
         return clubName == null || clubName.trim().isEmpty() ? "Аэроклуб" : clubName.trim();
     }
 }

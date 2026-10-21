@@ -1,4 +1,5 @@
 name: Build Aeroclub Informer APK
+# CI verifies tests and the debug APK on each Aeroclub source change.
 
 on:
   workflow_dispatch:

@@ -13,6 +13,7 @@ public final class ParticipantRepository {
     private static final String PREFS = "flight_informer";
     private static final String KEY = "participants_json";
     private static final String LEGACY = "custom_participants";
+    private static final String STATUS_MIGRATION_DONE = "participant_status_migration_v2_done";
     private ParticipantRepository() {}
 
     private static SharedPreferences prefs(Context c) {
@@ -33,22 +34,26 @@ public final class ParticipantRepository {
             }
             p.edit().putString(KEY, migrated.toString()).apply();
         }
-        // Preserve statuses written by the earlier name-based format.
-        SharedPreferences.Editor edit = p.edit();
-        boolean changed = false;
-        for (Participant participant : getAllWithoutInit(p)) {
-            for (Flight flight : FlightRepository.getFlights(c)) {
-                String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
-                String newKey = "participant_status_" + flight.id + "_" + participant.id;
-                if (p.contains(oldKey) && !p.contains(newKey)) {
-                    String oldStatus = p.getString(oldKey, "Ожидается ответ");
-                    edit.putString(newKey, oldStatus);
-                    AttendanceRepository.setResponse(c, participant.id, flight.id, oldStatus);
-                    changed = true;
+        // Migrate old name-based statuses once; never rescan the full participant × flight
+        // matrix on every UI render. The marker is written even when there was nothing to migrate.
+        if (!p.getBoolean(STATUS_MIGRATION_DONE, false)) {
+            SharedPreferences.Editor edit = p.edit();
+            for (Participant participant : getAllWithoutInit(p)) {
+                for (Flight flight : FlightRepository.getFlights(c)) {
+                    String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
+                    String newKey = "participant_status_" + flight.id + "_" + participant.id;
+                    if (p.contains(oldKey) && !p.contains(newKey)) {
+                        String oldStatus = p.getString(oldKey, AttendanceRepository.STATUS_PENDING);
+                        String normalized = AttendanceRepository.normalizeStatus(oldStatus);
+                        if (normalized != null) {
+                            edit.putString(newKey, normalized);
+                            AttendanceRepository.setResponse(c, participant.id, flight.id, normalized);
+                        }
+                    }
                 }
             }
+            edit.putBoolean(STATUS_MIGRATION_DONE, true).apply();
         }
-        if (changed) edit.apply();
     }
 
     private static List<Participant> getAllWithoutInit(SharedPreferences p) {

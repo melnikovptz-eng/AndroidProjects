@@ -579,6 +579,7 @@ public class AdminActivity extends Activity {
                     return;
                 }
                 Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
+                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                 render();
             }).show();
     }
@@ -618,6 +619,8 @@ public class AdminActivity extends Activity {
                         if (!ParticipantAdminActions.setResponse(this, participant.id,
                                 FlightRepository.getActiveId(this), options[which])) {
                             Toast.makeText(this, "Не удалось изменить ответ: проверьте активный вылет.", Toast.LENGTH_SHORT).show();
+                        } else {
+                            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         }
                         render();
                     }).show();
@@ -627,6 +630,8 @@ public class AdminActivity extends Activity {
                         .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d, which) -> {
                             if (!ParticipantAdminActions.rename(this, participant.id, name.getText().toString())) {
                                 Toast.makeText(this,"Имя пустое или уже используется",Toast.LENGTH_SHORT).show();
+                            } else {
+                                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                             }
                             render();
                         }).show();
@@ -636,6 +641,8 @@ public class AdminActivity extends Activity {
                         .setNegativeButton("Отмена",null).setPositiveButton("Удалить",(d, which) -> {
                             if (!ParticipantAdminActions.delete(this, participant.id)) {
                                 Toast.makeText(this, "Участник уже отсутствует.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                             }
                             render();
                         }).show();

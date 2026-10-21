@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private final ArrayList<Event> events = new ArrayList<>();
     private final ExecutorService audioWorker = Executors.newSingleThreadExecutor();
     private final AtomicBoolean playing = new AtomicBoolean(false);
+    private final AtomicBoolean keyHeld = new AtomicBoolean(false);
     private EditText baseFreq, duration, pause;
     private TextView status, sequence;
     private Button recordButton, playButton;
@@ -119,32 +120,46 @@ public class MainActivity extends Activity {
     private int number(EditText e,int fallback){try{return Math.max(1,Math.min(10000,Integer.parseInt(e.getText().toString().trim())));}catch(Exception ex){return fallback;}}
     private int frequency(int level){int base=number(baseFreq,450); if(level==0)return base; if(level>0)return Math.min(4000,(int)(base*Math.pow(1.32,level)));return Math.max(100,(int)(base*Math.pow(0.78,-level)));}
     private void beginLevel(int level){
+        keyHeld.set(true);
         if(recording){pressStart=System.currentTimeMillis();pressedLevel=level;}
         startTone(level);
     }
     private void endLevel(int level){
-        stopPlayback();
+        // A quick tap must still finish one audible pulse.
+        keyHeld.set(false);
         if(recording){long now=System.currentTimeMillis();long dur=Math.max(20,now-pressStart);long start=Math.max(0,pressStart-recordingStart);events.add(new Event(level,start,dur));updateSequence();}
     }
     private void startTone(int level){
-        stopPlayback(); playing.set(true);
+        stopPlayback(); keyHeld.set(true); playing.set(true);
         final int hz=frequency(level), toneMs=number(duration,120), gapMs=number(pause,100);
         audioWorker.execute(()->{
+            AudioTrack track=null;
             try{
                 int min=AudioTrack.getMinBufferSize(RATE,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
-                currentTrack=new AudioTrack(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build(),
+                track=new AudioTrack(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build(),
                     new AudioFormat.Builder().setSampleRate(RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),
                     Math.max(min,RATE/4),AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
-                currentTrack.play(); short[] buf=new short[512];double phase=0;long last=System.currentTimeMillis();boolean on=true;
+                synchronized(this){currentTrack=track;}
+                track.setVolume(1.0f);
+                track.play(); short[] buf=new short[512];double phase=0;long last=System.currentTimeMillis();boolean on=true;
                 while(playing.get()){
-                    long elapsed=System.currentTimeMillis()-last; if(elapsed>= (on?toneMs:gapMs)){on=!on;last=System.currentTimeMillis();}
-                    for(int i=0;i<buf.length;i++){buf[i]=(short)(on?Math.sin(phase)*6500:0);phase+=2*Math.PI*hz/RATE;if(phase>2*Math.PI)phase-=2*Math.PI;}
-                    currentTrack.write(buf,0,buf.length);
+                    long elapsed=System.currentTimeMillis()-last;
+                    if(elapsed >= (on ? toneMs : gapMs)){
+                        on=!on; last=System.currentTimeMillis();
+                        if(!keyHeld.get() && !on) break;
+                    }
+                    for(int i=0;i<buf.length;i++){buf[i]=(short)(on?Math.sin(phase)*10000:0);phase+=2*Math.PI*hz/RATE;if(phase>2*Math.PI)phase-=2*Math.PI;}
+                    track.write(buf,0,buf.length);
                 }
-            }catch(Exception ignored){} finally {try{if(currentTrack!=null){currentTrack.pause();currentTrack.flush();currentTrack.release();}}catch(Exception ignored){}currentTrack=null;}
+            }catch(Exception ex){runOnUiThread(()->status.setText("Ошибка звука: "+ex.getMessage()));}
+            finally {
+                if(track!=null){try{track.pause();track.flush();track.release();}catch(Exception ignored){}}
+                synchronized(this){if(currentTrack==track)currentTrack=null;}
+                playing.set(false); keyHeld.set(false);
+            }
         });
     }
-    private synchronized void stopPlayback(){playing.set(false);try{if(currentTrack!=null){currentTrack.pause();currentTrack.flush();}}catch(Exception ignored){}}
+    private synchronized void stopPlayback(){playing.set(false);keyHeld.set(false);try{if(currentTrack!=null){currentTrack.pause();currentTrack.flush();}}catch(Exception ignored){}}
     private void toggleRecording(){
         recording=!recording;
         if(recording){events.clear();recordingStart=System.currentTimeMillis();recordButton.setText("■ Завершить запись");recordButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xff6a1b9a));status.setText("Идёт запись нажатий. Нажимайте и удерживайте уровни −5…+5.");}

@@ -10,7 +10,7 @@ public final class MessageTemplates {
 
     public static String defaultReminder(Flight flight, String clubName) {
         if (flight == null) return "";
-        return cleanClubName(clubName) + ": напоминаем о вылете «" + displayTitle(flight) + "» "
+        return cleanClubName(clubName) + ": напоминаем о вылете «" + FlightPresentation.title(flight) + "» "
             + flight.date + " в " + flight.time + ". Место встречи: " + flight.place
             + ". Подтвердите, пожалуйста, участие.";
     }

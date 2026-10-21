@@ -118,7 +118,7 @@ public final class ModuleDebugLog {
             event.put("outcome", outcome);
             event.put("detail", detail);
             event.put("thread", clean(Thread.currentThread().getName(), 80));
-            byte[] line = (event.toString() + "\\n").getBytes(StandardCharsets.UTF_8);
+            byte[] line = (event.toString() + "\n").getBytes(StandardCharsets.UTF_8);
             if (target.exists() && target.length() + line.length > INTERNAL_MAX_BYTES) {
                 if (backup.exists() && !backup.delete()) return;
                 if (!target.renameTo(backup)) return;

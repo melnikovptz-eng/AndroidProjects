@@ -101,8 +101,8 @@ public final class ModuleDebugLog {
     static boolean isError(String outcome) {
         if (outcome == null) return false;
         String value = outcome.toLowerCase(Locale.ROOT);
-        return value.equals("error") || value.equals("failed") || value.equals("failure")
-                || value.contains("exception") || value.contains("timeout");
+        return value.contains("error") || value.contains("fail") || value.contains("exception")
+                || value.contains("timeout");
     }
 
     static int getPendingCount(Context context) {

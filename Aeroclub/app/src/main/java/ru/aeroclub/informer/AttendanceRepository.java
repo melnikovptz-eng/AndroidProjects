@@ -39,8 +39,12 @@ public final class AttendanceRepository {
     }
 
     public static synchronized void setResponse(Context c, String flightId, String status) {
-        if(flightId==null || flightId.trim().isEmpty()) return;
-        String participantId=getLocalParticipantId(c);
+        setResponse(c, getLocalParticipantId(c), flightId, status);
+    }
+
+    public static synchronized void setResponse(Context c, String participantId, String flightId, String status) {
+        if(participantId==null || participantId.trim().isEmpty() ||
+           flightId==null || flightId.trim().isEmpty() || status==null || status.trim().isEmpty()) return;
         JSONArray source=read(prefs(c).getString(RECORDS,"[]"));
         JSONArray target=new JSONArray();
         String now=String.valueOf(System.currentTimeMillis());
@@ -54,19 +58,22 @@ public final class AttendanceRepository {
             } else target.put(item);
         }
         if(!replaced) target.put(record(participantId,flightId,status,now));
-        prefs(c).edit().putString(RECORDS,target.toString()).putString("status",status).apply();
+        prefs(c).edit().putString(RECORDS,target.toString()).apply();
     }
 
     public static synchronized String getResponse(Context c, String flightId) {
-        if(flightId==null) return "Ответьте, будете ли вы участвовать";
-        String participantId=getLocalParticipantId(c);
+        return getResponse(c, getLocalParticipantId(c), flightId);
+    }
+
+    public static synchronized String getResponse(Context c, String participantId, String flightId) {
+        if(flightId==null || participantId==null) return "Ожидается ответ";
         JSONArray arr=read(prefs(c).getString(RECORDS,"[]"));
         for(int i=0;i<arr.length();i++) {
             JSONObject o=arr.optJSONObject(i);
             if(o!=null && participantId.equals(o.optString("participantId")) && flightId.equals(o.optString("flightId")))
-                return o.optString("status","Ответьте, будете ли вы участвовать");
+                return o.optString("status","Ожидается ответ");
         }
-        return "Ответьте, будете ли вы участвовать";
+        return "Ожидается ответ";
     }
 
     public static synchronized int countResponses(Context c, String flightId, String status) {

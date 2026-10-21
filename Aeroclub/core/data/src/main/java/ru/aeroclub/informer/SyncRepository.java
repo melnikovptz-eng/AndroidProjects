@@ -18,7 +18,7 @@ public final class SyncRepository {
     private SyncRepository() {}
 
     private static SharedPreferences prefs(Context c) {
-        return c.getApplicationContext().getSharedPreferences(PREFS,0);
+        return LocalFilePreferences.get(c);
     }
 
     public static synchronized void enqueue(Context c,String entityType,String entityId,String operation) {

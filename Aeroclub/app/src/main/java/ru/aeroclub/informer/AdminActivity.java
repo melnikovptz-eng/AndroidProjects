@@ -40,6 +40,7 @@ public class AdminActivity extends Activity {
     private final Calendar flightDate = Calendar.getInstance();
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
+    private String editingFlightId = null;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -53,6 +54,8 @@ public class AdminActivity extends Activity {
         android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
         draftTitle = prefs.getString("flight_title", draftTitle);
         draftPlace = prefs.getString("flight_place", draftPlace);
+        FlightRepository.ensureInitialized(this);
+        loadDraftFromActiveFlight();
         setContentView(root);
         render();
     }
@@ -134,21 +137,94 @@ public class AdminActivity extends Activity {
     }
 
     private void showFlights() {
-        card("Активный вылет", draftTitle + "\n" + dateLabel() + " • " + timeLabel() +
-                "\nМесто встречи: " + draftPlace, "Редактировать вылет", this::editFlight);
-        card("Статус публикации", "Черновик хранится на этом устройстве. Публикация для всех участников требует подключения серверного API.",
-                "Изменить данные вылета", this::editFlight);
+        java.util.List<FlightRepository.Flight> flights = FlightRepository.getFlights(this);
+        String activeId = FlightRepository.getActiveId(this);
+        for (FlightRepository.Flight flight : flights) {
+            boolean active = flight.id.equals(activeId);
+            card(active ? "АКТИВНЫЙ ВЫЛЕТ" : "Вылет",
+                flight.title + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place,
+                active ? "Редактировать" : "Сделать активным", () -> {
+                    if (flight.id.equals(FlightRepository.getActiveId(this))) {
+                        editFlight(flight.id);
+                    } else {
+                        FlightRepository.activate(this, flight.id);
+                        loadDraftFromActiveFlight();
+                        refreshFlightWidget();
+                        render();
+                    }
+                });
+            if (flights.size() > 1) {
+                Button delete = smallButton("Удалить этот вылет");
+                delete.setTextColor(Color.rgb(170,65,55));
+                LinearLayout.LayoutParams deleteParams = lp(-1, dp(40));
+                deleteParams.bottomMargin = dp(8);
+                content.addView(delete, deleteParams);
+                delete.setOnClickListener(v -> new AlertDialog.Builder(this)
+                    .setTitle("Удалить вылет?")
+                    .setMessage(flight.title + "\nЭто действие нельзя отменить.")
+                    .setNegativeButton("Отмена", null)
+                    .setPositiveButton("Удалить", (dialog, which) -> {
+                        FlightRepository.delete(this, flight.id);
+                        loadDraftFromActiveFlight();
+                        refreshFlightWidget();
+                        render();
+                    }).show());
+            }
+        }
         Button create = actionButton("＋  Создать вылет", true);
-        create.setOnClickListener(v -> editFlight());
+        create.setOnClickListener(v -> editFlight(null));
         content.addView(create, lp(-1, dp(50)));
+        note("Вылеты хранятся локально на этом устройстве. Общая публикация требует подключения сервера.");
     }
 
-    private void editFlight() {
+    private void loadDraftFromActiveFlight() {
+        FlightRepository.Flight active = FlightRepository.getActive(this);
+        if (active != null) {
+            draftTitle = active.title;
+            draftPlace = active.place;
+            try {
+                java.util.Date parsed = new SimpleDateFormat("EEE, d MMM", Locale.forLanguageTag("ru")).parse(active.date);
+                if (parsed != null) {
+                    Calendar parsedDate = Calendar.getInstance();
+                    parsedDate.setTime(parsed);
+                    flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
+                    flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
+                }
+            } catch (Exception ignored) {}
+            try {
+                String[] parts = active.time.split(":");
+                flightDate.set(Calendar.HOUR_OF_DAY, Integer.parseInt(parts[0]));
+                flightDate.set(Calendar.MINUTE, Integer.parseInt(parts[1]));
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void editFlight(String flightId) {
+        editingFlightId = flightId;
+        FlightRepository.Flight existing = flightId == null ? null : FlightRepository.getById(this, flightId);
+        if (existing != null) {
+            draftTitle = existing.title;
+            draftPlace = existing.place;
+            try {
+                java.util.Date parsed = new SimpleDateFormat("EEE, d MMM", Locale.forLanguageTag("ru")).parse(existing.date);
+                if (parsed != null) {
+                    Calendar parsedDate = Calendar.getInstance();
+                    parsedDate.setTime(parsed);
+                    flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
+                    flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
+                }
+            } catch (Exception ignored) {}
+            try {
+                String[] parts = existing.time.split(":");
+                flightDate.set(Calendar.HOUR_OF_DAY, Integer.parseInt(parts[0]));
+                flightDate.set(Calendar.MINUTE, Integer.parseInt(parts[1]));
+            } catch (Exception ignored) {}
+        }
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(4), dp(4), dp(4), dp(4));
-        EditText title = field("Название вылета", draftTitle);
-        EditText place = field("Место встречи", draftPlace);
+        EditText title = field("Название вылета", existing == null ? "Новый вылет" : existing.title);
+        EditText place = field("Место встречи", existing == null ? draftPlace : existing.place);
         form.addView(title); form.addView(place);
         Button date = smallButton("Дата: " + draftDateLabel());
         Button time = smallButton("Время: " + draftTimeLabel());
@@ -160,15 +236,21 @@ public class AdminActivity extends Activity {
             flightDate.set(Calendar.HOUR_OF_DAY,h); flightDate.set(Calendar.MINUTE,m);
             time.setText("Время: " + draftTimeLabel());
         }, flightDate.get(Calendar.HOUR_OF_DAY), flightDate.get(Calendar.MINUTE), true).show());
-        new AlertDialog.Builder(this).setTitle("Данные вылета").setView(form)
+        new AlertDialog.Builder(this).setTitle(existing == null ? "Создать вылет" : "Редактировать вылет").setView(form)
             .setNegativeButton("Отмена", null).setPositiveButton("Сохранить локально", (d,w) -> {
                 draftTitle = title.getText().toString().trim();
                 draftPlace = place.getText().toString().trim();
                 if (draftTitle.isEmpty()) draftTitle = "Новый вылет";
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
-                getSharedPreferences("flight_informer",0).edit()
-                    .putString("flight_title", draftTitle).putString("flight_place", draftPlace)
-                    .putString("flight_date", draftDateLabel()).putString("flight_time", draftTimeLabel()).apply();
+                if (editingFlightId == null) {
+                    FlightRepository.Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
+                    FlightRepository.activate(this, created.id);
+                } else {
+                    FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
+                    FlightRepository.activate(this, editingFlightId);
+                }
+                editingFlightId = null;
+                loadDraftFromActiveFlight();
                 refreshFlightWidget();
                 Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
                 render();

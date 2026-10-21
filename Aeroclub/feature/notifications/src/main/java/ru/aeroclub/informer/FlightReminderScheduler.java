@@ -76,12 +76,12 @@ public final class FlightReminderScheduler {
     }
 
     public static boolean permissionRequestAttempted(Context context) {
-        return context.getSharedPreferences("flight_informer", Context.MODE_PRIVATE)
+        return LocalFilePreferences.get(context)
             .getBoolean("notification_permission_requested_v1", false);
     }
 
     public static void markPermissionRequestAttempted(Context context) {
-        context.getSharedPreferences("flight_informer", Context.MODE_PRIVATE).edit()
+        LocalFilePreferences.get(context).edit()
             .putBoolean("notification_permission_requested_v1", true).apply();
     }
 

@@ -13,28 +13,36 @@ public final class FlightDateUtils {
     public static String toIso(String value) {
         if(value==null || value.trim().isEmpty()) return "";
         String raw=value.trim();
-        if(raw.matches("\\d{4}-\\d{2}-\\d{2}")) return raw;
-        String[] patterns={"EEE, d MMM","EEE, d MMMM","d MMM","d MMMM"};
-        for(String pattern:patterns) {
+        if(raw.matches("\\d{4}-\\d{2}-\\d{2}")) {
             try {
-                SimpleDateFormat format=new SimpleDateFormat(pattern,RU);
-                format.setLenient(false);
-                Date parsed=format.parse(raw);
-                if(parsed!=null) {
-                    Calendar parsedCalendar=Calendar.getInstance();
-                    parsedCalendar.setTime(parsed);
-                    Calendar result=Calendar.getInstance();
-                    result.set(Calendar.MONTH,parsedCalendar.get(Calendar.MONTH));
-                    result.set(Calendar.DAY_OF_MONTH,parsedCalendar.get(Calendar.DAY_OF_MONTH));
-                    result.set(Calendar.HOUR_OF_DAY,12);
-                    result.set(Calendar.MINUTE,0);
-                    result.set(Calendar.SECOND,0);
-                    result.set(Calendar.MILLISECOND,0);
-                    return new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(result.getTime());
-                }
-            } catch(Exception ignored) {}
+                SimpleDateFormat iso=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);
+                iso.setLenient(false);
+                Date parsed=iso.parse(raw);
+                return parsed==null?"":new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(parsed);
+            } catch(Exception ignored) { return ""; }
         }
-        return "";
+        java.util.regex.Matcher matcher=java.util.regex.Pattern
+            .compile("(?iu)(?:[\\p{L}.]{2,8},\\s*)?(\\d{1,2})\\s+([\\p{L}.]+)")
+            .matcher(raw);
+        if(!matcher.find()) return "";
+        int day;
+        try { day=Integer.parseInt(matcher.group(1)); } catch(Exception ignored) { return ""; }
+        String month=matcher.group(2).toLowerCase(RU).replace(".","");
+        String[] starts={"янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"};
+        int monthIndex=-1;
+        for(int i=0;i<starts.length;i++) if(month.startsWith(starts[i])) { monthIndex=i; break; }
+        if(monthIndex<0) return "";
+        Calendar result=Calendar.getInstance();
+        result.set(Calendar.MONTH,monthIndex);
+        result.set(Calendar.DAY_OF_MONTH,1);
+        result.set(Calendar.HOUR_OF_DAY,12);
+        result.set(Calendar.MINUTE,0);
+        result.set(Calendar.SECOND,0);
+        result.set(Calendar.MILLISECOND,0);
+        int max=result.getActualMaximum(Calendar.DAY_OF_MONTH);
+        if(day<1 || day>max) return "";
+        result.set(Calendar.DAY_OF_MONTH,day);
+        return new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(result.getTime());
     }
 
     public static String toDisplay(String iso) {

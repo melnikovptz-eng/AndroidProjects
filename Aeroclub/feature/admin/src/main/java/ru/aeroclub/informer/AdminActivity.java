@@ -59,6 +59,16 @@ public class AdminActivity extends Activity {
         render();
     }
 
+    private void openNotificationSettings() {
+        refreshOnResume = true;
+        try {
+            startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.parse("package:" + getPackageName())));
+        } catch (Exception e) {
+            Toast.makeText(this, "Откройте настройки приложения вручную", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 1002) {
@@ -573,7 +583,15 @@ public class AdminActivity extends Activity {
                     refreshOnResume = true;
                     if (Build.VERSION.SDK_INT >= 33 &&
                         checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                        requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1002);
+                        boolean requestedBefore = getSharedPreferences("flight_informer", MODE_PRIVATE)
+                            .getBoolean("notification_permission_requested_v1", false);
+                        if (!requestedBefore || shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS)) {
+                            getSharedPreferences("flight_informer", MODE_PRIVATE).edit()
+                                .putBoolean("notification_permission_requested_v1", true).apply();
+                            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1002);
+                        } else {
+                            openNotificationSettings();
+                        }
                     } else {
                         FlightReminderScheduler.ensureChannel(this);
                         if (FlightReminderScheduler.notificationsEnabled(this)) {
@@ -581,9 +599,7 @@ public class AdminActivity extends Activity {
                             FlightReminderScheduler.syncAll(this);
                             Toast.makeText(this, "Локальные напоминания включены.", Toast.LENGTH_SHORT).show();
                         } else {
-                            try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                android.net.Uri.parse("package:" + getPackageName()))); }
-                            catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                            openNotificationSettings();
                         }
                     }
                 }

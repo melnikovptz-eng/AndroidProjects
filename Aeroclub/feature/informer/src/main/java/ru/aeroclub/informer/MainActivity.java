@@ -22,6 +22,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        GitHubDebugUploader.registerNetworkRetry(this);
         screenOpenOperation = ModuleDebugLog.startOperation(this, "UI-01", "informer_screen_open", "screen_created");
         getWindow().setStatusBarColor(AeroclubUi.BACKGROUND);
         getWindow().setNavigationBarColor(Color.WHITE);

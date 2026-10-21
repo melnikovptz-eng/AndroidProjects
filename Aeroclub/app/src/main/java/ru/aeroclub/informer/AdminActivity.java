@@ -245,6 +245,15 @@ public class AdminActivity extends Activity {
     private void editFlight(String flightId) {
         editingFlightId = flightId;
         Flight existing = flightId == null ? null : FlightRepository.getById(this, flightId);
+        if (existing == null) {
+            flightDate.setTimeInMillis(System.currentTimeMillis());
+            flightDate.add(Calendar.DAY_OF_MONTH,1);
+            flightDate.set(Calendar.HOUR_OF_DAY,10);
+            flightDate.set(Calendar.MINUTE,30);
+            flightDate.set(Calendar.SECOND,0);
+            draftTitle = "Новый вылет";
+            draftPlace = ClubSettingsRepository.get(this).defaultMeetingPlace;
+        }
         if (existing != null) {
             draftTitle = existing.title;
             draftPlace = existing.place;

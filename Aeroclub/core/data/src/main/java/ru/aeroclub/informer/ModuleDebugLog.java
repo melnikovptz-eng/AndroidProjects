@@ -169,6 +169,31 @@ public final class ModuleDebugLog {
         return count;
     }
 
+    /** Complete local journal (backup first, then active file) for explicit manual upload. */
+    static String getFullLogSnapshot(Context context) {
+        if (context == null) return "";
+        synchronized (LOCK) {
+            File dir = context.getApplicationContext().getFilesDir();
+            StringBuilder out = new StringBuilder();
+            appendFile(out, new File(dir, BACKUP_NAME));
+            appendFile(out, new File(dir, FILE_NAME));
+            return out.toString();
+        }
+    }
+
+    private static void appendFile(StringBuilder out, File file) {
+        if (!file.isFile()) return;
+        try (FileInputStream input = new FileInputStream(file);
+             ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) bytes.write(buffer, 0, read);
+            out.append(bytes.toString("UTF-8"));
+        } catch (Exception ignored) {
+            // Keep the rest of the journal available if one rotated file cannot be read.
+        }
+    }
+
     /** Returns newest active-file lines first, for the admin viewer. */
     public static String getRecent(Context context, int limit) {
         if (context == null) return "Контекст недоступен.";

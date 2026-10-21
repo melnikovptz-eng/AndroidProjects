@@ -41,7 +41,9 @@ public final class ParticipantRepository {
                 String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
                 String newKey = "participant_status_" + flight.id + "_" + participant.id;
                 if (p.contains(oldKey) && !p.contains(newKey)) {
-                    edit.putString(newKey, p.getString(oldKey, "Ожидается ответ"));
+                    String oldStatus = p.getString(oldKey, "Ожидается ответ");
+                    edit.putString(newKey, oldStatus);
+                    AttendanceRepository.setResponse(c, participant.id, flight.id, oldStatus);
                     changed = true;
                 }
             }

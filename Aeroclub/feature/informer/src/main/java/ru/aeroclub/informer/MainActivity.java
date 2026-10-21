@@ -133,8 +133,11 @@ public class MainActivity extends Activity {
                     return;
                 }
                 AttendanceRepository.setSelectedParticipantId(this, participant.id);
-                AttendanceRepository.setResponse(this, participant.id, flightId, value);
-                EventLogRepository.record(this, "ATT-01", "response_update", "success", participant.id);
+                if (!ParticipantAdminActions.setResponse(this, participant.id, flightId, value)) {
+                    dialog.dismiss();
+                    android.widget.Toast.makeText(this, "Не удалось сохранить ответ.", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 dialog.dismiss();
                 refreshStatusLabel();
                 WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");

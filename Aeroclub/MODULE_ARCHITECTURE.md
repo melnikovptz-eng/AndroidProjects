@@ -145,7 +145,7 @@ Aeroclub/
 
 | Модуль | Реальное содержимое | Зависит от |
 |---|---|---|
-| :core:common | Доменные модели, ISO/date-time validation; unit-тесты | Java standard library |
+| :core:common | Доменные модели, канонические статусы ответов, ISO/date-time validation; unit-тесты | Java standard library |
 | :core:data | Локальные репозитории, миграции, event log и ограниченный outbox | :core:common |
 | :core:ui | AeroclubUi, общая палитра, shape helper и цвета | :core:common |
 | :core:android | FlightActionLauncher, WidgetRefreshManager | :core:common, :core:data |

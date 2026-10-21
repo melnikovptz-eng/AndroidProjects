@@ -407,7 +407,7 @@ public class AdminActivity extends Activity {
         content.addView(save, lp(-1,dp(48)));
 
         Button history = actionButton("История сообщений", false);
-        history.setOnClickListener(v -> showMessageHistory(flightId));
+        history.setOnClickListener(v -> showMessageHistory(flightId,message));
         content.addView(history, lp(-1,dp(48)));
 
         Button share = actionButton("Поделиться…", true);
@@ -431,7 +431,7 @@ public class AdminActivity extends Activity {
         note("История хранит черновики и факт открытия системного меню. Доставка получателю не подтверждается.");
     }
 
-    private void showMessageHistory(String flightId) {
+    private void showMessageHistory(String flightId, EditText editor) {
         java.util.List<MessageRecord> history = MessageRepository.getHistory(this, flightId);
         if (history.isEmpty()) {
             new AlertDialog.Builder(this).setTitle("История сообщений")
@@ -439,18 +439,21 @@ public class AdminActivity extends Activity {
                 .setPositiveButton("Закрыть",null).show();
             return;
         }
-        StringBuilder body = new StringBuilder();
         java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
-        for (MessageRecord item : history) {
-            body.append(format.format(new Date(item.updatedAt))).append("\n")
-                .append(item.state).append("\n").append(item.text).append("\n\n");
+        String[] labels = new String[history.size()];
+        for(int i=0;i<history.size();i++) {
+            MessageRecord item=history.get(i);
+            String preview=item.text.replace("\\n"," ");
+            if(preview.length()>90) preview=preview.substring(0,87)+"…";
+            labels[i]=format.format(new Date(item.updatedAt))+" • "+item.state+"\n"+preview;
         }
-        ScrollView scroll = new ScrollView(this);
-        TextView text = text(body.toString(),14,NAVY,false);
-        text.setPadding(dp(14),dp(10),dp(14),dp(10));
-        scroll.addView(text);
-        new AlertDialog.Builder(this).setTitle("История сообщений").setView(scroll)
-            .setPositiveButton("Закрыть",null).show();
+        new AlertDialog.Builder(this).setTitle("История сообщений")
+            .setItems(labels,(dialog,which) -> {
+                MessageRecord selected=history.get(which);
+                editor.setText(selected.text);
+                EventLogRepository.record(this,"MSG-01","history_item_loaded","success",selected.flightId);
+                Toast.makeText(this,"Текст загружен в редактор; отправка не выполнялась",Toast.LENGTH_SHORT).show();
+            }).setNegativeButton("Закрыть",null).show();
     }
 
     private void showCalendar() {

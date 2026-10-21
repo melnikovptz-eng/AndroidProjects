@@ -61,8 +61,8 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         v.setOnClickPendingIntent(R.id.widget_root, openPending);
         v.setTextViewText(R.id.flight_title, FlightPresentation.title(active));
         v.setTextViewText(R.id.flight_time, active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
-        v.setTextViewText(R.id.flight_place, "Место встречи: " +
-            (active == null ? "не указано" : active.place));
+        v.setTextViewText(R.id.flight_place, "⌖  " +
+            (active == null ? "Аэродром не указан" : active.place));
 
         bindBroadcast(c, v, R.id.btn_going, GOING, 1);
         bindBroadcast(c, v, R.id.btn_not_going, NOT_GOING, 2);

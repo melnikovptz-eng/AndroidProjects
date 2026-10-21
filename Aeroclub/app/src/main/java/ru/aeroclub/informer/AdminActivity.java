@@ -218,10 +218,13 @@ public class AdminActivity extends Activity {
     }
 
     private void showCalendar() {
-        card("Календарь клуба", "Выбранная дата: " + dateLabel() + "\nБлижайшее событие: " + draftTitle, null, null);
+        String selectedDate = getSharedPreferences("flight_informer",0).getString("calendar_date", dateLabel());
+        card("Календарь клуба", "Выбранная дата: " + selectedDate + "\nБлижайшее событие: " + draftTitle, null, null);
         Button choose = actionButton("Выбрать дату", true);
         choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
-            flightDate.set(y,m,d); render();
+            flightDate.set(y,m,d);
+            getSharedPreferences("flight_informer",0).edit().putString("calendar_date",draftDateLabel()).apply();
+            render();
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         content.addView(choose, lp(-1,dp(48)));
         card("События", draftTitle + " • " + timeLabel() + "\n" + draftPlace, "Открыть вылет", () -> { section="Вылеты"; render(); });

@@ -155,7 +155,7 @@ Aeroclub/
 | :feature:calendar | CalendarActions: ISO-дата и поиск вылетов по дате | common, data |
 | :feature:messages | MessageTemplates: единые шаблоны с пометкой демоданных | common |
 | :feature:settings | ClubSettingsActions: чтение/сохранение и журналирование | common, data |
-| :feature:admin | AdminActivity и UI разделов админ-панели | общие библиотеки и feature use cases |
+| :feature:admin | AdminActivity и UI разделов админ-панели | common, data, ui, android, notifications, admin use cases |
 | :feature:informer | MainActivity — превью и действия участника | common, data, ui, android, notifications, admin-participants |
 | :app | FlightWidgetProvider, manifest и упаковка приложения | общие библиотеки и feature-модули |
 

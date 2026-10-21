@@ -575,9 +575,16 @@ public class AdminActivity extends Activity {
                         checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                         requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1002);
                     } else {
-                        try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            android.net.Uri.parse("package:" + getPackageName()))); }
-                        catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                        FlightReminderScheduler.ensureChannel(this);
+                        if (FlightReminderScheduler.notificationsEnabled(this)) {
+                            refreshOnResume = false;
+                            FlightReminderScheduler.syncAll(this);
+                            Toast.makeText(this, "Локальные напоминания включены.", Toast.LENGTH_SHORT).show();
+                        } else {
+                            try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                android.net.Uri.parse("package:" + getPackageName()))); }
+                            catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                        }
                     }
                 }
                 render();

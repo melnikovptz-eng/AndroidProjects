@@ -107,4 +107,4 @@ public final class FlightReminderScheduler {
             return c.getTimeInMillis();
         } catch(Exception ignored) { return 0L; }
     }
-}}
+}

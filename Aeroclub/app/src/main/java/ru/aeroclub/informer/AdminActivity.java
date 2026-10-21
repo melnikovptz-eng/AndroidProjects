@@ -252,7 +252,7 @@ public class AdminActivity extends Activity {
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(4), dp(4), dp(4), dp(4));
         EditText title = field("Название вылета", existing == null ? "Новый вылет" : existing.title);
-        EditText place = field("Место встречи", existing == null ? draftPlace : existing.place);
+        EditText place = field("Место встречи", existing == null ? getSharedPreferences("flight_informer",0).getString("club_default_place", draftPlace) : existing.place);
         form.addView(title); form.addView(place);
         Button date = smallButton("Дата: " + draftDateLabel());
         Button time = smallButton("Время: " + draftTimeLabel());
@@ -338,7 +338,7 @@ public class AdminActivity extends Activity {
 
     private void showCalendar() {
         String selectedDate = getSharedPreferences("flight_informer",0).getString("calendar_date", dateLabel());
-        card("Календарь клуба", "Выбранная дата: " + selectedDate + "\nБлижайшее событие: " + draftTitle, null, null);
+        card("Календарь клуба", "Выбранная дата: " + selectedDate, null, null);
         Button choose = actionButton("Выбрать дату", true);
         choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
             flightDate.set(y,m,d);
@@ -346,23 +346,48 @@ public class AdminActivity extends Activity {
             render();
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         content.addView(choose, lp(-1,dp(48)));
-        card("События", draftTitle + " • " + timeLabel() + "\n" + draftPlace, "Открыть вылет", () -> { section="Вылеты"; render(); });
+        java.util.List<Flight> flights = FlightRepository.getFlights(this);
+        int matches = 0;
+        for (Flight flight : flights) {
+            if (selectedDate.equals(flight.date)) {
+                matches++;
+                boolean active = flight.id.equals(FlightRepository.getActiveId(this));
+                card(active ? "Активный вылет" : "Вылет",
+                    flight.title + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
+                    active ? "Открыть вылеты" : "Сделать активным", () -> {
+                        if (!active) {
+                            FlightRepository.activate(this, flight.id);
+                            loadDraftFromActiveFlight();
+                            refreshFlightWidget();
+                        }
+                        section = "Вылеты";
+                        render();
+                    });
+            }
+        }
+        if (matches == 0) note("На выбранную дату в локальном списке вылетов событий нет.");
+        note("Календарь показывает только сохранённые на этом устройстве вылеты.");
     }
 
     private void showSettings() {
-        card("Профиль клуба", "Название: Аэроклуб\nМесто встречи по умолчанию: " + draftPlace, "Изменить место встречи", () -> {
-            EditText e = field("Место встречи", draftPlace);
-            new AlertDialog.Builder(this).setTitle("Настройки клуба").setView(e)
-                .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d,w) -> {
-                    draftPlace=e.getText().toString().trim();
-                    if(draftPlace.isEmpty()) draftPlace="Не указано";
-                    getSharedPreferences("flight_informer",0).edit().putString("flight_place",draftPlace).apply();
-                    refreshFlightWidget(); render();
-                }).show();
-        });
+        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
+        String defaultPlace = prefs.getString("club_default_place", "Аэродром «Северный»");
+        card("Профиль клуба", "Название: Аэроклуб\nМесто встречи по умолчанию: " + defaultPlace,
+            "Изменить место встречи по умолчанию", () -> {
+                EditText e = field("Место встречи по умолчанию", defaultPlace);
+                new AlertDialog.Builder(this).setTitle("Настройки клуба").setView(e)
+                    .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d,w) -> {
+                        String value=e.getText().toString().trim();
+                        if(value.isEmpty()) value="Не указано";
+                        prefs.edit().putString("club_default_place",value).apply();
+                        Toast.makeText(this,"Настройки клуба сохранены",Toast.LENGTH_SHORT).show();
+                        render();
+                    }).show();
+            });
         card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный ключ.",
                 "Настроить уведомления", () -> { section="Уведомления"; render(); });
         card("Доступ администратора", "Вход и роли пользователей не реализованы. Не публикуйте конфиденциальные данные в этом прототипе.", null, null);
+        note("Настройки клуба хранятся отдельно от полей конкретного вылета.");
     }
 
     private void showNotifications() {

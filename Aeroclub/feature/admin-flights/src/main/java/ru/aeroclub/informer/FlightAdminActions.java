@@ -36,12 +36,13 @@ public final class FlightAdminActions {
     }
 
     public static boolean delete(Context context, String id) {
-        if (!FlightRepository.delete(context, id)) {
+        Flight target = FlightRepository.getById(context, id);
+        if (target == null || !FlightRepository.delete(context, id)) {
             EventLogRepository.record(context, "FLT-01", "delete", "rejected", id);
             return false;
         }
         FlightReminderScheduler.cancel(context, id);
-        AttendanceRepository.deleteFlight(context, id);
+        AttendanceRepository.deleteFlight(context, id, !target.isDemo);
         MessageRepository.deleteForFlight(context, id);
         EventLogRepository.record(context, "FLT-01", "delete", "success", id);
         return true;

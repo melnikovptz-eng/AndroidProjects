@@ -1,0 +1,41 @@
+{
+  "format": "vario-synth-profile",
+  "version": 1,
+  "sampleRate": 44100,
+  "baseFrequencyHz": 500,
+  "toneDurationMs": 300,
+  "pauseDurationMs": 400,
+  "events": [
+    {
+      "level": 0,
+      "frequencyHz": 500,
+      "startMs": 444,
+      "durationMs": 1318
+    },
+    {
+      "level": 1,
+      "frequencyHz": 660,
+      "startMs": 2104,
+      "durationMs": 1416
+    },
+    {
+      "level": 2,
+      "frequencyHz": 871,
+      "startMs": 3747,
+      "durationMs": 1343
+    },
+    {
+      "level": 3,
+      "frequencyHz": 1149,
+      "startMs": 5413,
+      "durationMs": 1315
+    },
+    {
+      "level": 4,
+      "frequencyHz": 1517,
+      "startMs": 7006,
+      "durationMs": 1290
+    }
+  ],
+  "totalDurationMs": 8296
+}

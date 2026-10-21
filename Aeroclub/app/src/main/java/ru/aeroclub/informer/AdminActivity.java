@@ -67,7 +67,7 @@ public class AdminActivity extends Activity {
         TextView title = text(section, 25, NAVY, true);
         heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         Button back = smallButton("К виджету");
-        back.setOnClickListener(v -> { startActivity(new Intent(this, MainActivity.class)); finish(); });
+        back.setOnClickListener(v -> finish());
         heading.addView(back);
         LinearLayout.LayoutParams hp = lp(-1, -2); hp.topMargin = dp(6);
         root.addView(heading, hp);
@@ -169,7 +169,7 @@ public class AdminActivity extends Activity {
                     } else {
                         FlightRepository.activate(this, flight.id);
                         loadDraftFromActiveFlight();
-                        WidgetRefreshManager.refresh(this, FlightWidgetProvider.class);
+                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         render();
                     }
                 });

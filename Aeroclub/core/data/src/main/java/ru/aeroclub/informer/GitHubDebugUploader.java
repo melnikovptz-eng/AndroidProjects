@@ -96,6 +96,7 @@ public final class GitHubDebugUploader {
             boolean success = false;
             String message = "Отправка не завершена";
             int lines = 0;
+            long uploadStartedNanos = System.nanoTime();
             try {
                 String token = ru.aeroclub.data.BuildConfig.DEBUG_GITHUB_TOKEN;
                 if (token == null || token.trim().isEmpty()) {
@@ -152,6 +153,7 @@ public final class GitHubDebugUploader {
             } finally {
                 UPLOADING.set(false);
             }
+            ModuleDebugLog.logInternal(context, "DEBUG-UPLOAD", "github_upload", success ? "success" : "error", message, (System.nanoTime() - uploadStartedNanos) / 1_000_000L);
             if (callback != null) callback.onComplete(success, message, lines);
             boolean requestedAgain = UPLOAD_REQUESTED.getAndSet(false);
             if (success && requestedAgain && ModuleDebugLog.getPendingCount(context) > 0) {

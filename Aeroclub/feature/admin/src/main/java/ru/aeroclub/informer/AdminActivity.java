@@ -370,11 +370,9 @@ public class AdminActivity extends Activity {
         Flight active = FlightRepository.getActive(this);
         String flightId = active == null ? null : active.id;
         String summary = active == null ? "Нет выбранного вылета" :
-            active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+            displayFlightTitle(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
-        EditText message = field("Текст сообщения", active == null ? "" :
-            "Напоминаем о вылете «" + displayFlightTitle(active) + "» " + active.date + " в " + active.time +
-            ". Место встречи: " + active.place + ". Подтвердите, пожалуйста, участие.");
+        EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active));
         content.addView(message);
 
         Button templates = actionButton("Выбрать шаблон", false);
@@ -383,13 +381,7 @@ public class AdminActivity extends Activity {
             new AlertDialog.Builder(this).setTitle("Шаблоны сообщения").setItems(names,(dialog,which) -> {
                 Flight current = FlightRepository.getActive(this);
                 if(current==null) return;
-                String body;
-                if(which==0) body="Напоминаем о вылете «"+displayFlightTitle(current)+"» "+current.date+" в "+current.time+
-                    ". Место встречи: "+current.place+". Пожалуйста, подтвердите участие.";
-                else if(which==1) body="Обновление по вылету «"+displayFlightTitle(current)+"»: "+current.date+" в "+current.time+
-                    ". Место встречи: "+current.place+". Проверьте актуальные данные.";
-                else body="Пожалуйста, подтвердите участие в вылете «"+displayFlightTitle(current)+"» "+current.date+
-                    " в "+current.time+". Место встречи: "+current.place+".";
+                String body = MessageTemplates.forTemplate(current, which);
                 message.setText(body);
                 EventLogRepository.record(this,"MSG-01","template_selected","success",current.id);
             }).show();

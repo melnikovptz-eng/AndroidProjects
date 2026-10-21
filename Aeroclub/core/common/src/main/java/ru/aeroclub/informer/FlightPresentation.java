@@ -10,7 +10,7 @@ public final class FlightPresentation {
     }
 
     public static String shareHeading(Flight flight, String clubName) {
-        if (flight == null) return cleanClubName(clubName);
+        if (flight == null) return clubNameOrDefault(clubName);
         return demoPrefix(flight) + clubNameOrDefault(clubName) + " — " + flight.title;
     }
 

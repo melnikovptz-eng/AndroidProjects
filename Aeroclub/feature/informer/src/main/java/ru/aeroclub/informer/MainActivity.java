@@ -249,6 +249,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        LocalFilePreferences.get(this).flushPendingWrites(500L);
         ModuleDebugLog.log(this, "UI-01", "informer_onPause", "stopped", "screen_background");
         if (messageWatcher != null) messageWatcher.stop();
         super.onPause();

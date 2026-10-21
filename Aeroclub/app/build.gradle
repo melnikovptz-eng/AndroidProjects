@@ -4,6 +4,7 @@ dependencies {
     implementation project(':core:common')
     implementation project(':core:data')
     implementation project(':core:android')
+    implementation project(':feature:notifications')
 }\n\ndependencies {\n    implementation project(':core:common')\n}
 
 android {

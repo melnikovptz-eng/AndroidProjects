@@ -67,7 +67,7 @@ public final class AttendanceRepository {
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
         Flight linkedFlight = FlightRepository.getById(c, flightId);
         if (linkedFlight != null && !linkedFlight.isDemo) SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
-        return LocalFilePreferences.get(c).isStorageHealthy();
+        return LocalFilePreferences.get(c).flushPendingWrites(500L);
     }
 
     public static synchronized void setSelectedParticipantId(Context c, String participantId) {

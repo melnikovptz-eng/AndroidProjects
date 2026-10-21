@@ -70,9 +70,11 @@
 - **Правило:** CI build success, тесты и проверка на физическом устройстве — отдельные статусы.
 
 ## Проверка итерации 2026-10-21
-- Код AERO-001…AERO-007 изменён, но задачи остаются IN PROGRESS до CI и проверки на физическом устройстве.
-- Новый applicationId: `ru.aeroclub.informer.mobile` — отдельная установка, не обновление старого `ru.aeroclub.informer`.
+- **CI:** успешно, run #289: https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39674354938, source SHA `65424395f4a637355809a71a2692ccd53d825147`.
+- **APK:** `ru.aeroclub.informer.mobile`, SHA-256 `fa5b401ee8c5028a4182291e162f60211e7d4ecf9aae3986fce6df701aafdcee`, artifact ID `12381220421`.
+- Новый applicationId — отдельная установка, не обновление старого `ru.aeroclub.informer`.
 - Файл полётов: `Download/Aeroclub_Informer_flights.json`, схема `aeroclub-flights` v1, максимум 2 MiB.
+- **Физическое устройство:** ещё не проверено. Задачи остаются IN PROGRESS до проверки установки, виджета, выбора адресата, календаря и чтения/записи Downloads на телефоне.
 
 ## Текущие известные ограничения (не закрывать без доказательства)
 - Сервер/API, безопасная авторизация, FCM, реальные входящие сообщения и подтверждённая доставка не реализованы.

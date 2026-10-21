@@ -16,14 +16,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
-    private static final int NAVY = Color.rgb(23, 43, 77);
-    private static final int MUTED = Color.rgb(82, 100, 119);
-    private static final int GREEN = Color.rgb(19, 117, 71);
+    private static final int NAVY = AeroclubUi.NAVY;
+    private static final int MUTED = AeroclubUi.MUTED;
+    private static final int GREEN = AeroclubUi.GREEN;
     private TextView status;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(245, 247, 250));
+        getWindow().setStatusBarColor(AeroclubUi.BACKGROUND);
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Color.WHITE);
         cardBg.setCornerRadius(dp(18));
-        cardBg.setStroke(dp(1), Color.rgb(220, 228, 236));
+        cardBg.setStroke(dp(1), AeroclubUi.BORDER);
         card.setBackground(cardBg);
         card.addView(text("АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true));
         LinearLayout.LayoutParams cardParams = lp(-1, -2);
@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
         Flight activeFlight = FlightRepository.getActive(this);
         card.addView(text(activeFlight == null ? "Ближайший вылет" : activeFlight.title, 18, NAVY, true));
         addLine(card, activeFlight == null ? "Дата и время уточняются" :
-            activeFlight.date + "  •  " + activeFlight.time, 14, Color.rgb(52, 70, 90), 2);
+            activeFlight.date + "  •  " + activeFlight.time, 14, AeroclubUi.BODY, 2);
         addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
         status = text("Выберите участника, чтобы указать ответ", 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);

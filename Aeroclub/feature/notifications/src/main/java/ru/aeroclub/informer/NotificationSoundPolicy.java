@@ -5,10 +5,11 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 
 /**
- * Single owner of the local flight-reminder notification channel and its default sound policy.
+ * Single owner of the local flight-reminder channel and its variometer-climb alert sound.
  * Android 8+ lets the user override channel sound; an existing channel is never reset behind
  * the user's back. This is local notification sound, not an incoming-message or FCM sound.
  */
@@ -49,15 +50,17 @@ public final class NotificationSoundPolicy {
         channel.setDescription(CHANNEL_DESCRIPTION);
         channel.enableVibration(true);
         channel.setVibrationPattern(VIBRATION_PATTERN);
+        Uri varioSound = Uri.parse("android.resource://" + context.getPackageName() + "/"
+            + ru.aeroclub.notifications.R.raw.vario_climb);
         channel.setSound(
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+            varioSound,
             new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build());
         manager.createNotificationChannel(channel);
         ModuleDebugLog.log(context, "NTF-SOUND", "ensure_channel", "success_local",
-            "default_notification_sound_and_vibration_configured");
+            "vario_climb_sound_and_vibration_configured");
     }
 
     /** Returns diagnostic state only; Android/user settings remain the source of truth. */

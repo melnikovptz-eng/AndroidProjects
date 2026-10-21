@@ -54,6 +54,10 @@ public final class FlightDateUtils {
         } catch(Exception ignored) { return iso==null?"":iso; }
     }
 
+    public static boolean isValidTime(String time) {
+        return time != null && time.matches("(?:[01]\\\\d|2[0-3]):[0-5]\\\\d");
+    }
+
     public static long toMillis(String iso,String time) {
         try {
             SimpleDateFormat input=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT);

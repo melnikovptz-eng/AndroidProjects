@@ -17,11 +17,11 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Текущий HEAD ветки `aeroclub-informer`: `d7cbe2d4101151a11d509d9c60c97d63b5131f87`.
-- Последний успешный workflow run: [run #276](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39658970194), `conclusion=success`, source SHA совпадает с HEAD.
-- Artifact: `Aeroclub-Informer-debug-d7cbe2d4101151a11d509d9c60c97d63b5131f87`; APK SHA-256: `b63c7ec619e5d5472b33aa06eb6bc93675dc3aa2db6325b29002b202701e004c`.
-- **Статус артефакта: BUILD SUCCESS, актуален для HEAD.** Доступные unit-тесты прошли; часть модулей пока не содержит собственных тестов. Реальное устройство не проверено.
-- Workflow запускается при изменениях `Aeroclub/**` или самого workflow, а также вручную. В APK больше не встраивается GitHub-токен; диагностический журнал можно передать только явным действием пользователя через Android share chooser.
+- Текущий HEAD ветки `aeroclub-informer`: `745eb4e715266f50a4001d66a7116e964bee3819`.
+- Последний успешный workflow run: [run #278](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39660899265), source SHA `b39615700c6625c3cede3595880c2a7097a23480`; после этого изменялась только Markdown-документация, Java/Kotlin/ресурсы/Gradle остались прежними.
+- Artifact: [Aeroclub-Informer-debug-b39615700c6625c3cede3595880c2a7097a23480](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39660899265/artifacts/12372773950); APK SHA-256: `608dd43fc5a7b63700dd9f2d155bd94fa440406b1fb35c5ca1ec2b19f8f065ef`.
+- **Статус артефакта: BUILD SUCCESS; код соответствует текущему состоянию, но build-info SHA не равен общему HEAD из-за последующих Markdown-only commits.** Доступные unit-тесты прошли; часть модулей не содержит тестов. Реальное устройство не проверено.
+- После изменения workflow Markdown-only commits не запускают сборку. В APK нет GitHub-токена; журнал передаётся только явным действием пользователя через Android share chooser. Напоминания пересчитываются после create/edit/delete и после перезагрузки/смены даты/времени/часового пояса.
 
 ### VARIO
 - Последний найденный успешный run: [run #10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472).

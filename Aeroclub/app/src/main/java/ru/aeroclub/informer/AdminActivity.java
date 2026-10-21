@@ -120,7 +120,7 @@ public class AdminActivity extends Activity {
             active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Ближайший вылет", flightSummary,
              "Открыть вылеты", () -> { section = "Вылеты"; render(); });
-        int total = localParticipantNames().size();
+        int total = localParticipants().size();
         int going = countLocalParticipantStatus("Подтвердил участие");
         int noReply = countLocalParticipantStatus("Ожидается ответ");
         LinearLayout stats = new LinearLayout(this);
@@ -333,6 +333,7 @@ public class AdminActivity extends Activity {
         Button save = actionButton("Сохранить черновик", false);
         save.setOnClickListener(v -> {
             MessageRecord saved = MessageRepository.saveDraft(this, flightId, message.getText().toString());
+            if (saved != null) EventLogRepository.record(this,"MSG-01","save_draft","success",flightId);
             Toast.makeText(this, saved == null ? "Введите текст сообщения" : "Черновик сохранён", Toast.LENGTH_SHORT).show();
         });
         content.addView(save, lp(-1,dp(48)));

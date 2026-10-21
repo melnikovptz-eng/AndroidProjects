@@ -17,6 +17,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * One-device persistence adapter for the existing repository API.
@@ -33,12 +35,19 @@ public final class LocalFilePreferences implements SharedPreferences {
     private static final String LEGACY_PREFS = "flight_informer";
     private static final int FORMAT_VERSION = 1;
     private static final Object LOCK = new Object();
+    private static final Object FILE_LOCK = new Object();
+    private static final ExecutorService DISK_WRITER = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "aeroclub-json-store");
+        thread.setDaemon(true);
+        return thread;
+    });
     private static LocalFilePreferences instance;
 
     private final File file;
     private final Map<String, Object> values = new LinkedHashMap<>();
     private final Set<OnSharedPreferenceChangeListener> listeners = new HashSet<>();
-    private boolean readError;
+    private volatile boolean readError;
+    private volatile boolean writeError;
 
     private LocalFilePreferences(Context context) {
         file = new File(context.getApplicationContext().getFilesDir(), FILE_NAME);
@@ -51,7 +60,7 @@ public final class LocalFilePreferences implements SharedPreferences {
                 values.putAll(copyMap(legacy));
                 // A transient first-write failure may be retried by the next repository write.
                 // There is no existing JSON file to protect from accidental replacement yet.
-                writeFile(values);
+                writeError = !writeFile(values);
             }
         }
     }
@@ -106,6 +115,7 @@ public final class LocalFilePreferences implements SharedPreferences {
                     }
                 }
                 readError = false;
+                writeError = false;
             } catch (Exception error) {
                 // Preserve the damaged file for recovery; never auto-reset user data.
                 readError = true;
@@ -115,7 +125,7 @@ public final class LocalFilePreferences implements SharedPreferences {
     }
 
     private boolean writeFile(Map<String, Object> data) {
-        synchronized (LOCK) {
+        synchronized (FILE_LOCK) {
             File parent = file.getParentFile();
             File temp = new File(parent, FILE_NAME + ".tmp");
             try {
@@ -150,6 +160,16 @@ public final class LocalFilePreferences implements SharedPreferences {
                 return false;
             }
         }
+    }
+
+    public boolean isStorageHealthy() {
+        return !readError && !writeError;
+    }
+
+    public String getStorageStatus() {
+        if (readError) return "Файл данных повреждён или имеет неподдерживаемую версию; запись заблокирована для защиты данных.";
+        if (writeError) return "Не удалось сохранить файл данных; последняя запись может быть не сохранена.";
+        return "Локальный файл данных доступен.";
     }
 
     @Override public Map<String, ?> getAll() {
@@ -225,22 +245,43 @@ public final class LocalFilePreferences implements SharedPreferences {
         @Override public Editor putBoolean(String key, boolean value) { changes.put(key,value); removals.remove(key); return this; }
         @Override public Editor remove(String key) { changes.remove(key); removals.add(key); return this; }
         @Override public Editor clear() { clear=true; changes.clear(); removals.clear(); return this; }
-        @Override public boolean commit() {
-            Set<String> changed = new HashSet<>();
+        @Override public boolean commit() { return persistChanges(true); }
+        @Override public void apply() { persistChanges(false); }
+
+        private boolean persistChanges(boolean synchronous) {
+            final Set<String> changed = new HashSet<>();
+            final Map<String, Object> snapshot;
             synchronized (LOCK) {
                 if (readError) return false;
                 Map<String, Object> next = copyMap(values);
                 if (clear) { changed.addAll(next.keySet()); next.clear(); }
-                for (String key : removals) { if (next.containsKey(key)) changed.add(key); next.remove(key); }
+                for (String key : removals) {
+                    if (next.containsKey(key)) changed.add(key);
+                    next.remove(key);
+                }
                 for (Map.Entry<String,Object> entry : changes.entrySet()) {
                     Object old = next.get(entry.getKey());
                     Object value = entry.getValue();
                     if (old == null || !old.equals(value)) changed.add(entry.getKey());
                     next.put(entry.getKey(), value instanceof Set ? new HashSet<>((Set<?>)value) : value);
                 }
-                if (!writeFile(next)) return false;
-                values.clear();
-                values.putAll(next);
+                snapshot = copyMap(next);
+                if (synchronous) {
+                    if (!writeFile(snapshot)) {
+                        writeError = true;
+                        return false;
+                    }
+                    values.clear();
+                    values.putAll(next);
+                    writeError = false;
+                } else {
+                    values.clear();
+                    values.putAll(next);
+                    DISK_WRITER.execute(() -> {
+                        boolean ok = writeFile(snapshot);
+                        writeError = !ok;
+                    });
+                }
             }
             for (OnSharedPreferenceChangeListener listener : snapshotListeners()) {
                 for (String key : changed) {
@@ -250,7 +291,6 @@ public final class LocalFilePreferences implements SharedPreferences {
             }
             return true;
         }
-        @Override public void apply() { commit(); }
     }
 
     private Set<OnSharedPreferenceChangeListener> snapshotListeners() {

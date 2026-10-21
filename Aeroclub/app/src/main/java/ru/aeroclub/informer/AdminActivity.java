@@ -28,11 +28,11 @@ import java.util.Locale;
  * Data is intentionally stored on-device until a real club API is configured.
  */
 public class AdminActivity extends Activity {
-    private static final int BG = Color.rgb(245, 247, 250);
-    private static final int NAVY = Color.rgb(23, 43, 77);
-    private static final int MUTED = Color.rgb(82, 100, 119);
-    private static final int BLUE = Color.rgb(25, 94, 168);
-    private static final int GREEN = Color.rgb(19, 117, 71);
+    private static final int BG = AeroclubUi.BACKGROUND;
+    private static final int NAVY = AeroclubUi.NAVY;
+    private static final int MUTED = AeroclubUi.MUTED;
+    private static final int BLUE = AeroclubUi.BLUE;
+    private static final int GREEN = AeroclubUi.GREEN;
     private LinearLayout root, content;
     private String section = "Обзор";
     private final Calendar flightDate = Calendar.getInstance();
@@ -693,7 +693,7 @@ public class AdminActivity extends Activity {
         return t;
     }
     private GradientDrawable round(int color,int radius,int stroke) {
-        GradientDrawable d=new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); d.setStroke(dp(1),stroke); return d;
+        return AeroclubUi.rounded(this, color, radius, stroke);
     }
     private LinearLayout.LayoutParams lp(int w,int h) { return new LinearLayout.LayoutParams(w,h); }
     private int dp(int v) { return (int)(v*getResources().getDisplayMetrics().density+0.5f); }

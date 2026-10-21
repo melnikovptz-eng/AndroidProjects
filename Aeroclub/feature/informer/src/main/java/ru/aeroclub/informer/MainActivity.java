@@ -16,6 +16,8 @@ public class MainActivity extends Activity {
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
+    private static final int REQUEST_EXPORT_MESSAGES = 7101;
+    private static final int REQUEST_IMPORT_MESSAGES = 7102;
     private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace, localAnnouncement;
     private LocalMessageFileWatcher messageWatcher;
     private DebugOperation screenOpenOperation;
@@ -91,6 +93,17 @@ public class MainActivity extends Activity {
         admin.setOnClickListener(v -> runTimedAction("ADM-01", "open_admin", () ->
             startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")))));
 
+        Button exportMessages = button("Экспортировать файл сообщений");
+        Button importMessages = button("Импортировать файл сообщений");
+        LinearLayout.LayoutParams exchangeParams = lp(-1, dp(48));
+        exchangeParams.topMargin = dp(6);
+        root.addView(exportMessages, exchangeParams);
+        LinearLayout.LayoutParams importParams = lp(-1, dp(48));
+        importParams.topMargin = dp(4);
+        root.addView(importMessages, importParams);
+        exportMessages.setOnClickListener(v -> launchMessageExport());
+        importMessages.setOnClickListener(v -> launchMessageImport());
+
         android.widget.ScrollView pageScroll = new android.widget.ScrollView(this);
         pageScroll.setFillViewport(true);
         pageScroll.setClipToPadding(false);
@@ -99,6 +112,86 @@ public class MainActivity extends Activity {
         refreshStatusLabel();
         handleAttendanceAction(getIntent());
         if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }
+    }
+
+
+    private void launchMessageExport() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, "aeroclub-messages.json");
+        try { startActivityForResult(intent, REQUEST_EXPORT_MESSAGES); }
+        catch (RuntimeException error) {
+            android.widget.Toast.makeText(this, "Не удалось открыть выбор места сохранения файла", android.widget.Toast.LENGTH_LONG).show();
+            ModuleDebugLog.log(this, "MSG-02", "file_export_picker", "error", error.getClass().getSimpleName());
+        }
+    }
+
+    private void launchMessageImport() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        try { startActivityForResult(intent, REQUEST_IMPORT_MESSAGES); }
+        catch (RuntimeException error) {
+            android.widget.Toast.makeText(this, "Не удалось открыть выбор файла", android.widget.Toast.LENGTH_LONG).show();
+            ModuleDebugLog.log(this, "MSG-02", "file_import_picker", "error", error.getClass().getSimpleName());
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            if (requestCode == REQUEST_EXPORT_MESSAGES || requestCode == REQUEST_IMPORT_MESSAGES) {
+                ModuleDebugLog.log(this, "MSG-02", "file_exchange", "cancelled", "user_cancelled_or_no_uri");
+            }
+            return;
+        }
+        android.net.Uri uri = data.getData();
+        LocalFileMessageTransport transport = new LocalFileMessageTransport();
+        try {
+            if (requestCode == REQUEST_EXPORT_MESSAGES) {
+                int count;
+                try (java.io.OutputStream output = getContentResolver().openOutputStream(uri, "wt")) {
+                    if (output == null) throw new java.io.IOException("cannot_open_output");
+                    count = transport.exportTo(this, output);
+                }
+                android.widget.Toast.makeText(this, "Экспортировано записей: " + count, android.widget.Toast.LENGTH_LONG).show();
+            } else if (requestCode == REQUEST_IMPORT_MESSAGES) {
+                int added;
+                try (java.io.InputStream input = getContentResolver().openInputStream(uri)) {
+                    if (input == null) throw new java.io.IOException("cannot_open_input");
+                    added = transport.importFrom(this, input);
+                }
+                android.widget.Toast.makeText(this, "Импортировано новых записей: " + added, android.widget.Toast.LENGTH_LONG).show();
+                if (localAnnouncement != null) {
+                    messageWatcher = null;
+                    refreshAnnouncementWatcher();
+                }
+            }
+        } catch (Exception error) {
+            ModuleDebugLog.log(this, "MSG-02", "file_exchange", "error", error.getClass().getSimpleName());
+            android.widget.Toast.makeText(this, "Файловый обмен не выполнен: " + error.getClass().getSimpleName(), android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void refreshAnnouncementWatcher() {
+        if (messageWatcher != null) messageWatcher.stop();
+        messageWatcher = new LocalMessageFileWatcher(
+            MessageTransportProvider.get(), LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL);
+        messageWatcher.start(this, new LocalMessageFileWatcher.Listener() {
+            @Override public void onMessagesChanged(java.util.List<LocalTransportMessage> messages) {
+                if (localAnnouncement == null) return;
+                LocalTransportMessage newest = null;
+                for (LocalTransportMessage item : messages) {
+                    if (newest == null || item.createdAt > newest.createdAt) newest = item;
+                }
+                localAnnouncement.setText(newest == null ? "Объявлений в локальном файле пока нет"
+                    : "Локальное объявление (только этот телефон):\\n" + newest.body);
+            }
+            @Override public void onReadError() {
+                if (localAnnouncement != null) localAnnouncement.setText("Не удалось прочитать локальный файл объявлений");
+            }
+        });
     }
 
     @Override protected void onNewIntent(Intent intent) {

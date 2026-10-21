@@ -78,6 +78,104 @@ public final class LocalFileMessageTransport implements MessageTransport {
         }
     }
 
+
+    /** Export a versioned JSON exchange file through Android's Storage Access Framework. */
+    public int exportTo(Context context, java.io.OutputStream output) throws java.io.IOException {
+        if (context == null || output == null) throw new java.io.IOException("missing_context_or_output");
+        synchronized (LocalFileMessageTransport.class) {
+            List<LocalTransportMessage> all = read(context);
+            if (all == null) throw new java.io.IOException("message_store_unreadable");
+            try {
+                JSONObject root = new JSONObject();
+                root.put("format", "aeroclub-message-exchange");
+                root.put("version", 1);
+                root.put("exportedAt", System.currentTimeMillis());
+                JSONArray array = new JSONArray();
+                for (LocalTransportMessage message : all) {
+                    JSONObject item = new JSONObject();
+                    item.put("id", message.id);
+                    item.put("conversationId", message.conversationId);
+                    item.put("recipientId", message.recipientId);
+                    item.put("recipientLabel", message.recipientLabel);
+                    item.put("direction", message.direction);
+                    item.put("body", message.body);
+                    item.put("status", message.status);
+                    item.put("createdAt", message.createdAt);
+                    array.put(item);
+                }
+                root.put("messages", array);
+                output.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
+                output.flush();
+                ModuleDebugLog.log(context, "MSG-02", "file_export", "success", "count=" + all.size());
+                return all.size();
+            } catch (org.json.JSONException error) {
+                throw new java.io.IOException("message_export_json_error", error);
+            }
+        }
+    }
+
+    /**
+     * Imports and merges a validated exchange file. Existing IDs are never duplicated;
+     * malformed files are rejected before any local data is changed.
+     */
+    public int importFrom(Context context, java.io.InputStream input) throws java.io.IOException {
+        if (context == null || input == null) throw new java.io.IOException("missing_context_or_input");
+        byte[] bytes;
+        try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            byte[] chunk = new byte[4096];
+            int count;
+            while ((count = input.read(chunk)) != -1) {
+                if (buffer.size() + count > 2 * 1024 * 1024) throw new java.io.IOException("exchange_file_too_large");
+                buffer.write(chunk, 0, count);
+            }
+            bytes = buffer.toByteArray();
+        }
+        final JSONArray incoming;
+        try {
+            JSONObject root = new JSONObject(new String(bytes, StandardCharsets.UTF_8));
+            if (!"aeroclub-message-exchange".equals(root.optString("format"))
+                    || root.optInt("version", -1) != 1
+                    || !root.has("messages")) throw new java.io.IOException("unsupported_exchange_format");
+            incoming = root.getJSONArray("messages");
+            if (incoming.length() > LIMIT) throw new java.io.IOException("too_many_messages");
+            for (int i = 0; i < incoming.length(); i++) {
+                JSONObject item = incoming.optJSONObject(i);
+                if (item == null || item.optString("id").trim().isEmpty()
+                        || item.optString("conversationId").trim().isEmpty()
+                        || item.optString("body").trim().isEmpty()
+                        || !("INCOMING".equals(item.optString("direction"))
+                            || "OUTGOING".equals(item.optString("direction")))) {
+                    throw new java.io.IOException("invalid_message_record_" + i);
+                }
+            }
+        } catch (org.json.JSONException error) {
+            throw new java.io.IOException("invalid_exchange_json", error);
+        }
+
+        synchronized (LocalFileMessageTransport.class) {
+            List<LocalTransportMessage> existing = read(context);
+            if (existing == null) throw new java.io.IOException("message_store_unreadable");
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            for (LocalTransportMessage message : existing) ids.add(message.id);
+            int added = 0;
+            for (int i = 0; i < incoming.length(); i++) {
+                JSONObject item = incoming.optJSONObject(i);
+                String id = item.optString("id").trim();
+                if (!ids.add(id)) continue;
+                existing.add(new LocalTransportMessage(
+                        id, item.optString("conversationId"), item.optString("recipientId"),
+                        item.optString("recipientLabel"), item.optString("direction"),
+                        item.optString("body"), item.optString("status", "IMPORTED"),
+                        item.optLong("createdAt", System.currentTimeMillis())));
+                added++;
+            }
+            if (added > 0 && !write(context, existing)) throw new java.io.IOException("local_merge_write_failed");
+            ModuleDebugLog.log(context, "MSG-02", "file_import", "success",
+                    "added=" + added + "; received=" + incoming.length());
+            return added;
+        }
+    }
+
     @Override
     public List<LocalTransportMessage> getMessages(Context context, String conversationId) {
         if (context == null) return Collections.emptyList();

@@ -702,18 +702,14 @@ public class AdminActivity extends Activity {
         });
         content.addView(debugLog, lp(-1, dp(48)));
 
-        Button uploadDebug = actionButton("Отправить лог-файл в GitHub", false);
+        Button uploadDebug = actionButton("Поделиться журналом отладки", false);
         uploadDebug.setOnClickListener(v -> {
             uploadDebug.setEnabled(false);
             uploadDebug.setText("Отправка…");
             GitHubDebugUploader.uploadNow(this, (success, message, lines) -> runOnUiThread(() -> {
                 uploadDebug.setEnabled(true);
-                uploadDebug.setText("Отправить лог-файл в GitHub");
-                new AlertDialog.Builder(this)
-                    .setTitle(success ? "Отладочный журнал" : "Ошибка отправки")
-                    .setMessage(message)
-                    .setPositiveButton("OK", null)
-                    .show();
+                uploadDebug.setText("Поделиться журналом отладки");
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             }));
         });
         LinearLayout.LayoutParams uploadParams = lp(-1, dp(48));

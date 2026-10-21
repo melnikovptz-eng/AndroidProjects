@@ -44,11 +44,11 @@ public class MainActivity extends Activity {
         root.addView(card, cardParams);
 
         FlightRepository.ensureInitialized(this);
-        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer", 0);
-        card.addView(text(prefs.getString("flight_title", "Полёт выходного дня"), 18, NAVY, true));
-        addLine(card, prefs.getString("flight_date", "Вс, 25 октября") + "  •  " +
-            prefs.getString("flight_time", "10:30"), 14, Color.rgb(52, 70, 90), 2);
-        addLine(card, "Место встречи: " + prefs.getString("flight_place", "аэродром «Северный»"), 13, MUTED, 2);
+        Flight activeFlight = FlightRepository.getActive(this);
+        card.addView(text(activeFlight == null ? "Ближайший вылет" : activeFlight.title, 18, NAVY, true));
+        addLine(card, activeFlight == null ? "Дата и время уточняются" :
+            activeFlight.date + "  •  " + activeFlight.time, 14, Color.rgb(52, 70, 90), 2);
+        addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
         status = text(AttendanceRepository.getResponse(this, FlightRepository.getActiveId(this)), 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);
         statusParams.topMargin = dp(5);
@@ -75,20 +75,40 @@ public class MainActivity extends Activity {
         going.setOnClickListener(v -> setStatus("Вы подтвердили участие"));
         no.setOnClickListener(v -> setStatus("Вы не участвуете"));
         route.setOnClickListener(v -> {
-            String place = getSharedPreferences("flight_informer", 0).getString("flight_place", "аэродром Северный");
+            Flight active = FlightRepository.getActive(this);
+            String place = active == null ? "" : active.place;
+            if (place.trim().isEmpty()) {
+                android.widget.Toast.makeText(this,"Место встречи не указано",android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
             Intent map = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(place)));
-            try { startActivity(map); } catch (Exception ignored) { setStatus("Не найдено приложение карт"); }
+            try {
+                startActivity(map);
+                EventLogRepository.record(this,"MAP-01","open_route","intent_started",active.id);
+            } catch (Exception e) {
+                android.widget.Toast.makeText(this,"Не найдено приложение для карт",android.widget.Toast.LENGTH_SHORT).show();
+                EventLogRepository.record(this,"MAP-01","open_route","no_maps_app",active.id);
+            }
         });
         telegram.setOnClickListener(v -> {
+            Flight active = FlightRepository.getActive(this);
+            if (active == null) {
+                android.widget.Toast.makeText(this,"Нет данных о вылете",android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String body = "Аэроклуб — " + active.title + ": " + active.date + ", " + active.time +
+                ". Место встречи: " + active.place + ".";
             Intent share = new Intent(Intent.ACTION_SEND);
             share.setType("text/plain");
-            android.content.SharedPreferences p = getSharedPreferences("flight_informer", 0);
-            share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — " +
-                p.getString("flight_title", "ближайший вылет") + ": " +
-                p.getString("flight_date", "дата уточняется") + ", " +
-                p.getString("flight_time", "время уточняется") +
-                ". Место встречи: " + p.getString("flight_place", "уточняется") + ".");
-            startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
+            share.putExtra(Intent.EXTRA_TEXT, body);
+            try {
+                startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
+                MessageRepository.recordShareChooserOpened(this,active.id,body);
+                EventLogRepository.record(this,"SHR-01","share_chooser_opened","delivery_unconfirmed",active.id);
+            } catch (Exception e) {
+                android.widget.Toast.makeText(this,"Нет приложения для отправки",android.widget.Toast.LENGTH_SHORT).show();
+                EventLogRepository.record(this,"SHR-01","share_chooser_opened","no_share_app",active.id);
+            }
         });
 
         Button admin = button("Панель администратора");
@@ -102,7 +122,9 @@ public class MainActivity extends Activity {
 
     private void setStatus(String value) {
         FlightRepository.ensureInitialized(this);
-        AttendanceRepository.setResponse(this, FlightRepository.getActiveId(this), value);
+        String flightId = FlightRepository.getActiveId(this);
+        AttendanceRepository.setResponse(this, flightId, value);
+        EventLogRepository.record(this,"ATT-01","response_update","success",flightId);
         status.setText(value);
         // Keep the home-screen widget synchronized with the preview screen.
         AppWidgetManager manager = AppWidgetManager.getInstance(this);

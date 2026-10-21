@@ -35,6 +35,17 @@ public final class FlightAdminActions {
         return true;
     }
 
+    public static boolean activate(Context context, String id) {
+        Flight target = FlightRepository.getById(context, id);
+        if (target == null) {
+            EventLogRepository.record(context, "FLT-01", "activate", "rejected_missing", id);
+            return false;
+        }
+        FlightRepository.activate(context, id);
+        EventLogRepository.record(context, "FLT-01", "activate", "local_only", id);
+        return true;
+    }
+
     public static boolean delete(Context context, String id) {
         Flight target = FlightRepository.getById(context, id);
         if (target == null || !FlightRepository.delete(context, id)) {

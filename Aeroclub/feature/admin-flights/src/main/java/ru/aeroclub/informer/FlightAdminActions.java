@@ -8,7 +8,12 @@ public final class FlightAdminActions {
 
     public static Flight createAndActivate(Context context, String title, String date,
                                            String time, String place, String dateIso) {
-        Flight created = FlightRepository.create(context, title, date, time, place, dateIso);
+        if (title == null || title.trim().isEmpty()) {
+            EventLogRepository.record(context, "FLT-01", "create", "invalid_title", null);
+            return null;
+        }
+        String safePlace = cleanPlace(context, place);
+        Flight created = FlightRepository.create(context, title.trim(), date, time, safePlace, dateIso);
         if (created == null) {
             EventLogRepository.record(context, "FLT-01", "create", "invalid_date_or_time", null);
             return null;

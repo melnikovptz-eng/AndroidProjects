@@ -1,6 +1,8 @@
 package ru.aeroclub.informer;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -92,6 +94,15 @@ public class MainActivity extends Activity {
     private void setStatus(String value) {
         getSharedPreferences("flight_informer", 0).edit().putString("status", value).apply();
         status.setText(value);
+        // Keep the home-screen widget synchronized with the preview screen.
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        int[] ids = manager.getAppWidgetIds(new ComponentName(this, FlightWidgetProvider.class));
+        if (ids.length > 0) {
+            Intent update = new Intent(this, FlightWidgetProvider.class);
+            update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+            sendBroadcast(update);
+        }
     }
 
     private void addLine(LinearLayout box, String value, int size, int color, int top) {

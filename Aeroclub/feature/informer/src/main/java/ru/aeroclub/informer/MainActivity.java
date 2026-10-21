@@ -145,7 +145,16 @@ public class MainActivity extends Activity {
                     return;
                 }
                 AttendanceRepository.setSelectedParticipantId(this, participant.id);
-                if (!ParticipantAdminActions.setResponse(this, participant.id, flightId, value)) {
+                DebugOperation saveOperation = ModuleDebugLog.startOperation(this, "ATT-01", "save_attendance_response", "flight_response");
+                boolean saved;
+                try {
+                    saved = ParticipantAdminActions.setResponse(this, participant.id, flightId, value);
+                    saveOperation.finish(saved ? "success" : "error", saved ? "saved" : "save_failed");
+                } catch (RuntimeException error) {
+                    saveOperation.finish("error", error.getClass().getSimpleName());
+                    throw error;
+                }
+                if (!saved) {
                     dialog.dismiss();
                     android.widget.Toast.makeText(this, "Не удалось сохранить ответ.", android.widget.Toast.LENGTH_SHORT).show();
                     return;

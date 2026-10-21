@@ -109,10 +109,21 @@ public final class ModuleDebugLog {
                 uri = createDownload(resolver);
                 if (uri == null) return;
             }
-            try (OutputStream output = resolver.openOutputStream(uri, "wa")) {
-                if (output != null) {
+            if ("file".equals(uri.getScheme())) {
+                File file = new File(uri.getPath());
+                File parent = file.getParentFile();
+                if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return;
+                try (FileOutputStream output = new FileOutputStream(file, true)) {
                     output.write(line.getBytes(StandardCharsets.UTF_8));
                     output.flush();
+                    output.getFD().sync();
+                }
+            } else {
+                try (OutputStream output = resolver.openOutputStream(uri, "wa")) {
+                    if (output != null) {
+                        output.write(line.getBytes(StandardCharsets.UTF_8));
+                        output.flush();
+                    }
                 }
             }
         } catch (Exception ignored) {

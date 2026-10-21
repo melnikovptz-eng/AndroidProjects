@@ -23,11 +23,11 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         if (!p.contains(FLIGHTS)) {
             String id = UUID.randomUUID().toString();
-            Flight initial = new Flight(id,
-                p.getString("flight_title", "Полёт выходного дня"),
-                p.getString("flight_date", "Вс, 25 октября"),
-                p.getString("flight_time", "10:30"),
-                p.getString("flight_place", "аэродром «Северный»"));
+            String title = p.getString("flight_title", "Полёт выходного дня");
+            String date = p.getString("flight_date", "Вс, 25 октября");
+            String time = p.getString("flight_time", "10:30");
+            String place = p.getString("flight_place", "аэродром «Северный»");
+            Flight initial = new Flight(id, title, date, time, place, false, FlightDateUtils.toIso(date), true);
             JSONArray arr = new JSONArray();
             arr.put(toJson(initial));
             p.edit().putString(FLIGHTS, arr.toString()).putString(ACTIVE_ID, id).apply();
@@ -40,18 +40,18 @@ public final class FlightRepository {
     public static synchronized List<Flight> getFlights(Context c) {
         if (!prefs(c).contains(FLIGHTS)) ensureInitialized(c);
         ArrayList<Flight> result = new ArrayList<>();
-        boolean needsDateMigration=false;
+        boolean needsMigration=false;
         try {
             JSONArray arr = new JSONArray(prefs(c).getString(FLIGHTS, "[]"));
             for (int i=0; i<arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
-                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty()) needsDateMigration=true;
+                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty() || !o.has("isDemo")) needsMigration=true;
                     result.add(fromJson(o));
                 }
             }
         } catch (Exception ignored) {}
-        if(needsDateMigration && !result.isEmpty()) persist(c,result);
+        if(needsMigration && !result.isEmpty()) persist(c,result);
         return result;
     }
 
@@ -109,7 +109,7 @@ public final class FlightRepository {
         for (int i=0; i<list.size(); i++) {
             Flight old = list.get(i);
             if (old.id.equals(id)) {
-                list.set(i,new Flight(old.id,old.title,old.date,old.time,old.place,published,old.dateIso));
+                list.set(i,new Flight(old.id,old.title,old.date,old.time,old.place,published,old.dateIso,old.isDemo));
                 found = true;
                 break;
             }
@@ -155,7 +155,7 @@ public final class FlightRepository {
 
     private static JSONObject toJson(Flight f) {
         JSONObject o = new JSONObject();
-        try { o.put("id",f.id); o.put("title",f.title); o.put("date",f.date); o.put("time",f.time); o.put("place",f.place); o.put("published",f.published); o.put("dateIso",f.dateIso); }
+        try { o.put("id",f.id); o.put("title",f.title); o.put("date",f.date); o.put("time",f.time); o.put("place",f.place); o.put("published",f.published); o.put("dateIso",f.dateIso); o.put("isDemo",f.isDemo); }
         catch (Exception ignored) {}
         return o;
     }
@@ -165,7 +165,15 @@ public final class FlightRepository {
         String dateIso=o.optString("dateIso",FlightDateUtils.toIso(date));
         return new Flight(o.optString("id",UUID.randomUUID().toString()), o.optString("title","Вылет"),
             date, o.optString("time","Время уточняется"),
-            o.optString("place","Место встречи не указано"), o.optBoolean("published",true),dateIso);
+            o.optString("place","Место встречи не указано"), o.optBoolean("published",true),dateIso,
+            o.optBoolean("isDemo", isLegacyDemo(o)));
+    }
+
+    private static boolean isLegacyDemo(JSONObject o) {
+        return "Полёт выходного дня".equals(o.optString("title", ""))
+            && "Вс, 25 октября".equals(o.optString("date", ""))
+            && "10:30".equals(o.optString("time", ""))
+            && "аэродром «Северный»".equals(o.optString("place", ""));
     }
 
     private static String clean(String value, String fallback) {

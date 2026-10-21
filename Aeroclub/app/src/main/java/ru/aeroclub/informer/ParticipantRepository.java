@@ -126,6 +126,9 @@ public final class ParticipantRepository {
             saveAll(c, list);
             SyncRepository.enqueue(c,"participant",id,"delete");
             AttendanceRepository.deleteParticipant(c, id);
+            if (id.equals(AttendanceRepository.getSelectedParticipantId(c))) {
+                AttendanceRepository.setSelectedParticipantId(c, null);
+            }
             // Remove participant-scoped legacy status keys for all flights.
             SharedPreferences p = prefs(c);
             SharedPreferences.Editor e = p.edit();

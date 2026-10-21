@@ -23,6 +23,14 @@ public class FlightDateUtilsTest {
         assertFalse(regular.isDemo);
     }
 
+    @Test public void acceptsValidFlightTime() {
+        assertTrue(FlightDateUtils.toMillis("2026-10-25", "10:30") > 0L);
+    }
+
+    @Test public void rejectsInvalidFlightTime() {
+        assertEquals(0L, FlightDateUtils.toMillis("2026-10-25", "25:61"));
+    }
+
     @Test public void formatsIsoDateForDisplay() {
         assertTrue(FlightDateUtils.toDisplay("2026-10-25").contains("25"));
     }

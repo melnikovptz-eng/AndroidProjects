@@ -718,7 +718,7 @@ public class AdminActivity extends Activity {
             .setNegativeButton("Отмена", null).setPositiveButton("Добавить", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String name = input.getText().toString().trim();
-            if (!ParticipantAdminActions.isValidName(name))
+            if (!ParticipantAdminActions.isValidName(name)) {
                 input.setError("Введите имя участника");
                 input.requestFocus();
                 return;

@@ -1,8 +1,11 @@
 package ru.aeroclub.informer;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
-import android.net.Network;
+import android.net.NetworkInfo;
 import android.util.Base64;
 
 import org.json.JSONObject;
@@ -28,31 +31,62 @@ public final class GitHubDebugUploader {
     private static final int BATCH_THRESHOLD = 50;
     private static final int CONNECT_TIMEOUT_MS = 12000;
     private static final int READ_TIMEOUT_MS = 20000;
+    private static final String PREFS = "module_debug_upload";
+    private static final String RETRY_NEEDED = "retry_needed";
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "aeroclub-debug-upload");
         thread.setDaemon(true);
         return thread;
     });
     private static final AtomicBoolean UPLOADING = new AtomicBoolean(false);
+    private static final AtomicBoolean RECEIVER_REGISTERED = new AtomicBoolean(false);
 
     private GitHubDebugUploader() { }
 
     static void onNewRecord(Context context, boolean urgent) {
         if (context == null) return;
         if (urgent || ModuleDebugLog.getPendingCount(context) >= BATCH_THRESHOLD) {
-            uploadAsync(context, null);
+            uploadAsync(context.getApplicationContext(), null, false);
         }
     }
 
+    /** Call once from the launcher Activity. Retries failed batches when connectivity returns. */
+    public static void registerNetworkRetry(Context context) {
+        if (context == null || !RECEIVER_REGISTERED.compareAndSet(false, true)) return;
+        Context app = context.getApplicationContext();
+        try {
+            app.registerReceiver(new BroadcastReceiver() {
+                @Override public void onReceive(Context ignored, Intent intent) {
+                    try {
+                        ConnectivityManager manager = (ConnectivityManager) app.getSystemService(Context.CONNECTIVITY_SERVICE);
+                        NetworkInfo info = manager == null ? null : manager.getActiveNetworkInfo();
+                        boolean connected = info != null && info.isConnected();
+                        boolean retry = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                                .getBoolean(RETRY_NEEDED, false);
+                        boolean thresholdReached = ModuleDebugLog.getPendingCount(app) >= BATCH_THRESHOLD;
+                        if (connected && ModuleDebugLog.getPendingCount(app) > 0 && (retry || thresholdReached)) {
+                            uploadAsync(app, null, false);
+                        }
+                    } catch (Exception ignoredError) {
+                        // Connectivity monitoring must never affect app behavior.
+                    }
+                }
+            }, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        } catch (Exception ignored) {
+            RECEIVER_REGISTERED.set(false);
+        }
+    }
+
+    /** Manual action uploads the complete current log plus rotated backup, not just pending lines. */
     public static void uploadNow(Context context, Callback callback) {
         if (context == null) {
             if (callback != null) callback.onComplete(false, "Контекст недоступен", 0);
             return;
         }
-        uploadAsync(context.getApplicationContext(), callback);
+        uploadAsync(context.getApplicationContext(), callback, true);
     }
 
-    private static void uploadAsync(Context context, Callback callback) {
+    private static void uploadAsync(Context context, Callback callback, boolean fullJournal) {
         if (!UPLOADING.compareAndSet(false, true)) {
             if (callback != null) callback.onComplete(false, "Отправка уже выполняется", 0);
             return;
@@ -64,19 +98,21 @@ public final class GitHubDebugUploader {
             try {
                 String token = ru.aeroclub.data.BuildConfig.DEBUG_GITHUB_TOKEN;
                 if (token == null || token.trim().isEmpty()) {
-                    throw new IllegalStateException("Не задан AEROCLUB_DEBUG_GITHUB_TOKEN при сборке");
+                    throw new IllegalStateException("Не задан AEROCLUB_DEBUG_GITHUB_TOKEN при сборке APK");
                 }
-                String snapshot = ModuleDebugLog.getPendingSnapshot(context);
-                lines = countLines(snapshot);
-                if (snapshot.isEmpty() || lines == 0) {
+                String pendingSnapshot = ModuleDebugLog.getPendingSnapshot(context);
+                String uploadContent = fullJournal ? ModuleDebugLog.getFullLogSnapshot(context) : pendingSnapshot;
+                lines = countLines(uploadContent);
+                if (uploadContent.isEmpty() || lines == 0) {
                     success = true;
-                    message = "Новых строк для отправки нет";
+                    message = "Журнал пуст: отправлять нечего";
+                    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(RETRY_NEEDED, false).apply();
                 } else {
                     String path = "uploads/" + System.currentTimeMillis() + "-" + UUID.randomUUID() + ".jsonl";
                     JSONObject payload = new JSONObject();
-                    payload.put("message", "Aeroclub diagnostic batch: " + lines + " lines");
+                    payload.put("message", "Aeroclub diagnostic log: " + lines + " lines");
                     payload.put("branch", BRANCH);
-                    payload.put("content", Base64.encodeToString(snapshot.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP));
+                    payload.put("content", Base64.encodeToString(uploadContent.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP));
                     HttpURLConnection connection = null;
                     try {
                         URL url = new URL("https://api.github.com/repos/" + REPOSITORY + "/contents/" + path);
@@ -101,7 +137,8 @@ public final class GitHubDebugUploader {
                         if (code < 200 || code >= 300) {
                             throw new IllegalStateException("GitHub HTTP " + code + ": " + safeResponse(response));
                         }
-                        ModuleDebugLog.markPendingUploaded(context, snapshot);
+                        if (!pendingSnapshot.isEmpty()) ModuleDebugLog.markPendingUploaded(context, pendingSnapshot);
+                        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(RETRY_NEEDED, false).apply();
                         success = true;
                         message = "Отправлено строк: " + lines;
                     } finally {
@@ -110,6 +147,7 @@ public final class GitHubDebugUploader {
                 }
             } catch (Exception error) {
                 message = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(RETRY_NEEDED, true).apply();
             } finally {
                 UPLOADING.set(false);
             }

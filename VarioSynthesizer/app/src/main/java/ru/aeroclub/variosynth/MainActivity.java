@@ -50,6 +50,8 @@ public class MainActivity extends Activity {
     private int pressedLevel;
     private JSONArray recorded = new JSONArray();
     private AudioTrack currentTrack;
+    // Protects a new tone from an older worker finishing late.
+    private volatile long playbackGeneration = 0;
 
     static class Event {
         int level; long startMs; long durationMs;
@@ -130,7 +132,10 @@ public class MainActivity extends Activity {
         if(recording){long now=System.currentTimeMillis();long dur=Math.max(20,now-pressStart);long start=Math.max(0,pressStart-recordingStart);events.add(new Event(level,start,dur));updateSequence();}
     }
     private void startTone(int level){
-        stopPlayback(); keyHeld.set(true); playing.set(true);
+        stopPlayback();
+        final long token = ++playbackGeneration;
+        keyHeld.set(true);
+        playing.set(true);
         final int hz=frequency(level), toneMs=number(duration,120), gapMs=number(pause,100);
         audioWorker.execute(()->{
             AudioTrack track=null;
@@ -142,7 +147,7 @@ public class MainActivity extends Activity {
                 synchronized(this){currentTrack=track;}
                 track.setVolume(1.0f);
                 track.play(); short[] buf=new short[512];double phase=0;long last=System.currentTimeMillis();boolean on=true;
-                while(playing.get()){
+                while(playing.get() && playbackGeneration == token){
                     long elapsed=System.currentTimeMillis()-last;
                     // Stop shortly after finger release, but keep a 40 ms minimum pulse for quick taps.
                     if(!keyHeld.get() && elapsed>=40) break;
@@ -157,11 +162,20 @@ public class MainActivity extends Activity {
             finally {
                 if(track!=null){try{track.pause();track.flush();track.release();}catch(Exception ignored){}}
                 synchronized(this){if(currentTrack==track)currentTrack=null;}
-                playing.set(false); keyHeld.set(false);
+                // An old audio task must never silence a newer button press.
+                if (playbackGeneration == token) {
+                    playing.set(false);
+                    keyHeld.set(false);
+                }
             }
         });
     }
-    private synchronized void stopPlayback(){playing.set(false);keyHeld.set(false);try{if(currentTrack!=null){currentTrack.pause();currentTrack.flush();}}catch(Exception ignored){}}
+    private synchronized void stopPlayback(){
+        playbackGeneration++;
+        playing.set(false);
+        keyHeld.set(false);
+        try{if(currentTrack!=null){currentTrack.pause();currentTrack.flush();}}catch(Exception ignored){}
+    }
     private void toggleRecording(){
         recording=!recording;
         if(recording){events.clear();recordingStart=System.currentTimeMillis();recordButton.setText("■ Завершить запись");recordButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xff6a1b9a));status.setText("Идёт запись нажатий. Нажимайте и удерживайте уровни −5…+5.");}

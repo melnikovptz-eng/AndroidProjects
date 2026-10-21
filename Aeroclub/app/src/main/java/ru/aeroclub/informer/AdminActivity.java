@@ -545,9 +545,14 @@ public class AdminActivity extends Activity {
         card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Локальные напоминания не заменяют push-рассылку.", null, null);
         card("Состояние", "Локальные напоминания работают на этом устройстве. Удалённая отправка уведомлений пока недоступна.", null, null);
         Button log = actionButton("Открыть журнал событий", false);
-        log.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Журнал событий")
-            .setMessage(EventLogRepository.getRecent(this,80))
-            .setPositiveButton("Закрыть",null).show());
+        log.setOnClickListener(v -> {
+            ScrollView scroll = new ScrollView(this);
+            TextView logText = text(EventLogRepository.getRecent(this,80),13,NAVY,false);
+            logText.setPadding(dp(14),dp(10),dp(14),dp(10));
+            scroll.addView(logText);
+            new AlertDialog.Builder(this).setTitle("Журнал событий").setView(scroll)
+                .setPositiveButton("Закрыть",null).show();
+        });
         content.addView(log,lp(-1,dp(48)));
         note("Журнал хранит технические события без имён участников и текста сообщений.");
     }

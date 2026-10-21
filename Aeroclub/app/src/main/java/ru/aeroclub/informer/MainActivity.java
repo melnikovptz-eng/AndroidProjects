@@ -30,8 +30,6 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(16), dp(16), dp(16), dp(16));
         root.setBackgroundColor(Color.rgb(245, 247, 250));
-        root.addView(text("АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true));
-
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
@@ -40,6 +38,7 @@ public class MainActivity extends Activity {
         cardBg.setCornerRadius(dp(18));
         cardBg.setStroke(dp(1), Color.rgb(220, 228, 236));
         card.setBackground(cardBg);
+        card.addView(text("АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true));
         LinearLayout.LayoutParams cardParams = lp(-1, -2);
         cardParams.topMargin = dp(8);
         root.addView(card, cardParams);
@@ -84,10 +83,6 @@ public class MainActivity extends Activity {
             startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
         });
 
-        TextView hint = text("Добавление на главный экран: удерживайте пустое место рабочего стола → Виджеты → «Аэроклуб — информер».", 13, MUTED, false);
-        LinearLayout.LayoutParams hintParams = lp(-1, -2);
-        hintParams.topMargin = dp(14);
-        root.addView(hint, hintParams);
         setContentView(root);
     }
 

@@ -38,7 +38,8 @@ public final class GitHubDebugUploader {
         thread.setDaemon(true);
         return thread;
     });
-    private static final AtomicBoolean UPLOADING = new AtomicBoolean(false);\n    private static final AtomicBoolean UPLOAD_REQUESTED = new AtomicBoolean(false);
+    private static final AtomicBoolean UPLOADING = new AtomicBoolean(false);
+    private static final AtomicBoolean UPLOAD_REQUESTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECEIVER_REGISTERED = new AtomicBoolean(false);
 
     private GitHubDebugUploader() { }
@@ -88,7 +89,8 @@ public final class GitHubDebugUploader {
 
     private static void uploadAsync(Context context, Callback callback, boolean fullJournal) {
         if (!UPLOADING.compareAndSet(false, true)) {
-            if (callback != null) callback.onComplete(false, "Отправка уже выполняется", 0);
+            UPLOAD_REQUESTED.set(true);
+            if (callback != null) callback.onComplete(false, "Отправка уже выполняется; повторная отправка поставлена в очередь", 0);
             return;
         }
         EXECUTOR.execute(() -> {
@@ -152,6 +154,10 @@ public final class GitHubDebugUploader {
                 UPLOADING.set(false);
             }
             if (callback != null) callback.onComplete(success, message, lines);
+            boolean requestedAgain = UPLOAD_REQUESTED.getAndSet(false);
+            if (success && requestedAgain && ModuleDebugLog.getPendingCount(context) > 0) {
+                uploadAsync(context, null, false);
+            }
         });
     }
 

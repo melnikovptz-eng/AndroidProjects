@@ -78,9 +78,12 @@ public final class FlightRepository {
     }
 
     public static synchronized Flight create(Context c, String title, String date, String time, String place, String dateIso) {
+        String canonicalDate = FlightDateUtils.toIso(dateIso);
+        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() || !isValidTime(time)) return null;
         Flight f = new Flight(UUID.randomUUID().toString(), clean(title,"Новый вылет"),
-            clean(date,"Дата уточняется"), clean(time,"Время уточняется"), clean(place,"Место встречи не указано"),
-            false,dateIso);
+            clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
+            clean(place,"Место встречи не указано"), false, canonicalDate, false);
         List<Flight> list = getFlights(c);
         list.add(f);
         persist(c, list);
@@ -88,23 +91,33 @@ public final class FlightRepository {
         return f;
     }
 
-    public static synchronized void save(Context c, String id, String title, String date, String time, String place) {
-        save(c,id,title,date,time,place,FlightDateUtils.toIso(date));
+    public static synchronized boolean save(Context c, String id, String title, String date, String time, String place) {
+        return save(c,id,title,date,time,place,FlightDateUtils.toIso(date));
     }
 
-    public static synchronized void save(Context c, String id, String title, String date, String time, String place, String dateIso) {
+    public static synchronized boolean save(Context c, String id, String title, String date, String time, String place, String dateIso) {
+        if (id == null || id.trim().isEmpty()) return false;
+        String canonicalDate = FlightDateUtils.toIso(dateIso);
+        if (canonicalDate.isEmpty()) canonicalDate = FlightDateUtils.toIso(date);
+        if (canonicalDate.isEmpty() || !isValidTime(time)) return false;
         List<Flight> list = getFlights(c);
         boolean found = false;
         for (int i=0; i<list.size(); i++) if (list.get(i).id.equals(id)) {
             Flight old = list.get(i);
-            list.set(i, new Flight(id, clean(title,"Новый вылет"), clean(date,"Дата уточняется"),
-                clean(time,"Время уточняется"), clean(place,"Место встречи не указано"), old.published,dateIso));
+            list.set(i, new Flight(id, clean(title,"Новый вылет"),
+                clean(date,FlightDateUtils.toDisplay(canonicalDate)), clean(time,"Время уточняется"),
+                clean(place,"Место встречи не указано"), old.published, canonicalDate, false));
             found = true; break;
         }
-        if (!found) return;
+        if (!found) return false;
         persist(c, list);
         SyncRepository.enqueue(c,"flight",id,"update");
         if (id.equals(getActiveId(c))) activate(c, id);
+        return true;
+    }
+
+    private static boolean isValidTime(String value) {
+        return value != null && value.matches("(?:[01]\\d|2[0-3]):[0-5]\\d");
     }
 
     public static synchronized void setPublished(Context c, String id, boolean published) {

@@ -114,26 +114,54 @@ public class AdminActivity extends Activity {
     }
 
     private void showOverview() {
-        card("Ближайший вылет", "Полёт выходного дня\n" + dateLabel() + " • 10:30\nМесто встречи: " + draftPlace,
+        Flight active = FlightRepository.getActive(this);
+        String flightSummary = active == null ? "Нет выбранного вылета" :
+            active.title + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+        card("Ближайший вылет", flightSummary,
              "Открыть вылеты", () -> { section = "Вылеты"; render(); });
+        int total = localParticipantNames().size();
+        int going = countLocalParticipantStatus("Подтвердил участие");
+        int noReply = countLocalParticipantStatus("Ожидается ответ");
         LinearLayout stats = new LinearLayout(this);
         stats.setOrientation(LinearLayout.HORIZONTAL);
-        stat(stats, "12", "участников");
-        stat(stats, "9", "едут");
-        stat(stats, "3", "без ответа");
+        stat(stats, String.valueOf(total), "локальных участников");
+        stat(stats, String.valueOf(going), "едут");
+        stat(stats, String.valueOf(noReply), "без ответа");
         content.addView(stats);
-        card("Участники", "Список подтверждений и контактов участников полёта.",
+        card("Участники", "Показываются только записи, сохранённые на этом устройстве.",
              "Управлять участниками", () -> { section = "Участники"; render(); });
-        card("Сообщения", "Подготовка объявления для группы и статусы отправки.",
+        card("Сообщения", "Подготовка текста; доставка и массовая рассылка не подключены.",
              "Открыть сообщения", () -> { section = "Сообщения"; render(); });
-        card("Календарь", "Даты вылетов и предстоящие события клуба.",
+        card("Календарь", "Даты локальных вылетов.",
              "Открыть календарь", () -> { section = "Календарь"; render(); });
-        card("Сервис", "Настройки клуба и уведомления.",
+        card("Сервис", "Настройки клуба и состояние уведомлений.",
              "Настройки", () -> { section = "Настройки"; render(); });
         Button notifications = actionButton("Уведомления", false);
         notifications.setOnClickListener(v -> { section = "Уведомления"; render(); });
         content.addView(notifications, lp(-1, dp(48)));
-        note("Демонстрационные данные. Сервер и рассылка пока не подключены.");
+        note("Локальный прототип. Эти числа не отражают участников клуба на других устройствах.");
+    }
+
+    private java.util.List<String> localParticipantNames() {
+        java.util.ArrayList<String> names = new java.util.ArrayList<>();
+        String custom = getSharedPreferences("flight_informer",0).getString("custom_participants", "");
+        if (!custom.isEmpty()) {
+            for (String name : custom.split("\n")) {
+                String clean = name.trim();
+                if (!clean.isEmpty() && !names.contains(clean)) names.add(clean);
+            }
+        }
+        return names;
+    }
+
+    private int countLocalParticipantStatus(String status) {
+        int count = 0;
+        for (String name : localParticipantNames()) {
+            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
+            String saved = getSharedPreferences("flight_informer",0).getString(key, "Ожидается ответ");
+            if (status.equals(saved)) count++;
+        }
+        return count;
     }
 
     private void showFlights() {
@@ -258,18 +286,21 @@ public class AdminActivity extends Activity {
     }
 
     private void showParticipants() {
-        card("Сводка", "Всего: 12  •  Подтвердили: 9  •  Не ответили: 3", null, null);
-        participant("Александр Иванов", "Подтвердил участие", GREEN);
-        participant("Мария Смирнова", "Подтвердила участие", GREEN);
-        participant("Дмитрий Петров", "Ожидается ответ", MUTED);
-        participant("Елена Соколова", "Не участвует", Color.rgb(170, 65, 55));
-        participant("Ещё 8 участников", "Демо-список; реальные контакты не подключены", MUTED);
-        String custom = getSharedPreferences("flight_informer",0).getString("custom_participants", "");
-        if (!custom.isEmpty()) {
-            for (String name : custom.split("\\n")) {
-                if (!name.trim().isEmpty()) participant(name.trim(),
-                    getSharedPreferences("flight_informer",0).getString("participant_status_" + name.trim(), "Ожидается ответ"),
-                    MUTED);
+        java.util.List<String> names = localParticipantNames();
+        int going = countLocalParticipantStatus("Подтвердил участие");
+        int notGoing = countLocalParticipantStatus("Не участвует");
+        int pending = countLocalParticipantStatus("Ожидается ответ");
+        card("Сводка", "Локальных участников: " + names.size() + " • Едут: " + going +
+            " • Не едут: " + notGoing + " • Без ответа: " + pending, null, null);
+        if (names.isEmpty()) {
+            note("Пока нет добавленных участников. Демонстрационные имена не выдаются за реальные данные.");
+        } else {
+            for (String name : names) {
+                String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
+                String state = getSharedPreferences("flight_informer",0).getString(key, "Ожидается ответ");
+                int color = state.equals("Не участвует") ? Color.rgb(170,65,55) :
+                    state.equals("Подтвердил участие") ? GREEN : MUTED;
+                participant(name, state, color);
             }
         }
         Button add = actionButton("＋  Добавить участника", true);
@@ -278,6 +309,7 @@ public class AdminActivity extends Activity {
         Button export = actionButton("Поделиться списком", false);
         export.setOnClickListener(v -> shareParticipantList());
         LinearLayout.LayoutParams ep=lp(-1,dp(48)); ep.topMargin=dp(6); content.addView(export,ep);
+        note("Список хранится локально. Участники и статусы не синхронизируются с другими устройствами.");
     }
 
     private void showMessages() {
@@ -399,7 +431,7 @@ public class AdminActivity extends Activity {
         LinearLayout.LayoutParams sp=lp(-1,-2); sp.topMargin=dp(4);
         row.addView(n); row.addView(s,sp);
         row.setOnClickListener(v -> {
-            String key = "participant_status_" + name;
+            String key = "participant_status_" + FlightRepository.getActiveId(this) + "_" + name;
             String[] options = {"Подтвердил участие", "Ожидается ответ", "Не участвует"};
             new AlertDialog.Builder(this).setTitle(name).setItems(options, (dialog, which) -> {
                 getSharedPreferences("flight_informer",0).edit().putString(key, options[which]).apply();
@@ -407,7 +439,7 @@ public class AdminActivity extends Activity {
                 render();
             }).setNegativeButton("Отмена", null).show();
         });
-        String saved = getSharedPreferences("flight_informer",0).getString("participant_status_" + name, null);
+        String saved = getSharedPreferences("flight_informer",0).getString("participant_status_" + FlightRepository.getActiveId(this) + "_" + name, null);
         if (saved != null) {
             s.setText(saved);
             s.setTextColor(saved.equals("Не участвует") ? Color.rgb(170,65,55) :

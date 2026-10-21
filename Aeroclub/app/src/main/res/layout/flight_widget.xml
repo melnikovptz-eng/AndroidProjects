@@ -1,40 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="14dp"
+    android:orientation="vertical" android:padding="12dp"
     android:background="@drawable/widget_card">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="#526477"
         android:textSize="11sp" android:textStyle="bold"/>
     <TextView android:id="@+id/flight_title" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="5dp"
+        android:layout_height="wrap_content" android:layout_marginTop="4dp"
         android:text="Полёт выходного дня" android:textColor="#172B4D"
-        android:textSize="19sp" android:textStyle="bold"/>
+        android:textSize="18sp" android:textStyle="bold" android:maxLines="1"
+        android:ellipsize="end"/>
     <TextView android:id="@+id/flight_time" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="3dp"
+        android:layout_height="wrap_content" android:layout_marginTop="2dp"
         android:text="Вс, 25 октября  •  10:30" android:textColor="#34465A" android:textSize="14sp"/>
     <TextView android:id="@+id/flight_place" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="2dp"
-        android:text="Место встречи: аэродром «Северный»" android:textColor="#526477" android:textSize="13sp"/>
+        android:text="Место встречи: аэродром «Северный»" android:textColor="#526477"
+        android:textSize="13sp" android:maxLines="1" android:ellipsize="end"/>
     <TextView android:id="@+id/flight_status" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="7dp"
-        android:text="Ответьте, будете ли вы участвовать" android:textColor="#137547" android:textSize="12sp"/>
+        android:layout_height="wrap_content" android:layout_marginTop="5dp"
+        android:text="Ответьте, будете ли вы участвовать" android:textColor="#137547" android:textSize="12sp"
+        android:maxLines="1" android:ellipsize="end"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="9dp" android:orientation="horizontal">
+        android:layout_marginTop="5dp" android:orientation="horizontal">
         <Button android:id="@+id/btn_going" android:layout_width="0dp" android:layout_height="44dp"
             android:layout_weight="1" android:minWidth="0dp" android:padding="2dp"
             android:text="Я еду" android:textAllCaps="false" android:textSize="12sp"/>
         <Button android:id="@+id/btn_not_going" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:layout_marginStart="5dp" android:minWidth="0dp"
+            android:layout_weight="1" android:layout_marginStart="6dp" android:minWidth="0dp"
             android:padding="2dp" android:text="Я не еду" android:textAllCaps="false" android:textSize="12sp"/>
-        <Button android:id="@+id/btn_route" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:layout_marginStart="5dp" android:minWidth="0dp"
-            android:padding="2dp" android:text="Маршрут" android:textAllCaps="false" android:textSize="12sp"/>
     </LinearLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="5dp" android:orientation="horizontal">
-        <Button android:id="@+id/btn_telegram" android:layout_width="0dp" android:layout_height="42dp"
+        android:layout_marginTop="2dp" android:orientation="horizontal">
+        <Button android:id="@+id/btn_route" android:layout_width="0dp" android:layout_height="44dp"
             android:layout_weight="1" android:minWidth="0dp" android:padding="2dp"
-            android:text="Telegram" android:textAllCaps="false" android:textSize="12sp"/>
+            android:text="Маршрут" android:textAllCaps="false" android:textSize="12sp"/>
+        <Button android:id="@+id/btn_telegram" android:layout_width="0dp" android:layout_height="44dp"
+            android:layout_weight="1" android:layout_marginStart="6dp" android:minWidth="0dp"
+            android:padding="2dp" android:text="Telegram" android:textAllCaps="false" android:textSize="12sp"/>
     </LinearLayout>
 </LinearLayout>

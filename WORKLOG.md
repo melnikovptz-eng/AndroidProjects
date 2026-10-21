@@ -46,7 +46,7 @@
 ## COORDGRID — Coordinate Grid Android
 - **Корень:** CoordinateGridAndroid/; workflow: .github/workflows/build-coordinate-grid.yml.
 - **Известно:** workflow собирает debug APK и публикует Actions artifact с build-info.txt, SHA-256 и source SHA в имени.
-- **Контрольный run #2:** [GitHub Actions](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), SHA 1ad7067af89d9051de186bb5be20696d8dd3465d; на момент последней проверки выполнялся. Не объявлять BUILD_PASS до завершения.
+- **Последний подтверждённый run #2:** [GitHub Actions](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), success, SHA 1ad7067af89d9051de186bb5be20696d8dd3465d. Artifact CoordinateGrid-debug-1ad7067af89d9051de186bb5be20696d8dd3465d содержит build-info.txt.
 - **Следующий шаг:** при работе сначала проверить README/Gradle-конфигурацию и соответствующий workflow, затем сохранить результат в этот журнал.
 
 ## Формат новой записи

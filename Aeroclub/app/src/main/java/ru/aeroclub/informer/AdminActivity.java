@@ -243,6 +243,21 @@ public class AdminActivity extends Activity {
         TextView s = text(state,13,color,false);
         LinearLayout.LayoutParams sp=lp(-1,-2); sp.topMargin=dp(4);
         row.addView(n); row.addView(s,sp);
+        row.setOnClickListener(v -> {
+            String key = "participant_status_" + name;
+            String[] options = {"Подтвердил участие", "Ожидается ответ", "Не участвует"};
+            new AlertDialog.Builder(this).setTitle(name).setItems(options, (dialog, which) -> {
+                getSharedPreferences("flight_informer",0).edit().putString(key, options[which]).apply();
+                Toast.makeText(this, "Статус участника сохранён", Toast.LENGTH_SHORT).show();
+                render();
+            }).setNegativeButton("Отмена", null).show();
+        });
+        String saved = getSharedPreferences("flight_informer",0).getString("participant_status_" + name, null);
+        if (saved != null) {
+            s.setText(saved);
+            s.setTextColor(saved.equals("Не участвует") ? Color.rgb(170,65,55) :
+                saved.equals("Ожидается ответ") ? MUTED : GREEN);
+        }
         LinearLayout.LayoutParams p=lp(-1,-2); p.bottomMargin=dp(8);
         content.addView(row,p);
     }

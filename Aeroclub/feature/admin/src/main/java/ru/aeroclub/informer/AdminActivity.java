@@ -573,12 +573,11 @@ public class AdminActivity extends Activity {
                     Toast.makeText(this, "Введите имя участника", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Participant created = ParticipantRepository.add(this, name);
+                Participant created = ParticipantAdminActions.add(this, name);
                 if (created == null) {
                     Toast.makeText(this, "Имя пустое или такой участник уже есть", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                EventLogRepository.record(this,"PAR-01","create","success",created.id);
                 Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -616,19 +615,18 @@ public class AdminActivity extends Activity {
                 if (action == 0) {
                     String[] options = {AttendanceRepository.STATUS_GOING, AttendanceRepository.STATUS_PENDING, AttendanceRepository.STATUS_NOT_GOING};
                     new AlertDialog.Builder(this).setTitle("Статус участника").setItems(options, (d, which) -> {
-                        AttendanceRepository.setResponse(this, participant.id,
-                            FlightRepository.getActiveId(this), options[which]);
-                        EventLogRepository.record(this,"ATT-01","participant_response_update","success",participant.id);
+                        if (!ParticipantAdminActions.setResponse(this, participant.id,
+                                FlightRepository.getActiveId(this), options[which])) {
+                            Toast.makeText(this, "Не удалось изменить ответ: проверьте активный вылет.", Toast.LENGTH_SHORT).show();
+                        }
                         render();
                     }).show();
                 } else if (action == 1) {
                     EditText name = field("Имя участника", participant.displayName);
                     new AlertDialog.Builder(this).setTitle("Переименовать участника").setView(name)
                         .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d, which) -> {
-                            if (!ParticipantRepository.rename(this, participant.id, name.getText().toString())) {
+                            if (!ParticipantAdminActions.rename(this, participant.id, name.getText().toString())) {
                                 Toast.makeText(this,"Имя пустое или уже используется",Toast.LENGTH_SHORT).show();
-                            } else {
-                                EventLogRepository.record(this,"PAR-01","rename","success",participant.id);
                             }
                             render();
                         }).show();
@@ -636,8 +634,9 @@ public class AdminActivity extends Activity {
                     new AlertDialog.Builder(this).setTitle("Удалить участника?")
                         .setMessage("Будут удалены запись участника и его локальные статусы.")
                         .setNegativeButton("Отмена",null).setPositiveButton("Удалить",(d, which) -> {
-                            ParticipantRepository.delete(this, participant.id);
-                            EventLogRepository.record(this,"PAR-01","delete","success",participant.id);
+                            if (!ParticipantAdminActions.delete(this, participant.id)) {
+                                Toast.makeText(this, "Участник уже отсутствует.", Toast.LENGTH_SHORT).show();
+                            }
                             render();
                         }).show();
                 }

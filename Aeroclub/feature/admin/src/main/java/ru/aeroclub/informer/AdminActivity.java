@@ -151,7 +151,7 @@ public class AdminActivity extends Activity {
     private void showOverview() {
         Flight active = FlightRepository.getActive(this);
         String flightSummary = active == null ? "Нет выбранного вылета" :
-            displayFlightTitle(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
+            FlightPresentation.title(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Ближайший вылет", flightSummary,
              "Открыть вылеты", () -> { section = "Вылеты"; render(); });
         int total = localParticipants().size();

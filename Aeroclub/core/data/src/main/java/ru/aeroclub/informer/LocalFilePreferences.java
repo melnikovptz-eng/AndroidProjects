@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -177,6 +178,19 @@ public final class LocalFilePreferences implements SharedPreferences {
         if (readError) return "Файл данных повреждён или имеет неподдерживаемую версию; запись заблокирована для защиты данных.";
         if (writeError) return "Не удалось сохранить файл данных; последняя запись может быть не сохранена.";
         return "Локальный файл данных доступен.";
+    }
+
+    /**
+     * Wait briefly for pending apply() writes before an Activity leaves the foreground.
+     * Call from lifecycle/UI code only; disk writes themselves run on the single writer thread.
+     */
+    public boolean flushPendingWrites(long timeoutMs) {
+        try {
+            DISK_WRITER.submit(() -> { }).get(Math.max(1L, timeoutMs), TimeUnit.MILLISECONDS);
+            return isStorageHealthy();
+        } catch (Exception error) {
+            return false;
+        }
     }
 
     @Override public Map<String, ?> getAll() {

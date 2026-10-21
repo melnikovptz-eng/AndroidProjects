@@ -170,7 +170,8 @@ public class AdminActivity extends Activity {
         for (Flight flight : flights) {
             boolean active = flight.id.equals(activeId);
             card(active ? "АКТИВНЫЙ ВЫЛЕТ" : "Вылет",
-                flight.title + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place,
+                flight.title + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place +
+                    "\nПубликация: " + (flight.published ? "отмечен опубликованным локально" : "черновик"),
                 active ? "Редактировать" : "Сделать активным", () -> {
                     if (flight.id.equals(FlightRepository.getActiveId(this))) {
                         editFlight(flight.id);
@@ -181,6 +182,15 @@ public class AdminActivity extends Activity {
                         render();
                     }
                 });
+            Button publish = smallButton(flight.published ? "Снять отметку публикации" : "Отметить опубликованным");
+            LinearLayout.LayoutParams publishParams = lp(-1,dp(40));
+            publishParams.bottomMargin = dp(6);
+            content.addView(publish,publishParams);
+            publish.setOnClickListener(v -> {
+                FlightRepository.setPublished(this,flight.id,!flight.published);
+                EventLogRepository.record(this,"FLT-01","publication_status_update","local_only",flight.id);
+                render();
+            });
             if (flights.size() > 1) {
                 Button delete = smallButton("Удалить этот вылет");
                 delete.setTextColor(Color.rgb(170,65,55));
@@ -206,7 +216,7 @@ public class AdminActivity extends Activity {
         Button create = actionButton("＋  Создать вылет", true);
         create.setOnClickListener(v -> editFlight(null));
         content.addView(create, lp(-1, dp(50)));
-        note("Вылеты хранятся локально на этом устройстве. Общая публикация требует подключения сервера.");
+        note("Отметка публикации хранится локально и не рассылает вылет участникам. Общая публикация требует подключения сервера.");
     }
 
     private void loadDraftFromActiveFlight() {

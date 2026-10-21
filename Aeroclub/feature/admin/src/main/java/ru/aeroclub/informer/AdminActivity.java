@@ -302,11 +302,20 @@ public class AdminActivity extends Activity {
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
                 if (editingFlightId == null) {
                     Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso());
+                    if (created == null) {
+                        Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
+                        EventLogRepository.record(this,"FLT-01","create","invalid_date_or_time",null);
+                        return;
+                    }
                     FlightRepository.activate(this, created.id);
                     FlightReminderScheduler.schedule(this,created);
                     EventLogRepository.record(this,"FLT-01","create","success",created.id);
                 } else {
-                    FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso());
+                    if (!FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace, draftDateIso())) {
+                        Toast.makeText(this, "Не удалось сохранить вылет: проверьте дату и время.", Toast.LENGTH_LONG).show();
+                        EventLogRepository.record(this,"FLT-01","update","invalid_date_or_time",editingFlightId);
+                        return;
+                    }
                     FlightRepository.activate(this, editingFlightId);
                     FlightReminderScheduler.schedule(this,FlightRepository.getById(this,editingFlightId));
                     EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);

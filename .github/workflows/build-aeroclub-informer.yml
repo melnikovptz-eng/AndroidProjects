@@ -34,13 +34,28 @@ jobs:
         env:
           AEROCLUB_DEBUG_GITHUB_TOKEN: ${{ secrets.AEROCLUB_DEBUG_GITHUB_TOKEN }}
         run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :feature:admin-flights:testDebugUnitTest :feature:admin-participants:testDebugUnitTest :app:assembleDebug
-      - name: Verify APK
+      - name: Verify APK and write build manifest
         run: |
-          echo "Source commit: $GITHUB_SHA"
-          test -s Aeroclub/app/build/outputs/apk/debug/app-debug.apk
-          sha256sum Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="Aeroclub/app/build/outputs/apk/debug/build-info.txt"
+          {
+            echo "project_id=AEROCLUB"
+            echo "project_name=Aeroclub Informer"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=debug"
+            echo "application_id=ru.aeroclub.informer"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
       - uses: actions/upload-artifact@v4
         with:
           name: Aeroclub-Informer-debug-${{ github.sha }}
-          path: Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+            Aeroclub/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error

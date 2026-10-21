@@ -2,6 +2,8 @@ package ru.aeroclub.informer;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.app.NotificationManager;
+import android.os.Build;
 import android.content.Context;
 import android.content.Intent;
 import java.util.List;

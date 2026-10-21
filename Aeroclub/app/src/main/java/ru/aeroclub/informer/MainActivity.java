@@ -83,6 +83,12 @@ public class MainActivity extends Activity {
             startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
         });
 
+        Button admin = button("Панель администратора");
+        LinearLayout.LayoutParams adminParams = lp(-1, dp(48));
+        adminParams.topMargin = dp(12);
+        root.addView(admin, adminParams);
+        admin.setOnClickListener(v -> startActivity(new Intent(this, AdminActivity.class)));
+
         setContentView(root);
     }
 

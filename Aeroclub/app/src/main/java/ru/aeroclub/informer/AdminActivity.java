@@ -1,8 +1,6 @@
 package ru.aeroclub.informer;
 
 import android.app.Activity;
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -171,7 +169,7 @@ public class AdminActivity extends Activity {
                     } else {
                         FlightRepository.activate(this, flight.id);
                         loadDraftFromActiveFlight();
-                        refreshFlightWidget();
+                        WidgetRefreshManager.refresh(this);
                         render();
                     }
                 });
@@ -206,7 +204,7 @@ public class AdminActivity extends Activity {
                         MessageRepository.deleteForFlight(this,flight.id);
                         EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
-                        refreshFlightWidget();
+                        WidgetRefreshManager.refresh(this);
                         render();
                     }).show());
             }
@@ -305,7 +303,7 @@ public class AdminActivity extends Activity {
                 }
                 editingFlightId = null;
                 loadDraftFromActiveFlight();
-                refreshFlightWidget();
+                WidgetRefreshManager.refresh(this);
                 Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -485,7 +483,7 @@ public class AdminActivity extends Activity {
                         if (!active) {
                             FlightRepository.activate(this, flight.id);
                             loadDraftFromActiveFlight();
-                            refreshFlightWidget();
+                            WidgetRefreshManager.refresh(this);
                         }
                         section = "Вылеты";
                         render();
@@ -591,17 +589,6 @@ public class AdminActivity extends Activity {
         send.putExtra(Intent.EXTRA_TEXT, report.toString());
         try { startActivity(Intent.createChooser(send, "Поделиться списком участников")); }
         catch (Exception e) { Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show(); }
-    }
-
-    /** Refresh every installed home-screen widget after flight data changes. */
-    private void refreshFlightWidget() {
-        AppWidgetManager manager = AppWidgetManager.getInstance(this);
-        int[] ids = manager.getAppWidgetIds(new ComponentName(this, FlightWidgetProvider.class));
-        if (ids.length == 0) return;
-        Intent update = new Intent(this, FlightWidgetProvider.class);
-        update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-        sendBroadcast(update);
     }
 
     private void participantRow(LinearLayout parent, Participant participant, String state, int color) {

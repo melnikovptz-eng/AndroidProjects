@@ -17,21 +17,29 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Текущий известный HEAD ветки aeroclub-informer: 24b8630185caf41ebbe8143e10b525e435050721.
+- Текущий HEAD ветки aeroclub-informer после обновления build manifest: d76e89ab849852f7ca367a5d6a6371f28b65df32. Последний checkpoint исходников приложения: 24b8630185caf41ebbe8143e10b525e435050721; последующие изменения затрагивают workflow/инструкции, не подтверждают новую сборку приложения.
 - Последний найденный успешный workflow run: [run #274](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39650851139).
 - SHA сборки: c573778f62c92a8c8187f0ab07d3885ee2a4a5ec.
 - **Статус артефакта: УСТАРЕЛ ОТНОСИТЕЛЬНО HEAD** — SHA run не совпадает с HEAD. Не выдавать его за сборку текущего коммита.
 - Workflow сейчас настроен на ручной запуск (workflow_dispatch). Для проверки текущего HEAD потребуется контрольный запуск после завершения логического блока.
 
 ### VARIO
-- Последний найденный успешный run: [run #9](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39640433399).
-- Ветка: rebuild/vario-synthesizer-v1; SHA: 2a3b1fd653371298ab4434b086ea4c27c10c1461.
-- **Статус артефакта: ПОСЛЕДНЯЯ ИЗВЕСТНАЯ УСПЕШНАЯ СБОРКА; соответствие текущему HEAD не проверено.**
+- Последний найденный успешный run: [run #10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472).
+- Ветка: rebuild/vario-synthesizer-v1; SHA: 47312aed9b983cbe61e841641cda3e3f6e60176f. Артефакт содержит build-info.txt с package ID и SHA-256.
+- **Статус артефакта: BUILD SUCCESS.** Run #10 собран после обновления workflow и добавляет manifest. Перед выдачей повторно сверить HEAD ветки и артефакт.
 
-### PMCA, GPTSENDER, COORDGRID
-- На момент обновления этого реестра не зафиксирован проверенный source SHA последней успешной сборки в этом документе.
-- Перед выдачей APK найти соответствующий workflow run, проверить ветку, SHA, conclusion и артефакт. Не подставлять файл из другого проекта.
-- В GPTSenderTest/artifacts/GPTSenderTest.apk есть APK в репозитории, но без доказательства соответствия текущему HEAD он считается **непроверенным сохранённым артефактом**, а не последней рабочей сборкой.
+### PMCA
+- Последний найденный успешный run: [run #21](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656275187), SHA: 6276d6170bc66b12944e249ff521bd66d0c11610, branch main.
+- Artifact: PMCA-debug-apk-6276d6170bc66b12944e249ff521bd66d0c11610. В артефакте предусмотрен build-info.txt. После этого run менялись workflow других проектов; PMCA исходники и его workflow не менялись.
+
+### GPTSENDER
+- Последний найденный успешный run: [run #46](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656310954), SHA: 166d899e1c2ab599fac0eae9854ff4103048dd81, branch main.
+- Artifact: GPTSenderTest-debug-apk-166d899e1c2ab599fac0eae9854ff4103048dd81. В артефакте предусмотрен build-info.txt. После run менялся workflow Coordinate Grid, не исходники GPTSenderTest.
+
+### COORDGRID
+- Контрольный run #2: [GitHub Actions](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656350817), SHA: 1ad7067af89d9051de186bb5be20696d8dd3465d, branch main. На момент последней проверки run ещё выполнялся; не считать успешным до conclusion=success.
+- Перед выдачей APK проверить конечный статус и наличие artifact с build-info.txt.
+- В GPTSenderTest/artifacts/GPTSenderTest.apk есть APK в репозитории, но без доказательства соответствия source SHA он считается **непроверенным сохранённым артефактом**, а не последней рабочей сборкой.
 
 ## 3. Однозначная идентификация сборки
 

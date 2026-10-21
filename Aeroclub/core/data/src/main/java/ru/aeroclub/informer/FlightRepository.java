@@ -52,7 +52,7 @@ public final class FlightRepository {
             for (int i=0; i<arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
-                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty() || !o.has("isDemo")) needsMigration=true;
+                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty() || !o.has("isDemo") || o.optString("id","").trim().isEmpty()) needsMigration=true;
                     result.add(fromJson(o));
                 }
             }

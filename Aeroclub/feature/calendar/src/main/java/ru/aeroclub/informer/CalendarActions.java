@@ -10,7 +10,9 @@ public final class CalendarActions {
 
     public static String selectedDate(Context context, String fallbackIso) {
         String selected = CalendarRepository.getSelectedDateIso(context, fallbackIso);
-        return FlightDateUtils.toIso(selected);
+        String canonical = FlightDateUtils.toIso(selected);
+        EventLogRepository.record(context, "CAL-01", "read_selected_date", canonical.isEmpty() ? "invalid_or_missing" : "success_local_only", null);
+        return canonical;
     }
 
     public static boolean selectDate(Context context, String iso) {
@@ -27,10 +29,14 @@ public final class CalendarActions {
     public static List<Flight> flightsOnDate(Context context, String iso) {
         String canonical = FlightDateUtils.toIso(iso);
         ArrayList<Flight> matches = new ArrayList<>();
-        if (canonical.isEmpty()) return matches;
+        if (canonical.isEmpty()) {
+            EventLogRepository.record(context, "CAL-01", "flights_on_date", "invalid_iso", null);
+            return matches;
+        }
         for (Flight flight : FlightRepository.getFlights(context)) {
             if (canonical.equals(flight.dateIso)) matches.add(flight);
         }
+        EventLogRepository.record(context, "CAL-01", "flights_on_date", "success_local_only_count_" + matches.size(), null);
         return matches;
     }
 }

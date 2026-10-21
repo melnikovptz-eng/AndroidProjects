@@ -40,13 +40,18 @@ public final class FlightRepository {
     public static synchronized List<Flight> getFlights(Context c) {
         if (!prefs(c).contains(FLIGHTS)) ensureInitialized(c);
         ArrayList<Flight> result = new ArrayList<>();
+        boolean needsDateMigration=false;
         try {
             JSONArray arr = new JSONArray(prefs(c).getString(FLIGHTS, "[]"));
             for (int i=0; i<arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
-                if (o != null) result.add(fromJson(o));
+                if (o != null) {
+                    if (!o.has("dateIso") || o.optString("dateIso","").trim().isEmpty()) needsDateMigration=true;
+                    result.add(fromJson(o));
+                }
             }
         } catch (Exception ignored) {}
+        if(needsDateMigration && !result.isEmpty()) persist(c,result);
         return result;
     }
 

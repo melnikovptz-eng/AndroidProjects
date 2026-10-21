@@ -41,7 +41,7 @@ public class MainActivity extends Activity {
     private final ExecutorService audioWorker = Executors.newSingleThreadExecutor();
     private final AtomicBoolean playing = new AtomicBoolean(false);
     private final AtomicBoolean keyHeld = new AtomicBoolean(false);
-    private EditText baseFreq, duration, pause;
+    private EditText duration, pause;
     private TextView status, sequence;
     private Button recordButton, playButton;
     private boolean recording = false;
@@ -75,13 +75,14 @@ public class MainActivity extends Activity {
         subtitle.setPadding(0,dp(5),0,dp(14)); root.addView(subtitle);
         TextView settings = text("ПАРАМЕТРЫ ЗВУКА",14,true); root.addView(settings);
         LinearLayout params = new LinearLayout(this); params.setOrientation(LinearLayout.HORIZONTAL);
-        baseFreq = field("Частота, Гц","450"); duration = field("Тон, мс","120"); pause = field("Пауза, мс","100");
-        params.addView(column("База (0)",baseFreq),new LinearLayout.LayoutParams(0,-2,1));
+        duration = field("Тон, мс","120"); pause = field("Пауза, мс","100");
         params.addView(column("Длит.",duration),new LinearLayout.LayoutParams(0,-2,1));
         params.addView(column("Пауза",pause),new LinearLayout.LayoutParams(0,-2,1)); root.addView(params);
         TextView hint=text("Удерживайте уровень для непрерывного тона. Короткое нажатие — один сигнал. Частота меняется с уровнем; длительность и пауза задают импульсы.",13,false);
         hint.setPadding(0,dp(10),0,dp(12)); root.addView(hint);
         TextView levels=text("УРОВНИ ВАРИОМЕТРА",14,true); root.addView(levels);
+        TextView frequencyMap=text("−5: 150 Гц  •  −4: 250 Гц  •  −3: 350 Гц  •  −2: 450 Гц  •  −1: 550 Гц  •  0: 700 Гц  •  +1: 850 Гц  •  +2: 1000 Гц  •  +3: 1150 Гц  •  +4: 1300 Гц  •  +5: 1500 Гц",12,false);
+        frequencyMap.setPadding(0,dp(5),0,dp(8)); root.addView(frequencyMap);
         int[] lv={-5,-4,-3,-2,-1,0,1,2,3,4,5};
         for(int row=0;row<3;row++){
             LinearLayout line=new LinearLayout(this); line.setOrientation(LinearLayout.HORIZONTAL);
@@ -120,7 +121,12 @@ public class MainActivity extends Activity {
     private Button button(String s,int color){Button b=new Button(this);b.setText(s);b.setTextSize(13);b.setAllCaps(false);b.setTextColor(0xffffffff);b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));return b;}
     private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
     private int number(EditText e,int fallback){try{return Math.max(1,Math.min(10000,Integer.parseInt(e.getText().toString().trim())));}catch(Exception ex){return fallback;}}
-    private int frequency(int level){int base=number(baseFreq,450); if(level==0)return base; if(level>0)return Math.min(4000,(int)(base*Math.pow(1.32,level)));return Math.max(100,(int)(base*Math.pow(0.78,-level)));}
+    private int frequency(int level){
+        switch(Math.max(-5,Math.min(5,level))){
+            case -5:return 150; case -4:return 250; case -3:return 350; case -2:return 450; case -1:return 550;
+            case 0:return 700; case 1:return 850; case 2:return 1000; case 3:return 1150; case 4:return 1300; default:return 1500;
+        }
+    }
     private void beginLevel(int level){
         keyHeld.set(true);
         if(recording){pressStart=System.currentTimeMillis();pressedLevel=level;}
@@ -202,7 +208,7 @@ public class MainActivity extends Activity {
         try{while(samples>0&&playing.get()){int n=(int)Math.min(buf.length,samples);for(int i=0;i<n;i++){buf[i]=(short)(Math.sin(phase)*6500);phase+=2*Math.PI*hz/RATE;}track.write(buf,0,n);samples-=n;}}finally{try{track.stop();}catch(Exception ignored){}track.release();}
     }
     private JSONObject profile()throws Exception{
-        JSONObject root=new JSONObject();root.put("format","vario-synth-profile");root.put("version",1);root.put("sampleRate",RATE);root.put("baseFrequencyHz",number(baseFreq,450));root.put("toneDurationMs",number(duration,120));root.put("pauseDurationMs",number(pause,100));
+        JSONObject root=new JSONObject();root.put("format","vario-synth-profile");root.put("version",1);root.put("sampleRate",RATE);root.put("frequencyTableHz",new JSONArray(new int[]{150,250,350,450,550,700,850,1000,1150,1300,1500}));root.put("toneDurationMs",number(duration,120));root.put("pauseDurationMs",number(pause,100));
         JSONArray arr=new JSONArray();for(Event e:events){JSONObject o=new JSONObject();o.put("level",e.level);o.put("frequencyHz",frequency(e.level));o.put("startMs",e.startMs);o.put("durationMs",e.durationMs);arr.put(o);}root.put("events",arr);root.put("totalDurationMs",events.isEmpty()?0:events.get(events.size()-1).startMs+events.get(events.size()-1).durationMs);return root;
     }
     private void exportAll(){

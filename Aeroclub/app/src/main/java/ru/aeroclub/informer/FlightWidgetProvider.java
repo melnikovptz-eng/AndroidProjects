@@ -52,7 +52,7 @@ public class FlightWidgetProvider extends AppWidgetProvider {
             }
         }
         v.setTextViewText(R.id.flight_status, status);
-        v.setTextViewText(R.id.flight_title, active == null ? "Ближайший вылет" : (active.isDemo ? "ДЕМО · " : "") + active.title);
+        v.setTextViewText(R.id.flight_title, FlightPresentation.title(active));
         v.setTextViewText(R.id.flight_time, active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
         v.setTextViewText(R.id.flight_place, "Место встречи: " +
             (active == null ? "не указано" : active.place));

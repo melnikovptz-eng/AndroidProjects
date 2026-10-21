@@ -103,9 +103,11 @@ public final class ParticipantRepository {
         ArrayList<Participant> list = new ArrayList<>(getAll(c));
         for (Participant p : list) if (!p.id.equals(id) && p.displayName.equalsIgnoreCase(name)) return false;
         boolean found = false;
+        String previousName = null;
         for (int i=0; i<list.size(); i++) {
             Participant p = list.get(i);
             if (p.id.equals(id)) {
+                previousName = p.displayName;
                 list.set(i, new Participant(id, name, p.createdAt));
                 found = true;
                 break;
@@ -114,6 +116,14 @@ public final class ParticipantRepository {
         if (found) {
             saveAll(c, list);
             SyncRepository.enqueue(c,"participant",id,"update");
+            if (previousName != null && !previousName.equals(name)) {
+                SharedPreferences p = prefs(c);
+                SharedPreferences.Editor edit = p.edit();
+                for (String key : p.getAll().keySet()) {
+                    if (key.startsWith("participant_status_") && key.endsWith("_" + previousName)) edit.remove(key);
+                }
+                edit.apply();
+            }
         }
         return found;
     }

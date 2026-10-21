@@ -1,6 +1,7 @@
 package ru.aeroclub.informer;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -55,7 +56,7 @@ public class MainActivity extends Activity {
         addLine(card, activeFlight == null ? "Дата и время уточняются" :
             activeFlight.date + "  •  " + activeFlight.time, 14, Color.rgb(52, 70, 90), 2);
         addLine(card, "Место встречи: " + (activeFlight == null ? "не указано" : activeFlight.place), 13, MUTED, 2);
-        status = text(AttendanceRepository.getResponse(this, FlightRepository.getActiveId(this)), 12, GREEN, false);
+        status = text("Выберите участника, чтобы указать ответ", 12, GREEN, false);
         LinearLayout.LayoutParams statusParams = lp(-1, -2);
         statusParams.topMargin = dp(5);
         card.addView(status, statusParams);
@@ -78,8 +79,8 @@ public class MainActivity extends Activity {
         row2.addView(route, weightedButtonParams(false));
         row2.addView(telegram, weightedButtonParams(true));
 
-        going.setOnClickListener(v -> setStatus("Вы подтвердили участие"));
-        no.setOnClickListener(v -> setStatus("Вы не участвуете"));
+        going.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_GOING));
+        no.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_NOT_GOING));
         route.setOnClickListener(v -> {
             Flight active = FlightRepository.getActive(this);
             String place = active == null ? "" : active.place;
@@ -124,23 +125,80 @@ public class MainActivity extends Activity {
         admin.setOnClickListener(v -> startActivity(new Intent(this, AdminActivity.class)));
 
         setContentView(root);
+        refreshStatusLabel();
+        String requestedStatus = getIntent() == null ? null : getIntent().getStringExtra("attendance_action");
+        if (AttendanceRepository.STATUS_GOING.equals(requestedStatus) ||
+            AttendanceRepository.STATUS_NOT_GOING.equals(requestedStatus)) {
+            chooseParticipantAndSetStatus(requestedStatus);
+            getIntent().removeExtra("attendance_action");
+        }
     }
 
-    private void setStatus(String value) {
-        FlightRepository.ensureInitialized(this);
+    private void chooseParticipantAndSetStatus(String value) {
+        java.util.List<Participant> participants = ParticipantRepository.getAll(this);
+        if (participants.isEmpty()) {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Нет участников")
+                .setMessage("Сначала добавьте участника в панели администратора. Ответ не сохранён.")
+                .setPositiveButton("Открыть панель", (dialog, which) ->
+                    startActivity(new Intent(this, AdminActivity.class)))
+                .setNegativeButton("Закрыть", null)
+                .show();
+            EventLogRepository.record(this, "ATT-01", "response_update", "no_participants", FlightRepository.getActiveId(this));
+            return;
+        }
+        String[] names = new String[participants.size()];
+        for (int i = 0; i < participants.size(); i++) names[i] = participants.get(i).displayName;
+        String selectedId = AttendanceRepository.getSelectedParticipantId(this);
+        int checked = -1;
+        for (int i = 0; i < participants.size(); i++) {
+            if (participants.get(i).id.equals(selectedId)) { checked = i; break; }
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Для кого сохранить ответ?")
+            .setSingleChoiceItems(names, checked, (dialog, which) -> {
+                Participant participant = participants.get(which);
+                String flightId = FlightRepository.getActiveId(this);
+                if (flightId == null || FlightRepository.getActive(this) == null) {
+                    dialog.dismiss();
+                    android.widget.Toast.makeText(this, "Нет активного вылета", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                AttendanceRepository.setSelectedParticipantId(this, participant.id);
+                AttendanceRepository.setResponse(this, participant.id, flightId, value);
+                EventLogRepository.record(this, "ATT-01", "response_update", "success", participant.id);
+                dialog.dismiss();
+                refreshStatusLabel();
+                refreshFlightWidget();
+            })
+            .setNegativeButton("Отмена", (dialog, which) ->
+                EventLogRepository.record(this, "ATT-01", "response_update", "cancelled", FlightRepository.getActiveId(this)))
+            .show();
+    }
+
+    private void refreshStatusLabel() {
+        if (status == null) return;
         String flightId = FlightRepository.getActiveId(this);
-        AttendanceRepository.setResponse(this, flightId, value);
-        EventLogRepository.record(this,"ATT-01","response_update","success",flightId);
-        status.setText(value);
-        // Keep the home-screen widget synchronized with the preview screen.
+        String selectedId = AttendanceRepository.getSelectedParticipantId(this);
+        Participant selected = null;
+        for (Participant p : ParticipantRepository.getAll(this)) {
+            if (p.id.equals(selectedId)) { selected = p; break; }
+        }
+        if (selected == null) {
+            status.setText("Выберите участника, чтобы указать ответ");
+            return;
+        }
+        status.setText(selected.displayName + ": " + AttendanceRepository.getResponse(this, selected.id, flightId));
+    }
+
+    private void refreshFlightWidget() {
         AppWidgetManager manager = AppWidgetManager.getInstance(this);
         int[] ids = manager.getAppWidgetIds(new ComponentName(this, FlightWidgetProvider.class));
-        if (ids.length > 0) {
-            Intent update = new Intent(this, FlightWidgetProvider.class);
-            update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-            update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-            sendBroadcast(update);
-        }
+        if (ids.length == 0) return;
+        Intent update = new Intent(this, FlightWidgetProvider.class);
+        update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+        sendBroadcast(update);
     }
 
     private void addLine(LinearLayout box, String value, int size, int color, int top) {

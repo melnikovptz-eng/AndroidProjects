@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
     private DebugOperation screenOpenOperation;
     private boolean storageWarningShown;
     private final Handler flightSyncHandler = new Handler(Looper.getMainLooper());
-    private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) refreshFlightSummary(); flightSyncHandler.postDelayed(this, 5000L); } };
+    private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) { WidgetRefreshManager.refresh(MainActivity.this, "ru.aeroclub.informer.FlightWidgetProvider"); refreshFlightSummary(); } flightSyncHandler.postDelayed(this, 5000L); } };
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -315,7 +315,7 @@ public class MainActivity extends Activity {
         }
         ModuleDebugLog.log(this, "UI-01", "informer_onResume", "started", "screen_foreground");
         flightSyncHandler.removeCallbacks(flightSyncPoll);
-        FlightRepository.syncFromDownload(this);
+        if (FlightRepository.syncFromDownload(this)) WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
         flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);

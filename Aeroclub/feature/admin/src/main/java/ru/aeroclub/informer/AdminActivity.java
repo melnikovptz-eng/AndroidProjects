@@ -58,7 +58,7 @@ public class AdminActivity extends Activity {
     private final Runnable flightSyncPoll = new Runnable() {
         @Override public void run() {
             if (isFinishing()) return;
-            if (FlightRepository.syncFromDownload(AdminActivity.this)) render();
+            if (FlightRepository.syncFromDownload(AdminActivity.this)) { WidgetRefreshManager.refresh(AdminActivity.this, "ru.aeroclub.informer.FlightWidgetProvider"); render(); }
             flightSyncHandler.postDelayed(this, 5000L);
         }
     };
@@ -111,7 +111,7 @@ public class AdminActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         flightSyncHandler.removeCallbacks(flightSyncPoll);
-        if (FlightRepository.syncFromDownload(this) && root != null) render();
+        if (FlightRepository.syncFromDownload(this) && root != null) { WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider"); render(); }
         flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         LocalFilePreferences storage = LocalFilePreferences.get(this);
         if (!storage.isStorageHealthy() && !storageWarningShown) {

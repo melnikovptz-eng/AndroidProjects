@@ -677,27 +677,32 @@ public class AdminActivity extends Activity {
 
         private void addParticipant() {
         EditText input = field("Имя участника", "");
-        new AlertDialog.Builder(this).setTitle("Новый участник").setView(input)
-            .setNegativeButton("Отмена", null).setPositiveButton("Добавить", (dialog, which) -> {
-                String name = input.getText().toString().trim();
-                if (name.isEmpty()) {
-                    Toast.makeText(this, "Введите имя участника", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Participant created = ParticipantAdminActions.add(this, name);
-                if (created == null) {
-                    Toast.makeText(this, "Имя пустое или такой участник уже есть", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
-                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
-                render();
-            }).show();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Новый участник").setView(input)
+            .setNegativeButton("Отмена", null).setPositiveButton("Добавить", null).create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String name = input.getText().toString().trim();
+            if (name.isEmpty()) {
+                input.setError("Введите имя участника");
+                input.requestFocus();
+                return;
+            }
+            Participant created = ParticipantAdminActions.add(this, name);
+            if (created == null) {
+                input.setError("Такой участник уже есть");
+                input.requestFocus();
+                return;
+            }
+            dialog.dismiss();
+            Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
+            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+            render();
+        }));
+        dialog.show();
     }
 
     private void shareParticipantList() {
         Flight active = FlightRepository.getActive(this);
-        StringBuilder report = new StringBuilder("Аэроклуб — участники: ");
+        StringBuilder report = new StringBuilder(ClubSettingsActions.get(this).clubName).append(" — участники: ");
         if (active != null) report.append(active.isDemo ? "ДЕМО · " : "").append(active.title).append("\n").append(active.date)
             .append(" • ").append(active.time).append("\n\n");
         java.util.List<Participant> participants = localParticipants();
@@ -737,15 +742,20 @@ public class AdminActivity extends Activity {
                     }).show();
                 } else if (action == 1) {
                     EditText name = field("Имя участника", participant.displayName);
-                    new AlertDialog.Builder(this).setTitle("Переименовать участника").setView(name)
-                        .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d, which) -> {
-                            if (!ParticipantAdminActions.rename(this, participant.id, name.getText().toString())) {
-                                Toast.makeText(this,"Имя пустое или уже используется",Toast.LENGTH_SHORT).show();
-                            } else {
-                                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
-                            }
-                            render();
-                        }).show();
+                    AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("Переименовать участника").setView(name)
+                        .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",null).create();
+                    renameDialog.setOnShowListener(ignored -> renameDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                        String newName = name.getText().toString().trim();
+                        if (!ParticipantAdminActions.rename(this, participant.id, newName)) {
+                            name.setError("Имя пустое или уже используется");
+                            name.requestFocus();
+                            return;
+                        }
+                        renameDialog.dismiss();
+                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                        render();
+                    }));
+                    renameDialog.show();
                 } else {
                     new AlertDialog.Builder(this).setTitle("Удалить участника?")
                         .setMessage("Будут удалены запись участника и его локальные статусы.")

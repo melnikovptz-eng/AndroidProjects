@@ -1,6 +1,5 @@
 package ru.aeroclub.informer;
 
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -31,7 +30,10 @@ public class FlightReminderReceiver extends BroadcastReceiver {
             EventLogRepository.record(context,"NTF-01","local_reminder_delivered","permission_denied",flightId);
             return;
         }
-        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) FlightReminderScheduler.ensureChannel(context);
+        if (!FlightReminderScheduler.notificationsEnabled(context)) {
+            EventLogRepository.record(context,"NTF-01","local_reminder_delivered","notifications_disabled",flightId);
+            return;
+        }
         Intent open=new Intent();
         open.setComponent(new ComponentName(context.getPackageName(), "ru.aeroclub.informer.MainActivity"));
         open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);

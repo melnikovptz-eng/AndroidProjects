@@ -12,13 +12,13 @@
         android:textSize="19sp" android:textStyle="bold"/>
     <TextView android:id="@+id/flight_time" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="3dp"
-        android:text="Сб, 25 октября  •  10:30" android:textColor="#34465A" android:textSize="14sp"/>
+        android:text="Вс, 25 октября  •  10:30" android:textColor="#34465A" android:textSize="14sp"/>
     <TextView android:id="@+id/flight_place" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="2dp"
-        android:text="📍 Аэродром «Северный»" android:textColor="#526477" android:textSize="13sp"/>
+        android:text="Место встречи: аэродром «Северный»" android:textColor="#526477" android:textSize="13sp"/>
     <TextView android:id="@+id/flight_status" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="7dp"
-        android:text="Вы подтвердили участие" android:textColor="#137547" android:textSize="12sp"/>
+        android:text="Ответьте, будете ли вы участвовать" android:textColor="#137547" android:textSize="12sp"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="9dp" android:orientation="horizontal">
         <Button android:id="@+id/btn_going" android:layout_width="0dp" android:layout_height="44dp"
@@ -26,7 +26,7 @@
             android:text="Я еду" android:textAllCaps="false" android:textSize="12sp"/>
         <Button android:id="@+id/btn_not_going" android:layout_width="0dp" android:layout_height="44dp"
             android:layout_weight="1" android:layout_marginStart="5dp" android:minWidth="0dp"
-            android:padding="2dp" android:text="Не еду" android:textAllCaps="false" android:textSize="12sp"/>
+            android:padding="2dp" android:text="Я не еду" android:textAllCaps="false" android:textSize="12sp"/>
         <Button android:id="@+id/btn_route" android:layout_width="0dp" android:layout_height="44dp"
             android:layout_weight="1" android:layout_marginStart="5dp" android:minWidth="0dp"
             android:padding="2dp" android:text="Маршрут" android:textAllCaps="false" android:textSize="12sp"/>

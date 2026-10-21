@@ -76,7 +76,7 @@ jobs:
             echo "source_sha=$GITHUB_SHA"
             echo "workflow_run_id=$GITHUB_RUN_ID"
             echo "build_variant=debug"
-            echo "application_id=ru.aeroclub.informer"
+            echo "application_id=ru.aeroclub.informer.mobile"
             echo "apk_path=$APK"
             echo "apk_sha256=$APK_SHA256"
           } > "$INFO"

@@ -24,6 +24,7 @@ public final class FlightRepository {
 
     public static synchronized void ensureInitialized(Context c) {
         SharedPreferences p = prefs(c);
+        FlightDownloadExchange.importIfChanged(c, p, FLIGHTS, ACTIVE_ID);
         if (!p.contains(FLIGHTS)) {
             String id = UUID.randomUUID().toString();
             String title = p.getString("flight_title", "Полёт выходного дня");
@@ -39,6 +40,7 @@ public final class FlightRepository {
             arr.put(toJson(initial));
             p.edit().putString(FLIGHTS, arr.toString()).putString(ACTIVE_ID, id).apply();
             writeLegacy(p, initial);
+            FlightDownloadExchange.publish(c, p, FLIGHTS, ACTIVE_ID);
         } else if (getActive(c) == null && !getFlights(c).isEmpty()) {
             activate(c, getFlights(c).get(0).id);
         }
@@ -47,6 +49,8 @@ public final class FlightRepository {
     public static synchronized List<Flight> getFlights(Context c) {
         SharedPreferences p = prefs(c);
         if (!p.contains(FLIGHTS)) ensureInitialized(c);
+        boolean imported = FlightDownloadExchange.importIfChanged(c, p, FLIGHTS, ACTIVE_ID);
+        if (imported) WidgetRefreshManager.refresh(c, "ru.aeroclub.informer.FlightWidgetProvider");
         ArrayList<Flight> result = new ArrayList<>();
         Set<String> seenIds = new HashSet<>();
         boolean needsMigration=false;
@@ -74,6 +78,13 @@ public final class FlightRepository {
             p.edit().putBoolean(DEMO_OUTBOX_CLEANUP, true).apply();
         }
         return result;
+    }
+
+    public static synchronized boolean syncFromDownload(Context c) {
+        if (c == null) return false;
+        boolean changed = FlightDownloadExchange.importIfChanged(c, prefs(c), FLIGHTS, ACTIVE_ID);
+        if (changed) WidgetRefreshManager.refresh(c, "ru.aeroclub.informer.FlightWidgetProvider");
+        return changed;
     }
 
     public static synchronized String getActiveId(Context c) {
@@ -163,6 +174,7 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         p.edit().putString(ACTIVE_ID, f.id).apply();
         writeLegacy(p, f);
+        FlightDownloadExchange.publish(c, p, FLIGHTS, ACTIVE_ID);
         if (!f.isDemo) SyncRepository.enqueue(c,"active_flight","active","set:"+f.id);
     }
 
@@ -189,6 +201,9 @@ public final class FlightRepository {
         JSONArray arr = new JSONArray();
         for (Flight f : list) arr.put(toJson(f));
         prefs(c).edit().putString(FLIGHTS, arr.toString()).apply();
+        boolean published = FlightDownloadExchange.publish(c, prefs(c), FLIGHTS, ACTIVE_ID);
+        if (!published) ModuleDebugLog.log(c, "FLIGHT-FILE", "persist", "error", "Download file was not updated");
+        WidgetRefreshManager.refresh(c, "ru.aeroclub.informer.FlightWidgetProvider");
     }
 
     private static JSONObject toJson(Flight f) {

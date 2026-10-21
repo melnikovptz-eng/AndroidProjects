@@ -14,7 +14,7 @@ android {
     namespace 'ru.aeroclub.informer'
     compileSdk 35
     defaultConfig {
-        applicationId 'ru.aeroclub.informer'
+        applicationId 'ru.aeroclub.informer.mobile'
         minSdk 23
         targetSdk 28
         versionCode 1

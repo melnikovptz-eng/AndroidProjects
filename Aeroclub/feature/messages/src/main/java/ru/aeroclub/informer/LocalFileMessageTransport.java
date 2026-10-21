@@ -31,16 +31,24 @@ public final class LocalFileMessageTransport implements MessageTransport {
     public LocalTransportMessage send(Context context, String recipientId, String recipientLabel, String body) {
         String text = clean(body);
         String recipient = clean(recipientId);
-        if (context == null || text.isEmpty() || recipient.isEmpty()) return null;
+        if (context == null || text.isEmpty() || recipient.isEmpty()) {
+            ModuleDebugLog.log(context, "MSG-02", "local_send", "rejected", "invalid_input");
+            return null;
+        }
 
         synchronized (LocalFileMessageTransport.class) {
             List<LocalTransportMessage> all = read(context);
-            if (all == null) return null; // Do not overwrite a damaged/unreadable file.
+            if (all == null) {
+                ModuleDebugLog.log(context, "MSG-02", "local_send", "error", "store_unreadable");
+                return null; // Do not overwrite a damaged/unreadable file.
+            }
             LocalTransportMessage message = new LocalTransportMessage(
                     UUID.randomUUID().toString(), recipient, recipient, clean(recipientLabel),
                     OUTGOING, text, LOCAL_ONLY, System.currentTimeMillis());
             all.add(message);
-            return write(context, all) ? message : null;
+            boolean saved = write(context, all);
+            ModuleDebugLog.log(context, "MSG-02", "local_send", saved ? "success_local_only" : "error", saved ? "announcement_saved" : "write_failed");
+            return saved ? message : null;
         }
     }
 
@@ -49,16 +57,24 @@ public final class LocalFileMessageTransport implements MessageTransport {
                                                    String senderId, String senderLabel, String body) {
         String text = clean(body);
         String conversation = clean(conversationId);
-        if (context == null || text.isEmpty() || conversation.isEmpty()) return null;
+        if (context == null || text.isEmpty() || conversation.isEmpty()) {
+            ModuleDebugLog.log(context, "MSG-02", "simulate_incoming", "rejected", "invalid_input");
+            return null;
+        }
 
         synchronized (LocalFileMessageTransport.class) {
             List<LocalTransportMessage> all = read(context);
-            if (all == null) return null;
+            if (all == null) {
+                ModuleDebugLog.log(context, "MSG-02", "simulate_incoming", "error", "store_unreadable");
+                return null;
+            }
             LocalTransportMessage message = new LocalTransportMessage(
                     UUID.randomUUID().toString(), conversation, clean(senderId), clean(senderLabel),
                     INCOMING, text, SIMULATED_INCOMING, System.currentTimeMillis());
             all.add(message);
-            return write(context, all) ? message : null;
+            boolean saved = write(context, all);
+            ModuleDebugLog.log(context, "MSG-02", "simulate_incoming", saved ? "success_test_only" : "error", saved ? "simulated_record_saved" : "write_failed");
+            return saved ? message : null;
         }
     }
 
@@ -68,12 +84,19 @@ public final class LocalFileMessageTransport implements MessageTransport {
         String filter = clean(conversationId);
         synchronized (LocalFileMessageTransport.class) {
             List<LocalTransportMessage> all = read(context);
-            if (all == null) return Collections.emptyList();
-            if (filter.isEmpty()) return Collections.unmodifiableList(all);
+            if (all == null) {
+                ModuleDebugLog.log(context, "MSG-02", "local_read", "error", "store_unreadable");
+                throw new IllegalStateException("Local message store is unreadable");
+            }
+            if (filter.isEmpty()) {
+                ModuleDebugLog.log(context, "MSG-02", "local_read", "success", "count=" + all.size());
+                return Collections.unmodifiableList(all);
+            }
             List<LocalTransportMessage> result = new ArrayList<>();
             for (LocalTransportMessage message : all) {
                 if (filter.equals(message.conversationId)) result.add(message);
             }
+            ModuleDebugLog.log(context, "MSG-02", "local_read", "success", "count=" + result.size());
             return Collections.unmodifiableList(result);
         }
     }

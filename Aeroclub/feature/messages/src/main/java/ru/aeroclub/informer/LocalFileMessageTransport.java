@@ -21,6 +21,7 @@ public final class LocalFileMessageTransport implements MessageTransport {
     static final String NAME = "messages.json";
     private static final int LIMIT = 500;
 
+    public static final String ANNOUNCEMENT_CHANNEL = "informer-announcements";
     public static final String OUTGOING = "OUTGOING";
     public static final String INCOMING = "INCOMING";
     public static final String LOCAL_ONLY = "LOCAL_ONLY";

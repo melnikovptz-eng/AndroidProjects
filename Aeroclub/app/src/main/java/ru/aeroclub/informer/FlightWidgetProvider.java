@@ -57,7 +57,6 @@ public class FlightWidgetProvider extends AppWidgetProvider {
 
         Intent share = new Intent(Intent.ACTION_SEND);
         share.setType("text/plain");
-        android.content.SharedPreferences prefs = c.getSharedPreferences(PREFS, 0);
         share.putExtra(Intent.EXTRA_TEXT, "Аэроклуб — " +
             prefs.getString("flight_title", "ближайший вылет") + ": " +
             prefs.getString("flight_date", "дата уточняется") + ", " +

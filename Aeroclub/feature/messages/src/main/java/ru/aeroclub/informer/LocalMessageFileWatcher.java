@@ -54,6 +54,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
         appContext = context.getApplicationContext();
         this.listener = listener;
         running = true;
+        ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_start", "success", "interval_ms=" + intervalMs);
         lastModified = Long.MIN_VALUE;
         lastLength = Long.MIN_VALUE;
         readInProgress = false;
@@ -89,6 +90,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
                     messages = transport.getMessages(context, conversationId);
                 } catch (RuntimeException error) {
                     failed = true;
+                    ModuleDebugLog.log(context, "MSG-02", "file_watcher_read", "error", error.getClass().getSimpleName());
                 }
                 final List<LocalTransportMessage> result = messages;
                 final boolean readFailed = failed;
@@ -110,6 +112,7 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
     }
 
     public synchronized void stop() {
+        if (running) ModuleDebugLog.log(appContext, "MSG-02", "file_watcher_stop", "success", "foreground_poll_stopped");
         stopInternal();
     }
 

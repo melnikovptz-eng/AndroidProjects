@@ -1,0 +1,44 @@
+name: Build Aeroclub Informer APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aeroclub-informer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Run unit tests and build debug APK
+        working-directory: Aeroclub
+        env:
+          AEROCLUB_DEBUG_GITHUB_TOKEN: ${{ secrets.AEROCLUB_DEBUG_GITHUB_TOKEN }}
+        run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :feature:admin-flights:testDebugUnitTest :feature:admin-participants:testDebugUnitTest :app:assembleDebug
+      - name: Verify APK
+        run: |
+          echo "Source commit: $GITHUB_SHA"
+          test -s Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aeroclub-Informer-debug-${{ github.sha }}
+          path: Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

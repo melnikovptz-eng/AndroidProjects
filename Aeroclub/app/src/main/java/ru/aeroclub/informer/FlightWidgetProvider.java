@@ -55,6 +55,10 @@ public class FlightWidgetProvider extends AppWidgetProvider {
             }
         }
         v.setTextViewText(R.id.flight_status, status);
+        Intent open = new Intent(c, MainActivity.class);
+        PendingIntent openPending = PendingIntent.getActivity(c, 0, open,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        v.setOnClickPendingIntent(R.id.widget_root, openPending);
         v.setTextViewText(R.id.flight_title, FlightPresentation.title(active));
         v.setTextViewText(R.id.flight_time, active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
         v.setTextViewText(R.id.flight_place, "Место встречи: " +

@@ -15,6 +15,10 @@ public final class AttendanceRepository {
     private static final String PREFS = "flight_informer";
     private static final String DEVICE_ID = "local_participant_id";
     private static final String RECORDS = "attendance_json";
+    private static final String SELECTED_PARTICIPANT = "selected_attendance_participant_id";
+    public static final String STATUS_GOING = "Подтвердил участие";
+    public static final String STATUS_NOT_GOING = "Не участвует";
+    public static final String STATUS_PENDING = "Ожидается ответ";
     private AttendanceRepository() {}
 
     public static final class Attendance {
@@ -43,8 +47,9 @@ public final class AttendanceRepository {
     }
 
     public static synchronized void setResponse(Context c, String participantId, String flightId, String status) {
+        status = normalizeStatus(status);
         if(participantId==null || participantId.trim().isEmpty() ||
-           flightId==null || flightId.trim().isEmpty() || status==null || status.trim().isEmpty()) return;
+           flightId==null || flightId.trim().isEmpty() || status==null) return;
         JSONArray source=read(prefs(c).getString(RECORDS,"[]"));
         JSONArray target=new JSONArray();
         String now=String.valueOf(System.currentTimeMillis());
@@ -62,6 +67,28 @@ public final class AttendanceRepository {
         SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
     }
 
+    public static synchronized void setSelectedParticipantId(Context c, String participantId) {
+        SharedPreferences.Editor editor = prefs(c).edit();
+        if (participantId == null || participantId.trim().isEmpty()) editor.remove(SELECTED_PARTICIPANT);
+        else editor.putString(SELECTED_PARTICIPANT, participantId.trim());
+        editor.apply();
+    }
+
+    public static synchronized String getSelectedParticipantId(Context c) {
+        return prefs(c).getString(SELECTED_PARTICIPANT, null);
+    }
+
+    public static String normalizeStatus(String status) {
+        if (status == null) return null;
+        String value = status.trim();
+        if (STATUS_GOING.equals(value) || "Вы подтвердили участие".equals(value) ||
+            "Подтверждено участие".equals(value)) return STATUS_GOING;
+        if (STATUS_NOT_GOING.equals(value) || "Вы не участвуете".equals(value) ||
+            "Не подтвердил участие".equals(value)) return STATUS_NOT_GOING;
+        if (STATUS_PENDING.equals(value) || value.isEmpty()) return STATUS_PENDING;
+        return null;
+    }
+
     public static synchronized String getResponse(Context c, String flightId) {
         return getResponse(c, getLocalParticipantId(c), flightId);
     }
@@ -72,7 +99,8 @@ public final class AttendanceRepository {
         for(int i=0;i<arr.length();i++) {
             JSONObject o=arr.optJSONObject(i);
             if(o!=null && participantId.equals(o.optString("participantId")) && flightId.equals(o.optString("flightId")))
-                return o.optString("status","Ожидается ответ");
+                String normalized = normalizeStatus(o.optString("status", STATUS_PENDING));
+                return normalized == null ? STATUS_PENDING : normalized;
         }
         return "Ожидается ответ";
     }
@@ -106,7 +134,8 @@ public final class AttendanceRepository {
         int count=0;
         for(int i=0;i<arr.length();i++) {
             JSONObject o=arr.optJSONObject(i);
-            if(o!=null && flightId!=null && flightId.equals(o.optString("flightId")) && status.equals(o.optString("status"))) count++;
+            if(o!=null && flightId!=null && flightId.equals(o.optString("flightId")) &&
+                status != null && status.equals(normalizeStatus(o.optString("status")))) count++;
         }
         return count;
     }

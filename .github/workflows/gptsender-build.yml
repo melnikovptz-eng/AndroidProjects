@@ -50,19 +50,34 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleDebug
 
-      - name: Verify debug APK
+      - name: Verify debug APK and write build manifest
         run: |
           APK="GPTSenderTest/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           ls -lh "$APK"
-          sha256sum "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="GPTSenderTest/app/build/outputs/apk/debug/build-info.txt"
+          {
+            echo "project_id=GPTSENDER"
+            echo "project_name=GPTSenderTest"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=debug"
+            echo "application_id=com.test.gptsender"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
 
       - name: Upload GPTSenderTest debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: GPTSenderTest-debug-apk
-          path: GPTSenderTest/app/build/outputs/apk/debug/app-debug.apk
+          name: GPTSenderTest-debug-apk-${{ github.sha }}
+          path: |
+            GPTSenderTest/app/build/outputs/apk/debug/app-debug.apk
+            GPTSenderTest/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -94,12 +109,35 @@ jobs:
           GPTSENDER_KEY_PASSWORD: ${{ secrets.GPTSENDER_KEY_PASSWORD }}
         run: ./gradlew --no-daemon assembleRelease
 
+      - name: Verify signed release APK and write build manifest
+        if: env.GPTSENDER_SIGNING_AVAILABLE == 'true'
+        run: |
+          APK="GPTSenderTest/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          INFO="GPTSenderTest/app/build/outputs/apk/release/build-info.txt"
+          {
+            echo "project_id=GPTSENDER"
+            echo "project_name=GPTSenderTest"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "source_sha=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "build_variant=release"
+            echo "application_id=com.test.gptsender"
+            echo "apk_path=$APK"
+            echo "apk_sha256=$APK_SHA256"
+          } > "$INFO"
+          cat "$INFO"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+
       - name: Upload signed GPTSenderTest APK
         if: env.GPTSENDER_SIGNING_AVAILABLE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: GPTSenderTest-signed-apk
-          path: GPTSenderTest/app/build/outputs/apk/release/app-release.apk
+          name: GPTSenderTest-signed-apk-${{ github.sha }}
+          path: |
+            GPTSenderTest/app/build/outputs/apk/release/app-release.apk
+            GPTSenderTest/app/build/outputs/apk/release/build-info.txt
           if-no-files-found: error
           retention-days: 14
 

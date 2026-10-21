@@ -56,6 +56,7 @@ public class AdminActivity extends Activity {
         draftPlace = prefs.getString("flight_place", draftPlace);
         FlightRepository.ensureInitialized(this);
         ParticipantRepository.ensureInitialized(this);
+        FlightReminderScheduler.syncAll(this);
         loadDraftFromActiveFlight();
         setContentView(root);
         render();
@@ -192,6 +193,7 @@ public class AdminActivity extends Activity {
                     .setNegativeButton("Отмена", null)
                     .setPositiveButton("Удалить", (dialog, which) -> {
                         FlightRepository.delete(this, flight.id);
+                        FlightReminderScheduler.cancel(this,flight.id);
                         EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
                         refreshFlightWidget();
@@ -273,10 +275,12 @@ public class AdminActivity extends Activity {
                 if (editingFlightId == null) {
                     Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
                     FlightRepository.activate(this, created.id);
+                    FlightReminderScheduler.schedule(this,created);
                     EventLogRepository.record(this,"FLT-01","create","success",created.id);
                 } else {
                     FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
                     FlightRepository.activate(this, editingFlightId);
+                    FlightReminderScheduler.schedule(this,FlightRepository.getById(this,editingFlightId));
                     EventLogRepository.record(this,"FLT-01","update","success",editingFlightId);
                 }
                 editingFlightId = null;

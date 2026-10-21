@@ -136,7 +136,7 @@ public class MainActivity extends Activity {
                 EventLogRepository.record(this, "ATT-01", "response_update", "success", participant.id);
                 dialog.dismiss();
                 refreshStatusLabel();
-                refreshFlightWidget();
+                WidgetRefreshManager.refresh(this);
             })
             .setNegativeButton("Отмена", (dialog, which) ->
                 EventLogRepository.record(this, "ATT-01", "response_update", "cancelled", FlightRepository.getActiveId(this)))
@@ -156,16 +156,6 @@ public class MainActivity extends Activity {
             return;
         }
         status.setText(selected.displayName + ": " + AttendanceRepository.getResponse(this, selected.id, flightId));
-    }
-
-    private void refreshFlightWidget() {
-        AppWidgetManager manager = AppWidgetManager.getInstance(this);
-        int[] ids = manager.getAppWidgetIds(new ComponentName(this, FlightWidgetProvider.class));
-        if (ids.length == 0) return;
-        Intent update = new Intent(this, FlightWidgetProvider.class);
-        update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-        sendBroadcast(update);
     }
 
     private void addLine(LinearLayout box, String value, int size, int color, int top) {

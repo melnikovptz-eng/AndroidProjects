@@ -443,7 +443,7 @@ public class AdminActivity extends Activity {
         String[] labels = new String[history.size()];
         for(int i=0;i<history.size();i++) {
             MessageRecord item=history.get(i);
-            String preview=item.text.replace("\\n"," ");
+            String preview=item.text.replace("\n"," ");
             if(preview.length()>90) preview=preview.substring(0,87)+"…";
             labels[i]=format.format(new Date(item.updatedAt))+" • "+item.state+"\n"+preview;
         }

@@ -28,7 +28,7 @@ public final class FlightDateUtils {
         int day;
         try { day=Integer.parseInt(matcher.group(1)); } catch(Exception ignored) { return ""; }
         String month=matcher.group(2).toLowerCase(RU).replace(".","");
-        String[] starts={"янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"};
+        String[] starts={"янв","фев","мар","апр","ма","июн","июл","авг","сен","окт","ноя","дек"};
         int monthIndex=-1;
         for(int i=0;i<starts.length;i++) if(month.startsWith(starts[i])) { monthIndex=i; break; }
         if(monthIndex<0) return "";

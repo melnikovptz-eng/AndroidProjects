@@ -493,7 +493,7 @@ public class AdminActivity extends Activity {
     }
 
     private void showSettings() {
-        ClubSettings settings = ClubSettingsRepository.get(this);
+        ClubSettings settings = ClubSettingsActions.get(this);
         card("Профиль клуба", "Название: " + settings.clubName +
             "\nМесто встречи по умолчанию: " + settings.defaultMeetingPlace,
             "Изменить настройки клуба", () -> {
@@ -505,7 +505,10 @@ public class AdminActivity extends Activity {
                 form.addView(place);
                 new AlertDialog.Builder(this).setTitle("Настройки клуба").setView(form)
                     .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d,w) -> {
-                        ClubSettingsRepository.save(this,club.getText().toString(),place.getText().toString());
+                        if (!ClubSettingsActions.save(this, club.getText().toString(), place.getText().toString())) {
+                            Toast.makeText(this, "Не удалось сохранить настройки клуба.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
                         Toast.makeText(this,"Настройки клуба сохранены",Toast.LENGTH_SHORT).show();
                         render();
                     }).show();

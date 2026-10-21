@@ -287,8 +287,11 @@ public final class LocalFilePreferences implements SharedPreferences {
                     values.clear();
                     values.putAll(next);
                     DISK_WRITER.execute(() -> {
+                        if (writeVersion != WRITE_VERSION.get()) return;
                         boolean ok = writeFile(snapshot, writeVersion);
-                        writeError = !ok;
+                        synchronized (LOCK) {
+                            if (writeVersion == WRITE_VERSION.get()) writeError = !ok;
+                        }
                     });
                 }
             }

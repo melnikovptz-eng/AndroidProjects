@@ -129,15 +129,22 @@ public final class FlightRepository {
         SyncRepository.enqueue(c,"active_flight","active","set:"+f.id);
     }
 
-    public static synchronized void delete(Context c, String id) {
+    public static synchronized boolean delete(Context c, String id) {
+        if (id == null || id.trim().isEmpty()) return false;
         List<Flight> list = getFlights(c);
-        if (list.size() <= 1) return;
+        if (list.size() <= 1) return false;
         String active = getActiveId(c);
         ArrayList<Flight> remaining = new ArrayList<>();
-        for (Flight f : list) if (!f.id.equals(id)) remaining.add(f);
+        boolean found = false;
+        for (Flight f : list) {
+            if (id.equals(f.id)) found = true;
+            else remaining.add(f);
+        }
+        if (!found || remaining.isEmpty()) return false;
         persist(c, remaining);
         SyncRepository.enqueue(c,"flight",id,"delete");
-        if (id != null && id.equals(active)) activate(c, remaining.get(0).id);
+        if (id.equals(active)) activate(c, remaining.get(0).id);
+        return true;
     }
 
     private static void persist(Context c, List<Flight> list) {

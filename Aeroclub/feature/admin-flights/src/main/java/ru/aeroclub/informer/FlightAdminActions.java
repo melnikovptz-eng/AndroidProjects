@@ -46,6 +46,17 @@ public final class FlightAdminActions {
         return true;
     }
 
+    public static boolean setPublished(Context context, String id, boolean published) {
+        Flight target = FlightRepository.getById(context, id);
+        if (target == null) {
+            EventLogRepository.record(context, "FLT-01", "publication_change", "rejected_missing", id);
+            return false;
+        }
+        FlightRepository.setPublished(context, id, published);
+        EventLogRepository.record(context, "FLT-01", "publication_change", "local_only", id);
+        return true;
+    }
+
     public static boolean delete(Context context, String id) {
         Flight target = FlightRepository.getById(context, id);
         if (target == null || !FlightRepository.delete(context, id)) {

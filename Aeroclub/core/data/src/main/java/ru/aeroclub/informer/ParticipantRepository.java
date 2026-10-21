@@ -119,8 +119,10 @@ public final class ParticipantRepository {
     public static synchronized boolean delete(Context c, String id) {
         if (id == null) return false;
         ArrayList<Participant> list = new ArrayList<>(getAll(c));
+        ArrayList<String> removedNames = new ArrayList<>();
         boolean removed = false;
         for (int i=list.size()-1; i>=0; i--) if (id.equals(list.get(i).id)) {
+            removedNames.add(list.get(i).displayName);
             list.remove(i); removed = true;
         }
         if (removed) {
@@ -133,7 +135,19 @@ public final class ParticipantRepository {
             // Remove participant-scoped legacy status keys for all flights.
             SharedPreferences p = prefs(c);
             SharedPreferences.Editor e = p.edit();
-            for (String key : p.getAll().keySet()) if (key.startsWith("participant_status_") && key.endsWith("_" + id)) e.remove(key);
+            for (String key : p.getAll().keySet()) {
+                if (!key.startsWith("participant_status_")) continue;
+                boolean belongsToDeletedParticipant = key.endsWith("_" + id);
+                if (!belongsToDeletedParticipant) {
+                    for (String oldName : removedNames) {
+                        if (key.endsWith("_" + oldName)) {
+                            belongsToDeletedParticipant = true;
+                            break;
+                        }
+                    }
+                }
+                if (belongsToDeletedParticipant) e.remove(key);
+            }
             e.apply();
         }
         return removed;

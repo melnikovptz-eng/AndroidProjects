@@ -1,44 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="12dp"
-    android:background="@drawable/widget_card">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="W01  •  АЭРОКЛУБ  •  БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="@color/aero_muted"
-        android:textSize="11sp" android:textStyle="bold"/>
-    <TextView android:id="@+id/flight_title" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="4dp"
-        android:text="Полёт выходного дня" android:textColor="@color/aero_navy"
-        android:textSize="18sp" android:textStyle="bold" android:maxLines="1"
-        android:ellipsize="end"/>
-    <TextView android:id="@+id/flight_time" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="2dp"
-        android:text="Вс, 25 октября  •  10:30" android:textColor="@color/aero_body" android:textSize="14sp"/>
-    <TextView android:id="@+id/flight_place" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="2dp"
-        android:text="Место встречи: аэродром «Северный»" android:textColor="#526477"
-        android:textSize="13sp" android:maxLines="1" android:ellipsize="end"/>
-    <TextView android:id="@+id/flight_status" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="5dp"
-        android:text="Ответьте, будете ли вы участвовать" android:textColor="@color/aero_green" android:textSize="12sp"
-        android:maxLines="1" android:ellipsize="end"/>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="5dp" android:orientation="horizontal">
-        <Button android:id="@+id/btn_going" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:minWidth="0dp" android:padding="2dp"
-            android:text="Я еду" android:textAllCaps="false" android:textSize="12sp"/>
-        <Button android:id="@+id/btn_not_going" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:layout_marginStart="6dp" android:minWidth="0dp"
-            android:padding="2dp" android:text="Я не еду" android:textAllCaps="false" android:textSize="12sp"/>
+    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="10dp" android:background="@drawable/widget_card">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="✈  KD PILOT" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold"/>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="end" android:text="●  СЕГОДНЯ ПОЛЁТЫ" android:textColor="#63E6B0" android:textSize="10sp" android:textStyle="bold"/>
     </LinearLayout>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="2dp" android:orientation="horizontal">
-        <Button android:id="@+id/btn_route" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:minWidth="0dp" android:padding="2dp"
-            android:text="Маршрут" android:textAllCaps="false" android:textSize="12sp"/>
-        <Button android:id="@+id/btn_telegram" android:layout_width="0dp" android:layout_height="44dp"
-            android:layout_weight="1" android:layout_marginStart="6dp" android:minWidth="0dp"
-            android:padding="2dp" android:text="Telegram" android:textAllCaps="false" android:textSize="12sp"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="✦  БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="#C7D9F0" android:textSize="10sp" android:textStyle="bold"/>
+        <TextClock android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:textColor="#FFFFFF" android:textSize="23sp" android:textStyle="bold"/>
+    </LinearLayout>
+    <TextView android:id="@+id/flight_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Полёт выходного дня" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/flight_time" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Вс, 25 октября • 10:30" android:textColor="#DCE8F7" android:textSize="12sp" android:maxLines="1" android:ellipsize="end"/>
+        <TextClock android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="EEE, d MMM" android:format24Hour="EEE, d MMM" android:textColor="#C7D9F0" android:textSize="10sp"/>
+    </LinearLayout>
+    <TextView android:id="@+id/flight_place" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="⌖ Место встречи: аэродром" android:textColor="#B7CBE4" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/flight_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Ответьте, будете ли вы участвовать" android:textColor="#65E6B1" android:textSize="10sp" android:maxLines="1" android:ellipsize="end"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal">
+        <Button android:id="@+id/btn_going" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:minWidth="0dp" android:padding="0dp" android:backgroundTint="#0DA66A" android:text="✓ Еду" android:textColor="#FFFFFF" android:textAllCaps="false" android:textSize="11sp"/>
+        <Button android:id="@+id/btn_not_going" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginStart="4dp" android:minWidth="0dp" android:padding="0dp" android:backgroundTint="#D9273D" android:text="✕ Не еду" android:textColor="#FFFFFF" android:textAllCaps="false" android:textSize="11sp"/>
+        <Button android:id="@+id/btn_route" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginStart="4dp" android:minWidth="0dp" android:padding="0dp" android:backgroundTint="#EAF1FA" android:text="⌖ Маршрут" android:textColor="#172B4D" android:textAllCaps="false" android:textSize="10sp"/>
+        <Button android:id="@+id/btn_telegram" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginStart="4dp" android:minWidth="0dp" android:padding="0dp" android:backgroundTint="#0878E5" android:text="➤ Telegram" android:textColor="#FFFFFF" android:textAllCaps="false" android:textSize="10sp"/>
     </LinearLayout>
 </LinearLayout>

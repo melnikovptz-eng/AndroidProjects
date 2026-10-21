@@ -8,8 +8,12 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -43,6 +47,21 @@ public class AdminActivity extends Activity {
     private boolean storageWarningShown;
     private boolean refreshOnResume = false;
     private DebugOperation screenOpenOperation;
+    private Calendar displayedMonth = Calendar.getInstance();
+    private boolean calendarMonthInitialized;
+    private String selectedMessageFlightId;
+    private String recipientMode = "ALL";
+    private String recipientId = "all";
+    private String recipientLabel = "Всем";
+    private Button recipientButton;
+    private final Handler flightSyncHandler = new Handler(Looper.getMainLooper());
+    private final Runnable flightSyncPoll = new Runnable() {
+        @Override public void run() {
+            if (isFinishing()) return;
+            if (FlightRepository.syncFromDownload(AdminActivity.this)) render();
+            flightSyncHandler.postDelayed(this, 5000L);
+        }
+    };
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -84,12 +103,16 @@ public class AdminActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        flightSyncHandler.removeCallbacks(flightSyncPoll);
         LocalFilePreferences.get(this).flushPendingWrites(500L);
         super.onPause();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        flightSyncHandler.removeCallbacks(flightSyncPoll);
+        FlightRepository.syncFromDownload(this);
+        flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         LocalFilePreferences storage = LocalFilePreferences.get(this);
         if (!storage.isStorageHealthy() && !storageWarningShown) {
             storageWarningShown = true;
@@ -105,15 +128,18 @@ public class AdminActivity extends Activity {
     private void render() {
         ModuleDebugLog.log(this, "UI", "screen_transition", "success", "screen=" + section);
         root.removeAllViews();
-        TextView eyebrow = text("АЭРОКЛУБ  •  УПРАВЛЕНИЕ", 11, MUTED, true);
+        TextView eyebrow = text("АЭРОКЛУБ  •  " + screenIdForSection(section) + "  •  УПРАВЛЕНИЕ", 11, MUTED, true);
         root.addView(eyebrow);
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
         heading.setOrientation(LinearLayout.HORIZONTAL);
         TextView title = text(section, 25, NAVY, true);
         heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        Button back = smallButton("К информеру");
-        back.setOnClickListener(v -> finish());
+        Button back = smallButton(section.equals("Обзор") ? "К информеру" : "← Назад");
+        back.setOnClickListener(v -> {
+            if (!"Обзор".equals(section)) { section = "Обзор"; render(); }
+            else finish();
+        });
         heading.addView(back);
         LinearLayout.LayoutParams hp = lp(-1, -2); hp.topMargin = dp(6);
         root.addView(heading, hp);
@@ -132,7 +158,7 @@ public class AdminActivity extends Activity {
             Button b = smallButton(item);
             b.setTextSize(11);
             b.setTextColor(section.equals(item) ? Color.WHITE : NAVY);
-            b.setBackground(round(section.equals(item) ? BLUE : Color.WHITE, 12, Color.rgb(220,228,236)));
+            b.setBackground(rippleBackground(section.equals(item) ? BLUE : Color.WHITE, 12, Color.rgb(220,228,236)));
             LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, dp(42), 1);
             np.setMargins(0, dp(10), dp(4), dp(8));
             nav.addView(b, np);
@@ -434,19 +460,23 @@ public class AdminActivity extends Activity {
     }
 
     private void showMessages() {
-        Flight active = FlightRepository.getActive(this);
+        Flight active = selectedMessageFlightId == null ? FlightRepository.getActive(this) : FlightRepository.getById(this, selectedMessageFlightId);
+        if (active == null) { selectedMessageFlightId = null; active = FlightRepository.getActive(this); }
         String flightId = active == null ? null : active.id;
         String summary = active == null ? "Нет выбранного вылета" :
             FlightPresentation.title(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
         EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active, ClubSettingsActions.get(this).clubName));
         content.addView(message);
+        recipientButton = actionButton("Кому: " + recipientLabel + " — изменить", false);
+        recipientButton.setOnClickListener(v -> chooseMessageRecipient());
+        content.addView(recipientButton, lp(-1, dp(48)));
 
         Button templates = actionButton("Выбрать шаблон", false);
         templates.setOnClickListener(v -> {
             String[] names = {"Напоминание о вылете","Изменение данных вылета","Просьба подтвердить участие"};
             new AlertDialog.Builder(this).setTitle("Шаблоны сообщения").setItems(names,(dialog,which) -> {
-                Flight current = FlightRepository.getActive(this);
+                Flight current = selectedMessageFlightId == null ? FlightRepository.getActive(this) : FlightRepository.getById(this, selectedMessageFlightId);
                 if(current==null) {
                     Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
                     return;
@@ -459,8 +489,8 @@ public class AdminActivity extends Activity {
         content.addView(templates,lp(-1,dp(48)));
 
         Button preview = actionButton("Предпросмотр сообщения", false);
-        preview.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Предпросмотр")
-            .setMessage(message.getText().toString()).setPositiveButton("Закрыть",null).show());
+        preview.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Предпросмотр — " + recipientLabel)
+            .setMessage("Кому: " + recipientLabel + "\n\n" + message.getText().toString()).setPositiveButton("Закрыть",null).show());
         content.addView(preview, lp(-1,dp(48)));
 
         Button save = actionButton("Сохранить черновик", false);
@@ -516,10 +546,11 @@ public class AdminActivity extends Activity {
                 return;
             }
             Intent send = new Intent(Intent.ACTION_SEND); send.setType("text/plain");
-            send.putExtra(Intent.EXTRA_TEXT,body);
+            String addressedBody = "Кому: " + recipientLabel + "\n\n" + body;
+            send.putExtra(Intent.EXTRA_TEXT,addressedBody);
             try {
                 startActivity(Intent.createChooser(send,"Отправить сообщение"));
-                MessageRepository.recordShareChooserOpened(this, flightId, body);
+                MessageRepository.recordShareChooserOpened(this, flightId, addressedBody);
                 EventLogRepository.record(this,"MSG-01","share_chooser_opened","delivery_unconfirmed",flightId);
             } catch (Exception e) {
                 Toast.makeText(this,"Нет приложения для отправки",Toast.LENGTH_SHORT).show();
@@ -528,6 +559,19 @@ public class AdminActivity extends Activity {
         content.addView(share, lp(-1,dp(48)));
         note("Локальная запись обновляет файл на этом телефоне. Она не отправляет сообщение на другие устройства. «Поделиться…» открывает системное меню, доставка не подтверждается.");
     }
+
+    private void chooseMessageRecipient(){
+        String[] types={"Всем","Одному участнику","Группе"};int checked="ONE".equals(recipientMode)?1:("GROUP".equals(recipientMode)?2:0);
+        new AlertDialog.Builder(this).setTitle("Кому отправить?").setSingleChoiceItems(types,checked,(dialog,which)->{dialog.dismiss();
+            if(which==0){recipientMode="ALL";recipientId="all";recipientLabel="Всем";updateRecipientButton();}
+            else if(which==1){java.util.List<Participant> ps=localParticipants();if(ps.isEmpty()){Toast.makeText(this,"Сначала добавьте участника на экране S06.",Toast.LENGTH_LONG).show();return;}
+                String[] names=new String[ps.size()];for(int i=0;i<ps.size();i++)names[i]=ps.get(i).displayName;
+                new AlertDialog.Builder(this).setTitle("Выберите участника").setItems(names,(d,index)->{Participant p=ps.get(index);recipientMode="ONE";recipientId=p.id;recipientLabel=p.displayName;updateRecipientButton();}).setNegativeButton("Отмена",null).show();
+            }else{String[] groups={"Все участники","Участники, которые едут","Участники без ответа"};String[] ids={"group:all","group:going","group:pending"};
+                new AlertDialog.Builder(this).setTitle("Выберите группу").setItems(groups,(d,index)->{recipientMode="GROUP";recipientId=ids[index];recipientLabel=groups[index];updateRecipientButton();}).setNegativeButton("Отмена",null).show();}
+        }).setNegativeButton("Отмена",null).show();
+    }
+    private void updateRecipientButton(){if(recipientButton!=null)recipientButton.setText("Кому: "+recipientLabel+" — изменить");EventLogRepository.record(this,"MSG-01","recipient_selected","local_only",recipientMode+":"+recipientId);}
 
     private void showMessageHistory(String flightId, EditText editor) {
         java.util.List<MessageRecord> history = MessageRepository.getHistory(this, flightId);
@@ -555,46 +599,45 @@ public class AdminActivity extends Activity {
     }
 
     private void showCalendar() {
-        String selectedIso = CalendarActions.selectedDate(this, draftDateIso());
-        if (selectedIso.isEmpty()) selectedIso = draftDateIso();
-        try {
-            java.util.Date selected=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(selectedIso);
-            if(selected!=null) flightDate.setTime(selected);
-        } catch(Exception ignored) {}
-        card("Календарь клуба", "Выбранная дата: " + FlightDateUtils.toDisplay(selectedIso), null, null);
-        Button choose = actionButton("Выбрать дату", true);
-        choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
-            flightDate.set(y,m,d);
-            String iso=draftDateIso();
-            if (!CalendarActions.selectDate(this, iso)) {
-                Toast.makeText(this, "Не удалось сохранить выбранную дату", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            render();
-        }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
-        content.addView(choose, lp(-1,dp(48)));
-        java.util.List<Flight> flights = CalendarActions.flightsOnDate(this, selectedIso);
-        int matches = 0;
-        for (Flight flight : flights) {
-            matches++;
-            boolean active = flight.id.equals(FlightRepository.getActiveId(this));
-                card(active ? "Активный вылет" : "Вылет",
-                    FlightPresentation.title(flight) + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
-                    active ? "Открыть вылеты" : "Сделать активным", () -> {
-                        if (!active) {
-                            if (!FlightAdminActions.activate(this, flight.id)) {
-                            Toast.makeText(this, "Не удалось выбрать вылет.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                            loadDraftFromActiveFlight();
-                            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
-                        }
-                        section = "Вылеты";
-                        render();
-                    });
+        String selectedIso=CalendarActions.selectedDate(this,draftDateIso());if(selectedIso.isEmpty())selectedIso=draftDateIso();
+        try{java.util.Date d=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(selectedIso);if(d!=null)flightDate.setTime(d);}catch(Exception ignored){}
+        if(!calendarMonthInitialized){displayedMonth.setTimeInMillis(flightDate.getTimeInMillis());displayedMonth.set(Calendar.DAY_OF_MONTH,1);calendarMonthInitialized=true;}
+        card("Календарь клуба","Выберите дату. Точки отмечают даты с вылетами.",null,null);
+        LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
+        Button previous=smallButton("‹"),next=smallButton("›");TextView month=text("",17,NAVY,true);
+        header.addView(previous,new LinearLayout.LayoutParams(dp(48),dp(42)));header.addView(month,new LinearLayout.LayoutParams(0,dp(42),1));header.addView(next,new LinearLayout.LayoutParams(dp(48),dp(42)));content.addView(header,lp(-1,dp(42)));
+        LinearLayout grid=new LinearLayout(this);grid.setOrientation(LinearLayout.VERTICAL);content.addView(grid,lp(-1,-2));renderCalendarGridInto(grid,month);
+        previous.setOnClickListener(v->{displayedMonth.add(Calendar.MONTH,-1);render();});next.setOnClickListener(v->{displayedMonth.add(Calendar.MONTH,1);render();});
+        TextView chosen=text("Выбрано: "+FlightDateUtils.toDisplay(selectedIso),14,NAVY,true);LinearLayout.LayoutParams cp=lp(-1,-2);cp.topMargin=dp(8);content.addView(chosen,cp);
+        java.util.List<Flight> matches=CalendarActions.flightsOnDate(this,selectedIso);if(matches.isEmpty())note("На выбранную дату вылетов нет.");
+        for(Flight flight:matches){
+            card("Вылет",FlightPresentation.title(flight)+"\n"+flight.date+" • "+flight.time+"\n"+flight.place,"Открыть в вылетах",()->{
+                if(!flight.id.equals(FlightRepository.getActiveId(this)))FlightAdminActions.activate(this,flight.id);
+                loadDraftFromActiveFlight();WidgetRefreshManager.refresh(this,"ru.aeroclub.informer.FlightWidgetProvider");section="Вылеты";render();});
+            Button prepare=actionButton("Подготовить сообщение по этому вылету",true);content.addView(prepare,lp(-1,dp(48)));
+            prepare.setOnClickListener(v->{selectedMessageFlightId=flight.id;section="Сообщения";render();});
         }
-        if (matches == 0) note("На выбранную дату в локальном списке вылетов событий нет.");
-        note("Календарь сравнивает полные даты; данные остаются локальными.");
+        Button today=actionButton("Сегодня",false);today.setOnClickListener(v->{flightDate.setTimeInMillis(System.currentTimeMillis());displayedMonth.setTimeInMillis(flightDate.getTimeInMillis());displayedMonth.set(Calendar.DAY_OF_MONTH,1);calendarMonthInitialized=true;
+            if(CalendarActions.selectDate(this,draftDateIso()))render();else Toast.makeText(this,"Не удалось выбрать сегодняшнюю дату",Toast.LENGTH_SHORT).show();});
+        content.addView(today,lp(-1,dp(44)));note("Файл полётов: "+FlightDownloadExchange.getPath()+". Системное меню отправки не подтверждает доставку.");
+    }
+    private void renderCalendarGridInto(LinearLayout grid,TextView monthLabel){
+        grid.removeAllViews();monthLabel.setText(new SimpleDateFormat("LLLL yyyy",Locale.forLanguageTag("ru")).format(displayedMonth.getTime()));
+        String[] weekdays={"Пн","Вт","Ср","Чт","Пт","Сб","Вс"};LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);
+        for(String day:weekdays){TextView t=text(day,11,MUTED,true);t.setGravity(Gravity.CENTER);header.addView(t,new LinearLayout.LayoutParams(0,dp(28),1));}grid.addView(header);
+        Calendar first=(Calendar)displayedMonth.clone();first.set(Calendar.DAY_OF_MONTH,1);int offset=(first.get(Calendar.DAY_OF_WEEK)+5)%7,days=first.getActualMaximum(Calendar.DAY_OF_MONTH);
+        java.util.Set<String> flightDates=new java.util.HashSet<>();for(Flight f:FlightRepository.getFlights(this))flightDates.add(f.dateIso);
+        for(int row=0;row<6;row++){LinearLayout week=new LinearLayout(this);week.setOrientation(LinearLayout.HORIZONTAL);
+            for(int col=0;col<7;col++){int day=row*7+col-offset+1;if(day<1||day>days){week.addView(text("",12,MUTED,false),new LinearLayout.LayoutParams(0,dp(40),1));continue;}
+                Calendar date=(Calendar)displayedMonth.clone();date.set(Calendar.DAY_OF_MONTH,day);String iso=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(date.getTime());
+                boolean selected=iso.equals(draftDateIso()),hasFlight=flightDates.contains(iso);Button cell=new Button(this);cell.setText(hasFlight?day+" •":String.valueOf(day));cell.setTextSize(11);cell.setAllCaps(false);
+                cell.setMinWidth(0);cell.setMinimumWidth(0);cell.setMinHeight(0);cell.setMinimumHeight(0);cell.setPadding(0,0,0,0);cell.setTextColor(selected?Color.WHITE:NAVY);
+                cell.setBackground(rippleBackground(selected?BLUE:Color.WHITE,8,hasFlight?GREEN:Color.rgb(225,230,237)));
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(40),1);p.setMargins(dp(1),dp(1),dp(1),dp(1));week.addView(cell,p);
+                final int selectedDay=day;cell.setOnClickListener(v->{Calendar picked=(Calendar)displayedMonth.clone();picked.set(Calendar.DAY_OF_MONTH,selectedDay);flightDate.setTimeInMillis(picked.getTimeInMillis());
+                    if(!CalendarActions.selectDate(this,iso)){Toast.makeText(this,"Не удалось сохранить дату",Toast.LENGTH_SHORT).show();return;}render();});
+            }grid.addView(week);if((row+1)*7-offset>=days)break;
+        }
     }
 
     private void showSettings() {
@@ -872,13 +915,14 @@ public class AdminActivity extends Activity {
     private Button actionButton(String label, boolean primary) {
         Button b=smallButton(label); b.setTextSize(14);
         b.setTextColor(primary?Color.WHITE:NAVY);
-        b.setBackground(round(primary?BLUE:Color.WHITE,12,primary?BLUE:Color.rgb(220,228,236)));
+        b.setBackground(rippleBackground(primary?BLUE:Color.WHITE,12,primary?BLUE:Color.rgb(220,228,236)));
         return b;
     }
 
     private Button smallButton(String label) {
         Button b=new Button(this); b.setText(label); b.setAllCaps(false); b.setTextSize(12);
         b.setMinHeight(dp(40)); b.setMinimumHeight(dp(40)); b.setPadding(dp(8),0,dp(8),0);
+        b.setBackground(rippleBackground(Color.WHITE, 10, Color.rgb(220,228,236)));
         return b;
     }
 
@@ -894,6 +938,15 @@ public class AdminActivity extends Activity {
     }
     private GradientDrawable round(int color,int radius,int stroke) {
         return AeroclubUi.rounded(this, color, radius, stroke);
+    }
+    private RippleDrawable rippleBackground(int color, int radius, int stroke) {
+        return new RippleDrawable(ColorStateList.valueOf(Color.rgb(190, 210, 235)), round(color, radius, stroke), null);
+    }
+    private String screenIdForSection(String value) {
+        switch (value) {
+            case "Вылеты": return "S03"; case "Сообщения": return "S04"; case "Календарь": return "S05";
+            case "Участники": return "S06"; case "Настройки": return "S07"; case "Уведомления": return "S08"; default: return "S02";
+        }
     }
     private LinearLayout.LayoutParams lp(int w,int h) { return new LinearLayout.LayoutParams(w,h); }
     private int dp(int v) { return (int)(v*getResources().getDisplayMetrics().density+0.5f); }

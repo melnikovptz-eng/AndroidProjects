@@ -7,6 +7,9 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -22,6 +25,8 @@ public class MainActivity extends Activity {
     private LocalMessageFileWatcher messageWatcher;
     private DebugOperation screenOpenOperation;
     private boolean storageWarningShown;
+    private final Handler flightSyncHandler = new Handler(Looper.getMainLooper());
+    private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) refreshFlightSummary(); flightSyncHandler.postDelayed(this, 5000L); } };
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -39,7 +44,7 @@ public class MainActivity extends Activity {
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
         GradientDrawable cardBg = AeroclubUi.rounded(this, Color.WHITE, 18, AeroclubUi.BORDER);
         card.setBackground(cardBg);
-        clubLabel = text(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true);
+        clubLabel = text("S01  •  " + ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ", 11, MUTED, true);
         card.addView(clubLabel);
         LinearLayout.LayoutParams cardParams = lp(-1, -2);
         cardParams.topMargin = dp(8);
@@ -109,11 +114,16 @@ public class MainActivity extends Activity {
         pageScroll.setClipToPadding(false);
         pageScroll.addView(root);
         setContentView(pageScroll);
+        ensureLegacyDownloadsPermission();
         refreshStatusLabel();
         handleAttendanceAction(getIntent());
         if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }
     }
 
+
+    private void ensureLegacyDownloadsPermission(){if(Build.VERSION.SDK_INT<29&&checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE,android.Manifest.permission.WRITE_EXTERNAL_STORAGE},7103);}
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){super.onRequestPermissionsResult(requestCode,permissions,grantResults);if(requestCode==7103){if(grantResults.length>0&&grantResults[0]==android.content.pm.PackageManager.PERMISSION_GRANTED){FlightRepository.ensureInitialized(this);FlightDownloadExchange.publish(this,LocalFilePreferences.get(this),"flights_json","active_flight_id");refreshFlightSummary();}else{android.widget.Toast.makeText(this,"Без доступа к Download автоматический файл полётов недоступен.",android.widget.Toast.LENGTH_LONG).show();ModuleDebugLog.log(this,"FLIGHT-FILE","legacy_permission","denied","downloads_unavailable");}}}
+    private void refreshFlightSummary(){if(flightTitle==null)return;FlightReminderScheduler.syncAll(this);clubLabel.setText("S01  •  "+ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru"))+"  •  БЛИЖАЙШИЙ ВЫЛЕТ");Flight active=FlightRepository.getActive(this);flightTitle.setText(FlightPresentation.title(active));flightDateTime.setText(active==null?"Дата и время уточняются":active.date+"  •  "+active.time);flightPlace.setText("Место встречи: "+(active==null?"не указано":active.place));refreshStatusLabel();}
 
     private void launchMessageExport() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -304,14 +314,12 @@ public class MainActivity extends Activity {
             android.widget.Toast.makeText(this, storage.getStorageStatus(), android.widget.Toast.LENGTH_LONG).show();
         }
         ModuleDebugLog.log(this, "UI-01", "informer_onResume", "started", "screen_foreground");
+        flightSyncHandler.removeCallbacks(flightSyncPoll);
+        FlightRepository.syncFromDownload(this);
+        flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);
-        clubLabel.setText(ClubSettingsActions.get(this).clubName.toUpperCase(java.util.Locale.forLanguageTag("ru")) + "  •  БЛИЖАЙШИЙ ВЫЛЕТ");
-        Flight active = FlightRepository.getActive(this);
-        flightTitle.setText(FlightPresentation.title(active));
-        flightDateTime.setText(active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);
-        flightPlace.setText("Место встречи: " + (active == null ? "не указано" : active.place));
-        refreshStatusLabel();
+        refreshFlightSummary();
         if (messageWatcher == null) {
             messageWatcher = new LocalMessageFileWatcher(
                 MessageTransportProvider.get(), LocalFileMessageTransport.ANNOUNCEMENT_CHANNEL);
@@ -338,6 +346,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        flightSyncHandler.removeCallbacks(flightSyncPoll);
         LocalFilePreferences.get(this).flushPendingWrites(500L);
         ModuleDebugLog.log(this, "UI-01", "informer_onPause", "stopped", "screen_background");
         if (messageWatcher != null) messageWatcher.stop();

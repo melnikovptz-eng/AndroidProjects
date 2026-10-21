@@ -22,14 +22,14 @@ public final class MessageRepository {
         String body=text==null?"":text.trim();
         if(body.isEmpty() || flightId==null || flightId.trim().isEmpty()) return null;
         return append(c, new MessageRecord(UUID.randomUUID().toString(), flightId,
-            "Черновик сохранён локально", System.currentTimeMillis()));
+            body, "Черновик сохранён локально", System.currentTimeMillis()));
     }
 
     public static synchronized MessageRecord recordShareChooserOpened(Context c, String flightId, String text) {
         String body=text==null?"":text.trim();
         if(body.isEmpty() || flightId==null || flightId.trim().isEmpty()) return null;
         return append(c, new MessageRecord(UUID.randomUUID().toString(), flightId,
-            "Открыто меню «Поделиться»; доставка не подтверждена", System.currentTimeMillis()));
+            body, "Открыто меню «Поделиться»; доставка не подтверждена", System.currentTimeMillis()));
     }
 
     public static synchronized List<MessageRecord> getHistory(Context c, String flightId) {

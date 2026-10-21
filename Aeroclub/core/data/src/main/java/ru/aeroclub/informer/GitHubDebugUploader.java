@@ -38,7 +38,7 @@ public final class GitHubDebugUploader {
         thread.setDaemon(true);
         return thread;
     });
-    private static final AtomicBoolean UPLOADING = new AtomicBoolean(false);
+    private static final AtomicBoolean UPLOADING = new AtomicBoolean(false);\n    private static final AtomicBoolean UPLOAD_REQUESTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECEIVER_REGISTERED = new AtomicBoolean(false);
 
     private GitHubDebugUploader() { }

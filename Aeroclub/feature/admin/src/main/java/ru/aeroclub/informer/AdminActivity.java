@@ -39,6 +39,7 @@ public class AdminActivity extends Activity {
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
     private String editingFlightId = null;
+    private boolean refreshOnResume = false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -55,6 +56,14 @@ public class AdminActivity extends Activity {
         loadDraftFromActiveFlight();
         setContentView(root);
         render();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (refreshOnResume && root != null) {
+            refreshOnResume = false;
+            render();
+        }
     }
 
     private void render() {
@@ -533,6 +542,7 @@ public class AdminActivity extends Activity {
                     FlightReminderScheduler.syncAll(this);
                     Toast.makeText(this,"Расписание локальных напоминаний обновлено",Toast.LENGTH_SHORT).show();
                 } else {
+                    refreshOnResume = true;
                     try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         android.net.Uri.parse("package:" + getPackageName()))); }
                     catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }

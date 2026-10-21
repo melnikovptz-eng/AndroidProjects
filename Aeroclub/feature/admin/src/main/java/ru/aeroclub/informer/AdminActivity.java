@@ -460,7 +460,7 @@ public class AdminActivity extends Activity {
     }
 
     private void showCalendar() {
-        String selectedIso = CalendarRepository.getSelectedDateIso(this, draftDateIso());
+        String selectedIso = CalendarActions.selectedDate(this, draftDateIso());
         if (selectedIso.isEmpty()) selectedIso = draftDateIso();
         try {
             java.util.Date selected=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).parse(selectedIso);
@@ -471,19 +471,18 @@ public class AdminActivity extends Activity {
         choose.setOnClickListener(v -> new DatePickerDialog(this, (view,y,m,d) -> {
             flightDate.set(y,m,d);
             String iso=draftDateIso();
-            if (!CalendarRepository.setSelectedDate(this, iso, draftDateLabel())) {
+            if (!CalendarActions.selectDate(this, iso)) {
                 Toast.makeText(this, "Не удалось сохранить выбранную дату", Toast.LENGTH_SHORT).show();
                 return;
             }
             render();
         }, flightDate.get(Calendar.YEAR), flightDate.get(Calendar.MONTH), flightDate.get(Calendar.DAY_OF_MONTH)).show());
         content.addView(choose, lp(-1,dp(48)));
-        java.util.List<Flight> flights = FlightRepository.getFlights(this);
+        java.util.List<Flight> flights = CalendarActions.flightsOnDate(this, selectedIso);
         int matches = 0;
         for (Flight flight : flights) {
-            if (selectedIso.equals(flight.dateIso)) {
-                matches++;
-                boolean active = flight.id.equals(FlightRepository.getActiveId(this));
+            matches++;
+            boolean active = flight.id.equals(FlightRepository.getActiveId(this));
                 card(active ? "Активный вылет" : "Вылет",
                     (flight.isDemo ? "ДЕМО · " : "") + flight.title + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
                     active ? "Открыть вылеты" : "Сделать активным", () -> {

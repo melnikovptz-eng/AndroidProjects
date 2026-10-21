@@ -390,7 +390,7 @@ public class AdminActivity extends Activity {
                         return;
                     }
                 }
-                prefs.edit().putString("custom_participants", old.isEmpty() ? name : old + "\\n" + name).apply();
+                prefs.edit().putString("custom_participants", old.isEmpty() ? name : old + "\n" + name).apply();
                 Toast.makeText(this, "Участник добавлен на этом устройстве", Toast.LENGTH_SHORT).show();
                 render();
             }).show();

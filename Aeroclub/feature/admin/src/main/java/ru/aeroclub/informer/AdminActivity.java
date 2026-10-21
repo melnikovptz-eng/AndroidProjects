@@ -826,10 +826,6 @@ public class AdminActivity extends Activity {
         return b;
     }
 
-    private String displayFlightTitle(Flight flight) {
-        return flight == null ? "Ближайший вылет" : FlightPresentation.title(flight);
-    }
-
     private void note(String value) {
         TextView t=text(value,12,MUTED,false);
         LinearLayout.LayoutParams p=lp(-1,-2); p.setMargins(dp(2),dp(4),dp(2),dp(12)); content.addView(t,p);

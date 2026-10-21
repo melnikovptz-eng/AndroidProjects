@@ -62,6 +62,7 @@ public class AdminActivity extends Activity {
         super.onResume();
         if (refreshOnResume && root != null) {
             refreshOnResume = false;
+            FlightReminderScheduler.syncAll(this);
             render();
         }
     }

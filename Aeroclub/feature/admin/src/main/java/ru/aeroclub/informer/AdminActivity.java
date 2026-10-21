@@ -176,13 +176,16 @@ public class AdminActivity extends Activity {
                     if (flight.id.equals(FlightRepository.getActiveId(this))) {
                         editFlight(flight.id);
                     } else {
-                        FlightRepository.activate(this, flight.id);
+                        if (!FlightAdminActions.activate(this, flight.id)) {
+                            Toast.makeText(this, "Не удалось выбрать вылет.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                         loadDraftFromActiveFlight();
                         WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         render();
                     }
                 });
-            Button publish = smallButton(flight.published ? "Снять отметку публикации" : "Отметить опубликованным");
+            Button publish = smallButton(flight.published ? "Снять отметку публикации" : "Отметить публикацию локально");
             LinearLayout.LayoutParams publishParams = lp(-1,dp(40));
             publishParams.bottomMargin = dp(6);
             content.addView(publish,publishParams);
@@ -496,7 +499,10 @@ public class AdminActivity extends Activity {
                     (flight.isDemo ? "ДЕМО · " : "") + flight.title + "\n" + flight.date + " • " + flight.time + "\n" + flight.place,
                     active ? "Открыть вылеты" : "Сделать активным", () -> {
                         if (!active) {
-                            FlightRepository.activate(this, flight.id);
+                            if (!FlightAdminActions.activate(this, flight.id)) {
+                            Toast.makeText(this, "Не удалось выбрать вылет.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                             loadDraftFromActiveFlight();
                             WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
                         }

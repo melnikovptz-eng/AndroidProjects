@@ -103,6 +103,13 @@ public class AdminActivity extends Activity {
         LinearLayout.LayoutParams hp = lp(-1, -2); hp.topMargin = dp(6);
         root.addView(heading, hp);
 
+        TextView demoWarning = text("ДЕМО-РЕЖИМ. Данные хранятся только на этом устройстве; серверная авторизация и общая база не подключены. Не используйте конфиденциальные данные.", 11, Color.rgb(120, 80, 20), false);
+        demoWarning.setPadding(dp(10), dp(8), dp(10), dp(8));
+        demoWarning.setBackground(AeroclubUi.rounded(this, Color.rgb(255, 248, 225), 10, Color.rgb(240, 220, 170)));
+        LinearLayout.LayoutParams warningParams = lp(-1, -2);
+        warningParams.topMargin = dp(8);
+        root.addView(demoWarning, warningParams);
+
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         String[] items = {"Обзор", "Вылеты", "Участники", "Сообщения"};

@@ -146,12 +146,14 @@ Aeroclub/
 | Модуль | Реальное содержимое | Зависит от |
 |---|---|---|
 | `:core:common` | Flight, Participant, MessageRecord, ClubSettings, FlightDateUtils; unit-тесты дат | Java standard library |
-| `:core:data` | локальные репозитории, миграции и локальный outbox | `:core:common` |
+| `:core:data` | локальные репозитории, миграции и ограниченный локальный outbox | `:core:common` |
 | `:core:ui` | AeroclubUi, общая палитра, shape helper и цвета | `:core:common` |
 | `:core:android` | FlightActionLauncher, WidgetRefreshManager | `:core:common`, `:core:data` |
 | `:feature:notifications` | FlightReminderScheduler, FlightReminderReceiver, FlightReminderBootReceiver | `:core:common`, `:core:data` |
-| `:app` | MainActivity, AdminActivity, FlightWidgetProvider и manifest | общие библиотеки и notifications |
+| `:feature:admin` | AdminActivity и разделы локальной админ-панели | common, data, ui, android, notifications |
+| `:feature:informer` | MainActivity — экран-превью и действия участника | common, data, ui, android, notifications |
+| `:app` | FlightWidgetProvider и манифест | общие библиотеки и feature-модули |
 
-Граф направлен от приложения и адаптеров к данным и общим типам; обратных зависимостей из `:core:common` и `:core:data` на UI или приложение нет. WidgetRefreshManager принимает имя класса провайдера параметром, поэтому библиотека не зависит от `:app`.
+Граф зависимостей направлен от `:app` и feature/adapter-модулей к данным и общим типам. Обратных зависимостей из `:core:common` и `:core:data` на UI или приложение нет. WidgetRefreshManager принимает полное имя класса провайдера строкой, поэтому `:core:android` не зависит от `:app`.
 
-**Не считать законченными:** отдельные UI feature-модули, реальный серверный API, авторизацию/роли, отправку FCM и подтверждаемую синхронизацию.
+**Остаётся незавершённым:** отдельные UI-модули для разделов админ-панели, реальный серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.

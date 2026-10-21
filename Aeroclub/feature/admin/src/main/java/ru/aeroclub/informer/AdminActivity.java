@@ -268,8 +268,6 @@ public class AdminActivity extends Activity {
                     Calendar parsedDate = Calendar.getInstance();
                     parsedDate.setTime(parsed);
                     flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
-                    flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
-                    flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
                     flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
                     flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
                 }
@@ -306,6 +304,7 @@ public class AdminActivity extends Activity {
                 if (parsed != null) {
                     Calendar parsedDate = Calendar.getInstance();
                     parsedDate.setTime(parsed);
+                    flightDate.set(Calendar.YEAR, parsedDate.get(Calendar.YEAR));
                     flightDate.set(Calendar.MONTH, parsedDate.get(Calendar.MONTH));
                     flightDate.set(Calendar.DAY_OF_MONTH, parsedDate.get(Calendar.DAY_OF_MONTH));
                 }

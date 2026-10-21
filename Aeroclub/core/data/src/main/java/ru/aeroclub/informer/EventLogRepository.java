@@ -13,7 +13,7 @@ public final class EventLogRepository {
     private EventLogRepository() {}
 
     private static SharedPreferences prefs(Context c) {
-        return c.getApplicationContext().getSharedPreferences(PREFS,0);
+        return LocalFilePreferences.get(c);
     }
 
     public static synchronized void record(Context c, String module, String action, String result, String entityId) {

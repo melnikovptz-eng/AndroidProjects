@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
         root.addView(card, cardParams);
 
         FlightRepository.ensureInitialized(this);
+        FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
         card.addView(text(activeFlight == null ? "Ближайший вылет" : activeFlight.title, 18, NAVY, true));
         addLine(card, activeFlight == null ? "Дата и время уточняются" :

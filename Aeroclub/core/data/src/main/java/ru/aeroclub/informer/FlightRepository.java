@@ -13,6 +13,7 @@ public final class FlightRepository {
     private static final String PREFS = "flight_informer";
     private static final String FLIGHTS = "flights_json";
     private static final String ACTIVE_ID = "active_flight_id";
+    private static final String DEMO_OUTBOX_CLEANUP = "demo_outbox_cleanup_v1";
     private FlightRepository() {}
 
     private static SharedPreferences prefs(Context c) {
@@ -56,6 +57,10 @@ public final class FlightRepository {
             }
         } catch (Exception ignored) {}
         if(needsMigration && !result.isEmpty()) persist(c,result);
+        if (!p.getBoolean(DEMO_OUTBOX_CLEANUP, false)) {
+            for (Flight flight : result) if (flight.isDemo) SyncRepository.removeDemoFlightOperations(c, flight.id);
+            p.edit().putBoolean(DEMO_OUTBOX_CLEANUP, true).apply();
+        }
         return result;
     }
 

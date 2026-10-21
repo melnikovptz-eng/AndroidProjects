@@ -153,12 +153,12 @@ Aeroclub/
 | :feature:admin-flights | FlightAdminActions: create/update/delete, reminder side effects, журналирование | common, data, notifications |
 | :feature:admin-participants | ParticipantAdminActions: CRUD, ответы, валидация и журналирование | common, data |
 | :feature:calendar | CalendarActions: ISO-дата и поиск вылетов по дате | common, data |
-| :feature:messages | MessageTemplates: единые шаблоны с пометкой демоданных | common |
+| :feature:messages | MessageTemplates, MessageTransport, локальный JSON-транспорт и foreground file watcher | common |
 | :feature:settings | ClubSettingsActions: чтение/сохранение и журналирование | common, data |
 | :feature:admin | AdminActivity и UI разделов админ-панели | common, data, ui, android, notifications, admin use cases |
-| :feature:informer | MainActivity — превью и действия участника | common, data, ui, android, notifications, admin-participants |
+| :feature:informer | MainActivity — превью, действия участника и показ локальных объявлений | common, data, ui, android, notifications, admin-participants, messages |
 | :app | FlightWidgetProvider, manifest и упаковка приложения | общие библиотеки и feature-модули |
 
-Граф ацикличен: use-case модули зависят от data/common, но репозитории не зависят от feature-модулей. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. Административные разделы UI пока остаются методами одного AdminActivity; бизнес-операции вынесены в отдельные feature-модули.
+Граф ацикличен: use-case модули зависят от data/common, informer использует контракт транспорта сообщений, но модуль messages не зависит от UI informer/admin и репозитории не зависят от feature-модулей. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. Административные разделы UI пока остаются методами одного AdminActivity; бизнес-операции вынесены в отдельные feature-модули.
 
 Остаётся незавершённым: разбиение административного UI на отдельные экранные модули, серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.

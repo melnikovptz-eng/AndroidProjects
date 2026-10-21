@@ -28,7 +28,7 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         String status = c.getSharedPreferences(PREFS, 0).getString("status", "Ответьте, будете ли вы участвовать");
         v.setTextViewText(R.id.flight_status, status);
         v.setTextViewText(R.id.flight_title, "Полёт выходного дня");
-        v.setTextViewText(R.id.flight_time, "Сб, 25 октября  •  10:30");
+        v.setTextViewText(R.id.flight_time, "Вс, 25 октября  •  10:30");
         v.setTextViewText(R.id.flight_place, "Место встречи: аэродром «Северный»");
         bind(c, v, R.id.btn_going, "ru.aeroclub.informer.GOING", 1);
         bind(c, v, R.id.btn_not_going, "ru.aeroclub.informer.NOT_GOING", 2);

@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -35,7 +36,8 @@ public class FlightReminderReceiver extends BroadcastReceiver {
             channel.setDescription("Локальные напоминания перед вылетом");
             manager.createNotificationChannel(channel);
         }
-        Intent open=new Intent(context,MainActivity.class);
+        Intent open=new Intent();
+        open.setComponent(new ComponentName(context.getPackageName(), "ru.aeroclub.informer.MainActivity"));
         open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent content=PendingIntent.getActivity(context,flightId==null?0:flightId.hashCode(),open,
             PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);

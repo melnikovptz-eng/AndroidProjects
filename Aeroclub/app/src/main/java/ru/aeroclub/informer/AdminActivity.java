@@ -194,6 +194,8 @@ public class AdminActivity extends Activity {
                     .setPositiveButton("Удалить", (dialog, which) -> {
                         FlightRepository.delete(this, flight.id);
                         FlightReminderScheduler.cancel(this,flight.id);
+                        AttendanceRepository.deleteFlight(this,flight.id);
+                        MessageRepository.deleteForFlight(this,flight.id);
                         EventLogRepository.record(this,"FLT-01","delete","success",flight.id);
                         loadDraftFromActiveFlight();
                         refreshFlightWidget();

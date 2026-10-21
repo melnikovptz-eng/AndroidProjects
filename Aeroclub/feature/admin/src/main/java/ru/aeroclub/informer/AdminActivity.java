@@ -212,8 +212,10 @@ public class AdminActivity extends Activity {
             publishParams.bottomMargin = dp(6);
             content.addView(publish,publishParams);
             publish.setOnClickListener(v -> {
-                FlightRepository.setPublished(this,flight.id,!flight.published);
-                EventLogRepository.record(this,"FLT-01","publication_status_update","local_only",flight.id);
+                if (!FlightAdminActions.setPublished(this, flight.id, !flight.published)) {
+                    Toast.makeText(this, "Не удалось изменить локальную отметку публикации.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 render();
             });
             if (flights.size() > 1) {

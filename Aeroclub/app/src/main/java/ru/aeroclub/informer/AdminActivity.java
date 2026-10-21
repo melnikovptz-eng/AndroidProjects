@@ -137,9 +137,9 @@ public class AdminActivity extends Activity {
     }
 
     private void showFlights() {
-        java.util.List<FlightRepository.Flight> flights = FlightRepository.getFlights(this);
+        java.util.List<Flight> flights = FlightRepository.getFlights(this);
         String activeId = FlightRepository.getActiveId(this);
-        for (FlightRepository.Flight flight : flights) {
+        for (Flight flight : flights) {
             boolean active = flight.id.equals(activeId);
             card(active ? "АКТИВНЫЙ ВЫЛЕТ" : "Вылет",
                 flight.title + "\n" + flight.date + " • " + flight.time + "\nМесто встречи: " + flight.place,
@@ -178,7 +178,7 @@ public class AdminActivity extends Activity {
     }
 
     private void loadDraftFromActiveFlight() {
-        FlightRepository.Flight active = FlightRepository.getActive(this);
+        Flight active = FlightRepository.getActive(this);
         if (active != null) {
             draftTitle = active.title;
             draftPlace = active.place;
@@ -201,7 +201,7 @@ public class AdminActivity extends Activity {
 
     private void editFlight(String flightId) {
         editingFlightId = flightId;
-        FlightRepository.Flight existing = flightId == null ? null : FlightRepository.getById(this, flightId);
+        Flight existing = flightId == null ? null : FlightRepository.getById(this, flightId);
         if (existing != null) {
             draftTitle = existing.title;
             draftPlace = existing.place;
@@ -243,7 +243,7 @@ public class AdminActivity extends Activity {
                 if (draftTitle.isEmpty()) draftTitle = "Новый вылет";
                 if (draftPlace.isEmpty()) draftPlace = "Место встречи не указано";
                 if (editingFlightId == null) {
-                    FlightRepository.Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
+                    Flight created = FlightRepository.create(this, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);
                     FlightRepository.activate(this, created.id);
                 } else {
                     FlightRepository.save(this, editingFlightId, draftTitle, draftDateLabel(), draftTimeLabel(), draftPlace);

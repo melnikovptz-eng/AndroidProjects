@@ -76,6 +76,17 @@ public final class AttendanceRepository {
         return "Ожидается ответ";
     }
 
+    public static synchronized void deleteParticipant(Context c, String participantId) {
+        if(participantId==null || participantId.trim().isEmpty()) return;
+        JSONArray source=read(prefs(c).getString(RECORDS,"[]"));
+        JSONArray target=new JSONArray();
+        for(int i=0;i<source.length();i++) {
+            JSONObject item=source.optJSONObject(i);
+            if(item!=null && !participantId.equals(item.optString("participantId"))) target.put(item);
+        }
+        prefs(c).edit().putString(RECORDS,target.toString()).apply();
+    }
+
     public static synchronized int countResponses(Context c, String flightId, String status) {
         JSONArray arr=read(prefs(c).getString(RECORDS,"[]"));
         int count=0;

@@ -40,6 +40,7 @@ public class AdminActivity extends Activity {
     private static final int GREEN = AeroclubUi.GREEN;
     private LinearLayout root, content;
     private String section = "Обзор";
+    private final java.util.ArrayDeque<String> navigationHistory = new java.util.ArrayDeque<>();
     private final Calendar flightDate = Calendar.getInstance();
     private String draftTitle = "Полёт выходного дня";
     private String draftPlace = "Аэродром «Северный»";
@@ -125,6 +126,25 @@ public class AdminActivity extends Activity {
         }
     }
 
+    private void navigateTo(String target) {
+        if (target == null || target.equals(section)) return;
+        navigationHistory.addLast(section);
+        section = target;
+        render();
+    }
+
+    private void goBack() {
+        if (!navigationHistory.isEmpty()) section = navigationHistory.removeLast();
+        else section = "Обзор";
+        render();
+    }
+
+    private void goOverview() {
+        navigationHistory.clear();
+        section = "Обзор";
+        render();
+    }
+
     private void render() {
         ModuleDebugLog.log(this, "UI", "screen_transition", "success", "screen=" + section);
         root.removeAllViews();
@@ -137,7 +157,7 @@ public class AdminActivity extends Activity {
         heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         Button back = smallButton(section.equals("Обзор") ? "К информеру" : "← Назад");
         back.setOnClickListener(v -> {
-            if (!"Обзор".equals(section)) { section = "Обзор"; render(); }
+            if (!"Обзор".equals(section)) goBack();
             else finish();
         });
         heading.addView(back);
@@ -162,7 +182,7 @@ public class AdminActivity extends Activity {
             LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, dp(42), 1);
             np.setMargins(0, dp(10), dp(4), dp(8));
             nav.addView(b, np);
-            b.setOnClickListener(v -> { section = item; render(); });
+            b.setOnClickListener(v -> navigateTo(item));
         }
         root.addView(nav);
 
@@ -184,7 +204,7 @@ public class AdminActivity extends Activity {
         }
         if (!section.equals("Обзор")) {
             Button overview = smallButton("Обзор");
-            overview.setOnClickListener(v -> { section = "Обзор"; render(); });
+            overview.setOnClickListener(v -> goOverview());
             root.addView(overview, lp(-1, dp(44)));
         }
     }
@@ -194,7 +214,7 @@ public class AdminActivity extends Activity {
         String flightSummary = active == null ? "Нет выбранного вылета" :
             FlightPresentation.title(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Ближайший вылет", flightSummary,
-             "Открыть вылеты", () -> { section = "Вылеты"; render(); });
+             "Открыть вылеты", () -> navigateTo("Вылеты"));
         int total = localParticipants().size();
         int going = countLocalParticipantStatus(AttendanceRepository.STATUS_GOING);
         int noReply = countLocalParticipantStatus(AttendanceRepository.STATUS_PENDING);
@@ -205,15 +225,15 @@ public class AdminActivity extends Activity {
         stat(stats, String.valueOf(noReply), "без ответа");
         content.addView(stats);
         card("Участники", "Показываются только записи, сохранённые на этом устройстве.",
-             "Управлять участниками", () -> { section = "Участники"; render(); });
+             "Управлять участниками", () -> navigateTo("Участники"));
         card("Сообщения", "Подготовка текста; доставка и массовая рассылка не подключены.",
-             "Открыть сообщения", () -> { section = "Сообщения"; render(); });
+             "Открыть сообщения", () -> navigateTo("Сообщения"));
         card("Календарь", "Даты локальных вылетов.",
-             "Открыть календарь", () -> { section = "Календарь"; render(); });
+             "Открыть календарь", () -> navigateTo("Календарь"));
         card("Сервис", "Настройки клуба и состояние уведомлений.",
-             "Настройки", () -> { section = "Настройки"; render(); });
+             "Настройки", () -> navigateTo("Настройки"));
         Button notifications = actionButton("Уведомления", false);
-        notifications.setOnClickListener(v -> { section = "Уведомления"; render(); });
+        notifications.setOnClickListener(v -> navigateTo("Уведомления"));
         content.addView(notifications, lp(-1, dp(48)));
         note("Локальный прототип. Эти числа не отражают участников клуба на других устройствах.");
     }
@@ -651,7 +671,7 @@ public class AdminActivity extends Activity {
                 if(!flight.id.equals(FlightRepository.getActiveId(this)))FlightAdminActions.activate(this,flight.id);
                 loadDraftFromActiveFlight();WidgetRefreshManager.refresh(this,"ru.aeroclub.informer.FlightWidgetProvider");section="Вылеты";render();});
             Button prepare=actionButton("Подготовить сообщение по этому вылету",true);content.addView(prepare,lp(-1,dp(48)));
-            prepare.setOnClickListener(v->{selectedMessageFlightId=flight.id;section="Сообщения";render();});
+            prepare.setOnClickListener(v->{selectedMessageFlightId=flight.id;navigateTo("Сообщения");});
         }
         Button today=actionButton("Сегодня",false);today.setOnClickListener(v->{flightDate.setTimeInMillis(System.currentTimeMillis());displayedMonth.setTimeInMillis(flightDate.getTimeInMillis());displayedMonth.set(Calendar.DAY_OF_MONTH,1);calendarMonthInitialized=true;
             if(CalendarActions.selectDate(this,draftDateIso()))render();else Toast.makeText(this,"Не удалось выбрать сегодняшнюю дату",Toast.LENGTH_SHORT).show();});

@@ -78,17 +78,18 @@ public class MainActivity extends Activity {
         row2.addView(route, weightedButtonParams(false));
         row2.addView(telegram, weightedButtonParams(true));
 
-        going.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_GOING));
-        no.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_NOT_GOING));
-        route.setOnClickListener(v -> FlightActionLauncher.openRoute(this, FlightRepository.getActive(this)));
-        telegram.setOnClickListener(v -> FlightActionLauncher.shareFlight(this, FlightRepository.getActive(this)));
+        going.setOnClickListener(v -> runTimedAction("ATT-01", "open_going_response", () -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_GOING)));
+        no.setOnClickListener(v -> runTimedAction("ATT-01", "open_not_going_response", () -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_NOT_GOING)));
+        route.setOnClickListener(v -> runTimedAction("MAP-01", "open_route", () -> FlightActionLauncher.openRoute(this, FlightRepository.getActive(this))));
+        telegram.setOnClickListener(v -> runTimedAction("SHR-01", "open_share", () -> FlightActionLauncher.shareFlight(this, FlightRepository.getActive(this))));
 
 
         Button admin = button("Панель администратора");
         LinearLayout.LayoutParams adminParams = lp(-1, dp(48));
         adminParams.topMargin = dp(12);
         root.addView(admin, adminParams);
-        admin.setOnClickListener(v -> startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))));
+        admin.setOnClickListener(v -> runTimedAction("ADM-01", "open_admin", () ->
+            startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")))));
 
         setContentView(root);
         refreshStatusLabel();
@@ -171,6 +172,17 @@ public class MainActivity extends Activity {
             return;
         }
         status.setText(selected.displayName + ": " + AttendanceRepository.getResponse(this, selected.id, flightId));
+    }
+
+    private void runTimedAction(String module, String action, Runnable body) {
+        DebugOperation operation = ModuleDebugLog.startOperation(this, module, action, "user_action");
+        try {
+            body.run();
+            operation.finish("success", "callback_returned");
+        } catch (RuntimeException error) {
+            operation.finish("error", error.getClass().getSimpleName());
+            throw error;
+        }
     }
 
     private TextView addLine(LinearLayout box, String value, int size, int color, int top) {

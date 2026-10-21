@@ -56,7 +56,7 @@ public final class FlightRepository {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {
                     String storedIso = o.optString("dateIso", "").trim();
-                    if (!o.has("dateIso") || (!storedIso.isEmpty() && FlightDateUtils.toIso(storedIso).isEmpty()) || !o.has("isDemo") || o.optString("id","").trim().isEmpty() || o.optString("title","").trim().isEmpty() || o.optString("place","").trim().isEmpty() || o.optString("date","").trim().isEmpty() || o.optString("time","").trim().isEmpty()) needsMigration=true;
+                    if (!o.has("dateIso") || (!storedIso.isEmpty() && FlightDateUtils.toIso(storedIso).isEmpty()) || (storedIso.isEmpty() && !FlightDateUtils.toIso(o.optString("date","")).isEmpty()) || !o.has("isDemo") || o.optString("id","").trim().isEmpty() || o.optString("title","").trim().isEmpty() || o.optString("place","").trim().isEmpty() || o.optString("date","").trim().isEmpty() || o.optString("time","").trim().isEmpty()) needsMigration=true;
                     Flight flight = fromJson(o);
                     if (seenIds.contains(flight.id)) {
                         flight = new Flight(UUID.randomUUID().toString(), flight.title, flight.date, flight.time,

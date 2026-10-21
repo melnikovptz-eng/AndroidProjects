@@ -33,30 +33,49 @@ public final class FlightReminderScheduler {
     }
 
     public static synchronized boolean schedule(Context context, Flight flight) {
-        if(flight==null || flight.id==null) return false;
+        if(flight==null || flight.id==null) {
+            ModuleDebugLog.log(context, "NTF-01", "schedule", "rejected", "missing_flight_or_id");
+            return false;
+        }
         long start=parseStart(flight);
         if(start<=System.currentTimeMillis()+REMINDER_LEAD_MS) {
             cancel(context,flight.id);
+            ModuleDebugLog.log(context, "NTF-01", "schedule", "skipped", "flight_not_far_enough_in_future");
             return false;
         }
         AlarmManager alarm=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-        if(alarm==null) return false;
+        if(alarm==null) {
+            ModuleDebugLog.log(context, "NTF-01", "schedule", "error", "alarm_manager_unavailable");
+            return false;
+        }
         PendingIntent pending=pendingIntent(context,flight);
-        alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,start-REMINDER_LEAD_MS,pending);
-        return true;
+        try {
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,start-REMINDER_LEAD_MS,pending);
+            ModuleDebugLog.log(context, "NTF-01", "schedule", "success_local", "reminder_scheduled");
+            return true;
+        } catch (RuntimeException error) {
+            ModuleDebugLog.log(context, "NTF-01", "schedule", "error", error.getClass().getSimpleName());
+            return false;
+        }
     }
 
     public static synchronized void syncAll(Context context) {
         List<Flight> flights=FlightRepository.getFlights(context);
+        ModuleDebugLog.log(context, "NTF-01", "sync_all", "started", "flight_count=" + flights.size());
         if (!notificationsEnabled(context)) {
             for (Flight flight : flights) cancel(context, flight.id);
+            ModuleDebugLog.log(context, "NTF-01", "sync_all", "skipped", "notifications_disabled");
             return;
         }
         for(Flight flight:flights) schedule(context,flight);
+        ModuleDebugLog.log(context, "NTF-01", "sync_all", "completed", "flight_count=" + flights.size());
     }
 
     public static synchronized void cancel(Context context,String flightId) {
-        if(flightId==null) return;
+        if(flightId==null) {
+            ModuleDebugLog.log(context, "NTF-01", "cancel", "skipped", "missing_flight_id");
+            return;
+        }
         AlarmManager alarm=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
         if(alarm!=null) {
             Intent intent=new Intent(context,FlightReminderReceiver.class).setAction("ru.aeroclub.informer.FLIGHT_REMINDER");
@@ -65,6 +84,7 @@ public final class FlightReminderScheduler {
                 PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             alarm.cancel(pending);
             pending.cancel();
+            ModuleDebugLog.log(context, "NTF-01", "cancel", "success_local", "reminder_cancelled");
         }
     }
 

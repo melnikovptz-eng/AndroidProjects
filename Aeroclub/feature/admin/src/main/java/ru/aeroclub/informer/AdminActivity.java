@@ -375,7 +375,7 @@ public class AdminActivity extends Activity {
         String summary = active == null ? "Нет выбранного вылета" :
             displayFlightTitle(active) + "\n" + active.date + " • " + active.time + "\nМесто встречи: " + active.place;
         card("Объявление о вылете", summary, null, null);
-        EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active));
+        EditText message = field("Текст сообщения", MessageTemplates.defaultReminder(active, ClubSettingsActions.get(this).clubName));
         content.addView(message);
 
         Button templates = actionButton("Выбрать шаблон", false);
@@ -387,7 +387,7 @@ public class AdminActivity extends Activity {
                     Toast.makeText(this, "Сначала выберите вылет.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String body = MessageTemplates.forTemplate(current, which);
+                String body = MessageTemplates.forTemplate(current, which, ClubSettingsActions.get(this).clubName);
                 message.setText(body);
                 EventLogRepository.record(this,"MSG-01","template_selected","success",current.id);
             }).show();

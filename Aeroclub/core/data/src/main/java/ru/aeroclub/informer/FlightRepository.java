@@ -27,7 +27,11 @@ public final class FlightRepository {
             String date = p.getString("flight_date", "Вс, 25 октября");
             String time = p.getString("flight_time", "10:30");
             String place = p.getString("flight_place", "аэродром «Северный»");
-            Flight initial = new Flight(id, title, date, time, place, false, FlightDateUtils.toIso(date), true);
+            boolean demoSample = "Полёт выходного дня".equals(title)
+                && "Вс, 25 октября".equals(date)
+                && "10:30".equals(time)
+                && "аэродром «Северный»".equals(place);
+            Flight initial = new Flight(id, title, date, time, place, false, FlightDateUtils.toIso(date), demoSample);
             JSONArray arr = new JSONArray();
             arr.put(toJson(initial));
             p.edit().putString(FLIGHTS, arr.toString()).putString(ACTIVE_ID, id).apply();

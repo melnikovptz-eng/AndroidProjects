@@ -25,8 +25,8 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Current branch HEAD: `6f38cf712372fb33e4242c39d4bd6c5212d00f02` (docs/registry-only commit; does not contain runtime fixes).
-- Latest successful workflow run: [run #283](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39667063119), source SHA `c6170e47148c9b6ba40d9c20d80755d57d01831e`; this is the latest code build before registry-only commit `6f38cf712372fb33e4242c39d4bd6c5212d00f02`.
+- Current branch HEAD after fix batch: `e1cf474495826ca4aaff303f9c5322691efe31b4` (task registry/passports updated after successful CI; runtime source built from `65424395f4a637355809a71a2692ccd53d825147`).
+- Latest successful workflow run: [run #289](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39674354938), source SHA `65424395f4a637355809a71a2692ccd53d825147`; APK SHA-256 `fa5b401ee8c5028a4182291e162f60211e7d4ecf9aae3986fce6df701aafdcee`, artifact ID `12381220421`. Physical-device checks are still pending.
 - Artifact: [Aeroclub-Informer-debug-c6170e47148c9b6ba40d9c20d80755d57d01831e](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39667063119/artifacts/12378181588); APK SHA-256: `b0e00da9911de745fd2012df589329e697ee4fb61b27eedd7728c8ac8e88c306`.
 - **Status: BUILD SUCCESS.** Available unit tests passed; some modules have no test sources. Real device behavior remains unverified.
 - Main screen includes manual JSON message export/import via Android's file picker. Task registry: `Aeroclub/TASK_REGISTRY.md`; numbered screen map: `Aeroclub/SCREEN_MAP.md`. Runtime defects reported on 2026-10-21 are open tasks AERO-001 through AERO-009. Import validates format/version and records, caps input at 2 MiB, merges by unique message ID. This enables manually moving a file between installations; it is not automatic messaging or cross-device sync.

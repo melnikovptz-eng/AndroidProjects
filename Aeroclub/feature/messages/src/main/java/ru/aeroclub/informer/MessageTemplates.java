@@ -22,7 +22,7 @@ public final class MessageTemplates {
     public static String forTemplate(Flight flight, int templateIndex, String clubName) {
         if (flight == null) return "";
         String prefix = cleanClubName(clubName) + ": ";
-        String title = displayTitle(flight);
+        String title = FlightPresentation.title(flight);
         switch (templateIndex) {
             case 0:
                 return prefix + "напоминаем о вылете «" + title + "» " + flight.date + " в " + flight.time
@@ -42,7 +42,4 @@ public final class MessageTemplates {
         return clubName == null || clubName.trim().isEmpty() ? "Аэроклуб" : clubName.trim();
     }
 
-    private static String displayTitle(Flight flight) {
-        return FlightPresentation.title(flight);
-    }
 }

@@ -182,9 +182,20 @@ public class AdminActivity extends Activity {
         participant("Дмитрий Петров", "Ожидается ответ", MUTED);
         participant("Елена Соколова", "Не участвует", Color.rgb(170, 65, 55));
         participant("Ещё 8 участников", "Демо-список; реальные контакты не подключены", MUTED);
-        Button export = actionButton("Экспорт списка", false);
-        export.setOnClickListener(v -> Toast.makeText(this,"Экспорт станет доступен после подключения данных участников",Toast.LENGTH_LONG).show());
-        content.addView(export, lp(-1,dp(48)));
+        String custom = getSharedPreferences("flight_informer",0).getString("custom_participants", "");
+        if (!custom.isEmpty()) {
+            for (String name : custom.split("\\n")) {
+                if (!name.trim().isEmpty()) participant(name.trim(),
+                    getSharedPreferences("flight_informer",0).getString("participant_status_" + name.trim(), "Ожидается ответ"),
+                    MUTED);
+            }
+        }
+        Button add = actionButton("＋  Добавить участника", true);
+        add.setOnClickListener(v -> addParticipant());
+        content.addView(add, lp(-1,dp(48)));
+        Button export = actionButton("Поделиться списком", false);
+        export.setOnClickListener(v -> shareParticipantList());
+        LinearLayout.LayoutParams ep=lp(-1,dp(48)); ep.topMargin=dp(6); content.addView(export,ep);
     }
 
     private void showMessages() {
@@ -238,6 +249,49 @@ public class AdminActivity extends Activity {
         card("Статус", "Локальный прототип • сервер не подключён", null, null);
     }
 
+
+
+    private void addParticipant() {
+        EditText input = field("Имя участника", "");
+        new AlertDialog.Builder(this).setTitle("Новый участник").setView(input)
+            .setNegativeButton("Отмена", null).setPositiveButton("Добавить", (dialog, which) -> {
+                String name = input.getText().toString().trim();
+                if (name.isEmpty()) {
+                    Toast.makeText(this, "Введите имя участника", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
+                String old = prefs.getString("custom_participants", "");
+                for (String existing : old.split("\\n")) {
+                    if (existing.equalsIgnoreCase(name)) {
+                        Toast.makeText(this, "Участник уже есть в списке", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+                prefs.edit().putString("custom_participants", old.isEmpty() ? name : old + "\\n" + name).apply();
+                Toast.makeText(this, "Участник добавлен на этом устройстве", Toast.LENGTH_SHORT).show();
+                render();
+            }).show();
+    }
+
+    private void shareParticipantList() {
+        android.content.SharedPreferences prefs = getSharedPreferences("flight_informer",0);
+        StringBuilder report = new StringBuilder("Аэроклуб — участники: ")
+            .append(draftTitle).append("\\n").append(dateLabel()).append(" • ").append(timeLabel()).append("\\n\\n");
+        String[] demo = {"Александр Иванов","Мария Смирнова","Дмитрий Петров","Елена Соколова"};
+        for (String name : demo) report.append(name).append(" — ")
+            .append(prefs.getString("participant_status_" + name,
+                name.equals("Александр Иванов") || name.equals("Мария Смирнова") ? "Подтвердил участие" :
+                name.equals("Елена Соколова") ? "Не участвует" : "Ожидается ответ")).append("\\n");
+        String custom = prefs.getString("custom_participants", "");
+        if (!custom.isEmpty()) for (String name : custom.split("\\n"))
+            if (!name.trim().isEmpty()) report.append(name.trim()).append(" — ")
+                .append(prefs.getString("participant_status_" + name.trim(), "Ожидается ответ")).append("\\n");
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, report.toString());
+        startActivity(Intent.createChooser(send, "Поделиться списком участников"));
+    }
 
     /** Refresh every installed home-screen widget after flight data changes. */
     private void refreshFlightWidget() {

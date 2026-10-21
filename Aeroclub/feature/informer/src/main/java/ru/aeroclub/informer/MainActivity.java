@@ -238,7 +238,7 @@ public class MainActivity extends Activity {
                 if (newest == null) {
                     localAnnouncement.setText("Объявлений в локальном файле пока нет");
                 } else {
-                    localAnnouncement.setText("Локальное объявление (только этот телефон):\\n" + newest.body);
+                    localAnnouncement.setText("Локальное объявление (только этот телефон):\n" + newest.body);
                 }
             }
             @Override public void onReadError() {

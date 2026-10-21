@@ -8,7 +8,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
-import android.view.SoundEffectConstants;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -92,7 +91,11 @@ public class MainActivity extends Activity {
         admin.setOnClickListener(v -> runTimedAction("ADM-01", "open_admin", () ->
             startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")))));
 
-        setContentView(root);
+        android.widget.ScrollView pageScroll = new android.widget.ScrollView(this);
+        pageScroll.setFillViewport(true);
+        pageScroll.setClipToPadding(false);
+        pageScroll.addView(root);
+        setContentView(pageScroll);
         refreshStatusLabel();
         handleAttendanceAction(getIntent());
         if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }
@@ -185,8 +188,6 @@ public class MainActivity extends Activity {
     }
 
     private void runTimedAction(String module, String action, Runnable body) {
-        // Play the native Android button-click sound for every action routed through this handler.
-        getWindow().getDecorView().playSoundEffect(SoundEffectConstants.CLICK);
         DebugOperation operation = ModuleDebugLog.startOperation(this, module, action, "user_action");
         try {
             body.run();

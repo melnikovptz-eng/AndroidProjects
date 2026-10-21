@@ -446,9 +446,23 @@ public class AdminActivity extends Activity {
     }
 
     private void showNotifications() {
-        card("Напоминание о вылете", "Можно подготовить текст напоминания и поделиться им через приложения на телефоне.",
-            "Подготовить сообщение", () -> { section="Сообщения"; render(); });
-        card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Экран не имитирует успешную рассылку.", null, null);
+        boolean notificationsEnabled = FlightReminderScheduler.notificationsEnabled(this);
+        card("Локальные напоминания", notificationsEnabled
+            ? "Состояние: разрешены. Для будущих вылетов ставится напоминание за 1 час."
+            : "Состояние: уведомления запрещены в настройках Android. Разрешите их для приложения.",
+            notificationsEnabled ? "Обновить напоминания" : "Открыть настройки приложения", () -> {
+                if (notificationsEnabled) {
+                    FlightReminderScheduler.syncAll(this);
+                    Toast.makeText(this,"Расписание локальных напоминаний обновлено",Toast.LENGTH_SHORT).show();
+                } else {
+                    try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.parse("package:" + getPackageName()))); }
+                    catch (Exception e) { Toast.makeText(this,"Откройте настройки приложения вручную",Toast.LENGTH_SHORT).show(); }
+                }
+                render();
+            });
+        card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Локальные напоминания не заменяют push-рассылку.", null, null);
+        card("Состояние", "Локальные напоминания работают на этом устройстве. Удалённая отправка уведомлений пока недоступна.", null, null);
         Button log = actionButton("Открыть журнал событий", false);
         log.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Журнал событий")
             .setMessage(EventLogRepository.getRecent(this,80))
@@ -457,8 +471,7 @@ public class AdminActivity extends Activity {
         note("Журнал хранит технические события без имён участников и текста сообщений.");
     }
 
-
-    private void addParticipant() {
+        private void addParticipant() {
         EditText input = field("Имя участника", "");
         new AlertDialog.Builder(this).setTitle("Новый участник").setView(input)
             .setNegativeButton("Отмена", null).setPositiveButton("Добавить", (dialog, which) -> {

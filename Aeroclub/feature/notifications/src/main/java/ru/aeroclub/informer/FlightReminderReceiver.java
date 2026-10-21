@@ -24,7 +24,10 @@ public class FlightReminderReceiver extends BroadcastReceiver {
         if(place==null) place="";
 
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if(manager==null) return;
+        if(manager==null) {
+            EventLogRepository.record(context,"NTF-01","local_reminder_delivered","notification_service_unavailable",flightId);
+            return;
+        }
         if(Build.VERSION.SDK_INT>=33 &&
             context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) {
             EventLogRepository.record(context,"NTF-01","local_reminder_delivered","permission_denied",flightId);

@@ -1,0 +1,15 @@
+plugins { id 'com.android.library' }
+
+android {
+    namespace 'ru.aeroclub.data'
+    compileSdk 35
+    defaultConfig { minSdk 23 }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation project(':core:common')
+}

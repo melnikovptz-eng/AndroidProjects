@@ -515,6 +515,10 @@ public class AdminActivity extends Activity {
             });
         card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный отправитель.",
                 "Настроить уведомления", () -> { section="Уведомления"; render(); });
+        card("Синхронизация", SyncRepository.getStatus(this), "Просмотреть очередь изменений", () ->
+            new AlertDialog.Builder(this).setTitle("Ожидающие изменения")
+                .setMessage(SyncRepository.getPendingSummary(this,60))
+                .setPositiveButton("Закрыть",null).show());
         card("Доступ администратора", "Авторизация и роли пока не подключены. Не храните конфиденциальные данные в этом прототипе.", null, null);
         note("Настройки клуба хранятся отдельно от вылетов. Изменение адреса по умолчанию не меняет уже созданные вылеты.");
     }

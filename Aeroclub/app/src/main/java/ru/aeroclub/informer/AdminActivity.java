@@ -1,6 +1,8 @@
 package ru.aeroclub.informer;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -167,6 +169,7 @@ public class AdminActivity extends Activity {
                 getSharedPreferences("flight_informer",0).edit()
                     .putString("flight_title", draftTitle).putString("flight_place", draftPlace)
                     .putString("flight_date", draftDateLabel()).putString("flight_time", draftTimeLabel()).apply();
+                refreshFlightWidget();
                 Toast.makeText(this,"Сохранено на этом устройстве",Toast.LENGTH_SHORT).show();
                 render();
             }).show();
@@ -220,7 +223,8 @@ public class AdminActivity extends Activity {
                 .setNegativeButton("Отмена",null).setPositiveButton("Сохранить",(d,w) -> {
                     draftPlace=e.getText().toString().trim();
                     if(draftPlace.isEmpty()) draftPlace="Не указано";
-                    getSharedPreferences("flight_informer",0).edit().putString("flight_place",draftPlace).apply(); render();
+                    getSharedPreferences("flight_informer",0).edit().putString("flight_place",draftPlace).apply();
+                    refreshFlightWidget(); render();
                 }).show();
         });
         card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный ключ.",
@@ -232,6 +236,18 @@ public class AdminActivity extends Activity {
         card("Напоминание о вылете", "Можно подготовить текст напоминания и поделиться им через приложения на телефоне.", "Подготовить сообщение", () -> { section="Сообщения"; render(); });
         card("Push-уведомления", "FCM не настроен: отсутствует конфигурация Firebase и сервер отправки. Экран показывает состояние, а не имитирует успешную рассылку.", null, null);
         card("Статус", "Локальный прототип • сервер не подключён", null, null);
+    }
+
+
+    /** Refresh every installed home-screen widget after flight data changes. */
+    private void refreshFlightWidget() {
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        int[] ids = manager.getAppWidgetIds(new ComponentName(this, FlightWidgetProvider.class));
+        if (ids.length == 0) return;
+        Intent update = new Intent(this, FlightWidgetProvider.class);
+        update.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        update.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+        sendBroadcast(update);
     }
 
     private void participant(String name, String state, int color) {

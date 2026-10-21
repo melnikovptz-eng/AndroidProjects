@@ -32,6 +32,7 @@ public class FlightDateUtilsTest {
         assertFalse(FlightDateUtils.isValidTime("25:61"));
         assertFalse(FlightDateUtils.isValidTime("9:5"));
         assertEquals(0L, FlightDateUtils.toMillis("2026-10-25", "25:61"));
+        assertEquals(0L, FlightDateUtils.toMillis("2026-10-25", "9:5"));
     }
 
     @Test public void formatsIsoDateForDisplay() {

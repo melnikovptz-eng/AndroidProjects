@@ -13,7 +13,6 @@ import java.util.UUID;
 public final class SyncRepository {
     private static final String PREFS="flight_informer";
     private static final String KEY="sync_outbox_json";
-    private static final int MAX_PENDING=500;
     private SyncRepository() {}
 
     private static SharedPreferences prefs(Context c) {
@@ -23,7 +22,15 @@ public final class SyncRepository {
     public static synchronized void enqueue(Context c,String entityType,String entityId,String operation) {
         if(entityType==null||entityType.trim().isEmpty()||entityId==null||entityId.trim().isEmpty()||
             operation==null||operation.trim().isEmpty()) return;
-        JSONArray arr=read(prefs(c).getString(KEY,"[]"));
+        JSONArray source=read(prefs(c).getString(KEY,"[]"));
+        JSONArray arr=new JSONArray();
+        for(int i=0;i<source.length();i++) {
+            JSONObject old=source.optJSONObject(i);
+            if(old==null) continue;
+            boolean same=entityType.equals(old.optString("entityType")) &&
+                entityId.equals(old.optString("entityId"));
+            if(!same) arr.put(old);
+        }
         JSONObject item=new JSONObject();
         try {
             item.put("operationId",UUID.randomUUID().toString());
@@ -34,14 +41,6 @@ public final class SyncRepository {
             item.put("state","pending_server_configuration");
         } catch(Exception ignored) {}
         arr.put(item);
-        while(arr.length()>MAX_PENDING) {
-            JSONArray trimmed=new JSONArray();
-            for(int i=arr.length()-MAX_PENDING;i<arr.length();i++) {
-                JSONObject old=arr.optJSONObject(i);
-                if(old!=null) trimmed.put(old);
-            }
-            arr=trimmed;
-        }
         prefs(c).edit().putString(KEY,arr.toString()).apply();
     }
 

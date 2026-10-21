@@ -115,7 +115,8 @@ public final class ParticipantRepository {
         }
         if (removed) {
             saveAll(c, list);
-            // Remove participant-scoped attendance statuses for all flights.
+            AttendanceRepository.deleteParticipant(c, id);
+            // Remove participant-scoped legacy status keys for all flights.
             SharedPreferences p = prefs(c);
             SharedPreferences.Editor e = p.edit();
             for (String key : p.getAll().keySet()) if (key.startsWith("participant_status_") && key.endsWith("_" + id)) e.remove(key);

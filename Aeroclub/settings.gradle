@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = 'AeroclubInformer'
-include ':app', ':core:common', ':core:data', ':core:android', ':core:common'
+include ':app', ':core:common', ':core:data', ':core:android', ':feature:notifications', ':core:common'

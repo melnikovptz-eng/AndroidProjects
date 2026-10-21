@@ -17,11 +17,11 @@ public class MainActivity extends Activity {
     private static final int MUTED = AeroclubUi.MUTED;
     private static final int GREEN = AeroclubUi.GREEN;
     private TextView status, clubLabel, flightTitle, flightDateTime, flightPlace, localAnnouncement;
-    private LocalMessageFileWatcher messageWatcher;
+    private LocalMessageFileWatcher messageWatcher;\n    private DebugOperation screenOpenOperation;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        ModuleDebugLog.log(this, "UI-01", "informer_onCreate", "started", "screen_created");
+        screenOpenOperation = ModuleDebugLog.startOperation(this, "UI-01", "informer_screen_open", "screen_created");
         getWindow().setStatusBarColor(AeroclubUi.BACKGROUND);
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);

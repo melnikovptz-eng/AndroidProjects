@@ -23,7 +23,10 @@ public final class SyncRepository {
 
     public static synchronized void enqueue(Context c,String entityType,String entityId,String operation) {
         if(entityType==null||entityType.trim().isEmpty()||entityId==null||entityId.trim().isEmpty()||
-            operation==null||operation.trim().isEmpty()) return;
+            operation==null||operation.trim().isEmpty()) {
+            ModuleDebugLog.log(c, "DATA-01", "outbox_enqueue", "rejected", "invalid_metadata");
+            return;
+        }
         JSONArray source=read(prefs(c).getString(KEY,"[]"));
         JSONArray arr=new JSONArray();
         boolean priorCreate=false;
@@ -52,6 +55,7 @@ public final class SyncRepository {
         }
         if(cancelCreateDelete || priorCreate) {
             prefs(c).edit().putString(KEY,arr.toString()).apply();
+            ModuleDebugLog.log(c, "DATA-01", "outbox_enqueue", "coalesced", cancelCreateDelete ? "create_delete_cancelled" : "existing_create_preserved");
             return;
         }
         JSONObject item=new JSONObject();
@@ -76,6 +80,7 @@ public final class SyncRepository {
             arr = bounded;
         }
         prefs(c).edit().putString(KEY,arr.toString()).putInt(DROPPED,dropped).apply();
+        ModuleDebugLog.log(c, "DATA-01", "outbox_enqueue", "saved_local_only", "pending_count=" + arr.length());
     }
 
     public static synchronized void removeDemoFlightOperations(Context c, String flightId) {
@@ -95,7 +100,10 @@ public final class SyncRepository {
             if (demoFlightOperation) changed = true;
             else target.put(item);
         }
-        if (changed) prefs(c).edit().putString(KEY, target.toString()).apply();
+        if (changed) {
+            prefs(c).edit().putString(KEY, target.toString()).apply();
+            ModuleDebugLog.log(c, "DATA-01", "outbox_demo_cleanup", "completed_local_only", "pending_count=" + target.length());
+        }
     }
 
     public static synchronized int getPendingCount(Context c) {

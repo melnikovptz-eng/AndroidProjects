@@ -33,6 +33,7 @@ public final class FlightReminderScheduler {
     }
 
     public static synchronized boolean schedule(Context context, Flight flight) {
+        ensureChannel(context);
         if(flight==null || flight.id==null) {
             ModuleDebugLog.log(context, "NTF-01", "schedule", "rejected", "missing_flight_or_id");
             return false;
@@ -60,6 +61,7 @@ public final class FlightReminderScheduler {
     }
 
     public static synchronized void syncAll(Context context) {
+        ensureChannel(context);
         List<Flight> flights=FlightRepository.getFlights(context);
         ModuleDebugLog.log(context, "NTF-01", "sync_all", "started", "flight_count=" + flights.size());
         if (!notificationsEnabled(context)) {

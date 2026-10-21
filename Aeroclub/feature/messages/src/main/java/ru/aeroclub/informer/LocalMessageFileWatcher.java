@@ -79,8 +79,6 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
                 return;
             }
 
-            lastModified = modified;
-            lastLength = length;
             readInProgress = true;
             Context context = appContext;
             pendingRead = io.submit(() -> {
@@ -99,6 +97,10 @@ public final class LocalMessageFileWatcher implements AutoCloseable {
                     synchronized (LocalMessageFileWatcher.this) {
                         if (generation != runId) return;
                         readInProgress = false;
+                        if (!readFailed) {
+                            lastModified = modified;
+                            lastLength = length;
+                        }
                         target = running ? listener : null;
                     }
                     if (target != null) {

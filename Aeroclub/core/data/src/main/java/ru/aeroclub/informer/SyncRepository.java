@@ -78,6 +78,26 @@ public final class SyncRepository {
         prefs(c).edit().putString(KEY,arr.toString()).putInt(DROPPED,dropped).apply();
     }
 
+    public static synchronized void removeDemoFlightOperations(Context c, String flightId) {
+        if (flightId == null || flightId.trim().isEmpty()) return;
+        JSONArray source = read(prefs(c).getString(KEY, "[]"));
+        JSONArray target = new JSONArray();
+        boolean changed = false;
+        for (int i = 0; i < source.length(); i++) {
+            JSONObject item = source.optJSONObject(i);
+            if (item == null) continue;
+            String type = item.optString("entityType", "");
+            String id = item.optString("entityId", "");
+            String operation = item.optString("operation", "");
+            boolean demoFlightOperation = ("flight".equals(type) && flightId.equals(id))
+                || ("active_flight".equals(type) && "active".equals(id) && ("set:" + flightId).equals(operation))
+                || ("attendance".equals(type) && (flightId.equals(id) || id.endsWith(":" + flightId)));
+            if (demoFlightOperation) changed = true;
+            else target.put(item);
+        }
+        if (changed) prefs(c).edit().putString(KEY, target.toString()).apply();
+    }
+
     public static synchronized int getPendingCount(Context c) {
         return read(prefs(c).getString(KEY,"[]")).length();
     }

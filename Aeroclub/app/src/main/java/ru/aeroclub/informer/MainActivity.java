@@ -81,42 +81,9 @@ public class MainActivity extends Activity {
 
         going.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_GOING));
         no.setOnClickListener(v -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_NOT_GOING));
-        route.setOnClickListener(v -> {
-            Flight active = FlightRepository.getActive(this);
-            String place = active == null ? "" : active.place;
-            if (place.trim().isEmpty()) {
-                android.widget.Toast.makeText(this,"Место встречи не указано",android.widget.Toast.LENGTH_SHORT).show();
-                return;
-            }
-            Intent map = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(place)));
-            try {
-                startActivity(map);
-                EventLogRepository.record(this,"MAP-01","open_route","intent_started",active.id);
-            } catch (Exception e) {
-                android.widget.Toast.makeText(this,"Не найдено приложение для карт",android.widget.Toast.LENGTH_SHORT).show();
-                EventLogRepository.record(this,"MAP-01","open_route","no_maps_app",active.id);
-            }
-        });
-        telegram.setOnClickListener(v -> {
-            Flight active = FlightRepository.getActive(this);
-            if (active == null) {
-                android.widget.Toast.makeText(this,"Нет данных о вылете",android.widget.Toast.LENGTH_SHORT).show();
-                return;
-            }
-            String body = "Аэроклуб — " + active.title + ": " + active.date + ", " + active.time +
-                ". Место встречи: " + active.place + ".";
-            Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("text/plain");
-            share.putExtra(Intent.EXTRA_TEXT, body);
-            try {
-                startActivity(Intent.createChooser(share, "Отправить информацию о полёте"));
-                MessageRepository.recordShareChooserOpened(this,active.id,body);
-                EventLogRepository.record(this,"SHR-01","share_chooser_opened","delivery_unconfirmed",active.id);
-            } catch (Exception e) {
-                android.widget.Toast.makeText(this,"Нет приложения для отправки",android.widget.Toast.LENGTH_SHORT).show();
-                EventLogRepository.record(this,"SHR-01","share_chooser_opened","no_share_app",active.id);
-            }
-        });
+        route.setOnClickListener(v -> FlightActionLauncher.openRoute(this, FlightRepository.getActive(this)));
+        telegram.setOnClickListener(v -> FlightActionLauncher.shareFlight(this, FlightRepository.getActive(this)));
+
 
         Button admin = button("Панель администратора");
         LinearLayout.LayoutParams adminParams = lp(-1, dp(48));

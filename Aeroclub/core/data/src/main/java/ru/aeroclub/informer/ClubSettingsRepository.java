@@ -11,7 +11,7 @@ public final class ClubSettingsRepository {
     private ClubSettingsRepository() {}
 
     private static SharedPreferences prefs(Context c) {
-        return c.getApplicationContext().getSharedPreferences(PREFS,0);
+        return LocalFilePreferences.get(c);
     }
 
     public static synchronized ClubSettings get(Context c) {

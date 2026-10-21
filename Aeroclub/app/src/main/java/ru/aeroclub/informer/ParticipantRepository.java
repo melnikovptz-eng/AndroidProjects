@@ -85,6 +85,7 @@ public final class ParticipantRepository {
         Participant created = new Participant(UUID.randomUUID().toString(), name, System.currentTimeMillis());
         list.add(created);
         saveAll(c, list);
+        SyncRepository.enqueue(c,"participant",created.id,"create");
         return created;
     }
 
@@ -102,7 +103,10 @@ public final class ParticipantRepository {
                 break;
             }
         }
-        if (found) saveAll(c, list);
+        if (found) {
+            saveAll(c, list);
+            SyncRepository.enqueue(c,"participant",id,"update");
+        }
         return found;
     }
 
@@ -115,6 +119,7 @@ public final class ParticipantRepository {
         }
         if (removed) {
             saveAll(c, list);
+            SyncRepository.enqueue(c,"participant",id,"delete");
             AttendanceRepository.deleteParticipant(c, id);
             // Remove participant-scoped legacy status keys for all flights.
             SharedPreferences p = prefs(c);

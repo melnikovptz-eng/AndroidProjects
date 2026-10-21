@@ -55,7 +55,7 @@ public final class FlightDateUtils {
     }
 
     public static boolean isValidTime(String time) {
-        return time != null && time.matches("(?:[01]\\\\d|2[0-3]):[0-5]\\\\d");
+        return time != null && time.matches("(?:[01]\\d|2[0-3]):[0-5]\\d");
     }
 
     public static long toMillis(String iso,String time) {

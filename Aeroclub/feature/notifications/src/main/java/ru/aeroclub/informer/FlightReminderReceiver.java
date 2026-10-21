@@ -10,7 +10,7 @@ import android.os.Build;
 
 /** Delivers an on-device reminder; this is not an FCM push notification. */
 public class FlightReminderReceiver extends BroadcastReceiver {
-    public static final String CHANNEL_ID = "aeroclub_flight_reminders";
+    public static final String CHANNEL_ID = "aeroclub_flight_reminders_v2";
 
     @Override public void onReceive(Context context, Intent intent) {
         String flightId=intent==null?null:intent.getStringExtra("flight_id");
@@ -23,6 +23,10 @@ public class FlightReminderReceiver extends BroadcastReceiver {
         if(time==null) time="";
         if(place==null) place="";
 
+        // Ensure the sound-enabled channel exists even if this receiver is invoked
+        // independently of the scheduler. Android 8+ channel sound is immutable;
+        // the v2 ID avoids inheriting a previously-created silent channel.
+        NotificationSoundPolicy.ensureChannel(context);
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager==null) {
             EventLogRepository.record(context,"NTF-01","local_reminder_delivered","notification_service_unavailable",flightId);

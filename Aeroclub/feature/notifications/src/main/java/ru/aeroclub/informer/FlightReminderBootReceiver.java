@@ -10,6 +10,7 @@ public class FlightReminderBootReceiver extends BroadcastReceiver {
         if(intent==null || !Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) return;
         FlightRepository.ensureInitialized(context);
         FlightReminderScheduler.syncAll(context);
-        EventLogRepository.record(context,"NTF-01","restore_after_reboot","scheduled","device");
+        String result = FlightReminderScheduler.notificationsEnabled(context) ? "completed" : "notifications_disabled";
+        EventLogRepository.record(context,"NTF-01","restore_after_reboot",result,"device");
     }
 }

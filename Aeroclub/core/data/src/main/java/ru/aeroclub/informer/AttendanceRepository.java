@@ -16,9 +16,9 @@ public final class AttendanceRepository {
     private static final String DEVICE_ID = "local_participant_id";
     private static final String RECORDS = "attendance_json";
     private static final String SELECTED_PARTICIPANT = "selected_attendance_participant_id";
-    public static final String STATUS_GOING = "Подтвердил участие";
-    public static final String STATUS_NOT_GOING = "Не участвует";
-    public static final String STATUS_PENDING = "Ожидается ответ";
+    public static final String STATUS_GOING = AttendanceStatus.GOING;
+    public static final String STATUS_NOT_GOING = AttendanceStatus.NOT_GOING;
+    public static final String STATUS_PENDING = AttendanceStatus.PENDING;
     private AttendanceRepository() {}
 
     public static final class Attendance {
@@ -80,14 +80,7 @@ public final class AttendanceRepository {
     }
 
     public static String normalizeStatus(String status) {
-        if (status == null) return null;
-        String value = status.trim();
-        if (STATUS_GOING.equals(value) || "Вы подтвердили участие".equals(value) ||
-            "Подтверждено участие".equals(value)) return STATUS_GOING;
-        if (STATUS_NOT_GOING.equals(value) || "Вы не участвуете".equals(value) ||
-            "Не подтвердил участие".equals(value)) return STATUS_NOT_GOING;
-        if (STATUS_PENDING.equals(value) || value.isEmpty()) return STATUS_PENDING;
-        return null;
+        return AttendanceStatus.normalize(status);
     }
 
     public static synchronized String getResponse(Context c, String flightId) {

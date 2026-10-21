@@ -43,12 +43,14 @@ public final class ParticipantRepository {
                 for (Flight flight : flights) {
                     String oldKey = "participant_status_" + flight.id + "_" + participant.displayName;
                     String newKey = "participant_status_" + flight.id + "_" + participant.id;
-                    if (p.contains(oldKey) && !p.contains(newKey)) {
-                        String oldStatus = p.getString(oldKey, AttendanceRepository.STATUS_PENDING);
+                    String sourceKey = p.contains(newKey) ? newKey : oldKey;
+                    if (p.contains(sourceKey)) {
+                        String oldStatus = p.getString(sourceKey, AttendanceRepository.STATUS_PENDING);
                         String normalized = AttendanceRepository.normalizeStatus(oldStatus);
                         if (normalized != null) {
-                            edit.putString(newKey, normalized);
+                            if (!p.contains(newKey)) edit.putString(newKey, normalized);
                             AttendanceRepository.setResponse(c, participant.id, flight.id, normalized);
+                            if (!sourceKey.equals(newKey)) edit.remove(oldKey);
                         }
                     }
                 }

@@ -89,11 +89,22 @@ public class MainActivity extends Activity {
 
         setContentView(root);
         refreshStatusLabel();
-        String requestedStatus = getIntent() == null ? null : getIntent().getStringExtra("attendance_action");
+        handleAttendanceAction(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleAttendanceAction(intent);
+    }
+
+    private void handleAttendanceAction(Intent intent) {
+        if (intent == null) return;
+        String requestedStatus = intent.getStringExtra("attendance_action");
         if (AttendanceRepository.STATUS_GOING.equals(requestedStatus) ||
             AttendanceRepository.STATUS_NOT_GOING.equals(requestedStatus)) {
+            intent.removeExtra("attendance_action");
             chooseParticipantAndSetStatus(requestedStatus);
-            getIntent().removeExtra("attendance_action");
         }
     }
 

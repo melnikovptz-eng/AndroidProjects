@@ -25,11 +25,11 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Current branch HEAD: `4fa26960418dd2b47ebf9ae9cb6d1d586c84baa7`.
-- Latest successful workflow run: [run #280](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39662566836), source SHA matches HEAD.
-- Artifact: [Aeroclub-Informer-debug-4fa26960418dd2b47ebf9ae9cb6d1d586c84baa7](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39662566836/artifacts/12374572143); APK SHA-256: `90080ea204f410abc832149d695f9ec5f066dc530e4e383f9636709518abf6c0`.
+- Current branch HEAD: `6f38cf712372fb33e4242c39d4bd6c5212d00f02` (docs/registry-only commit; does not contain runtime fixes).
+- Latest successful workflow run: [run #283](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39667063119), source SHA `c6170e47148c9b6ba40d9c20d80755d57d01831e`; this is the latest code build before registry-only commit `6f38cf712372fb33e4242c39d4bd6c5212d00f02`.
+- Artifact: [Aeroclub-Informer-debug-c6170e47148c9b6ba40d9c20d80755d57d01831e](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39667063119/artifacts/12378181588); APK SHA-256: `b0e00da9911de745fd2012df589329e697ee4fb61b27eedd7728c8ac8e88c306`.
 - **Status: BUILD SUCCESS.** Available unit tests passed; some modules have no test sources. Real device behavior remains unverified.
-- Main screen includes manual JSON message export/import via Android's file picker. Import validates format/version and records, caps input at 2 MiB, merges by unique message ID. This enables manually moving a file between installations; it is not automatic messaging or cross-device sync.
+- Main screen includes manual JSON message export/import via Android's file picker. Task registry: `Aeroclub/TASK_REGISTRY.md`; numbered screen map: `Aeroclub/SCREEN_MAP.md`. Runtime defects reported on 2026-10-21 are open tasks AERO-001 through AERO-009. Import validates format/version and records, caps input at 2 MiB, merges by unique message ID. This enables manually moving a file between installations; it is not automatic messaging or cross-device sync.
 - Other known limitations: no API/authentication/FCM/remote incoming messages; sound, reminder firing and widget updates require real-device acceptance testing.
 - Markdown-only updates do not trigger another build; rebuild after code/resources/Gradle changes or a device-test fix.
 

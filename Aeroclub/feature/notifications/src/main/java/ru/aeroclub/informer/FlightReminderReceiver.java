@@ -31,11 +31,7 @@ public class FlightReminderReceiver extends BroadcastReceiver {
             EventLogRepository.record(context,"NTF-01","local_reminder_delivered","permission_denied",flightId);
             return;
         }
-        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
-            NotificationChannel channel=new NotificationChannel(CHANNEL_ID,"Напоминания о вылетах",NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setDescription("Локальные напоминания перед вылетом");
-            manager.createNotificationChannel(channel);
-        }
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) FlightReminderScheduler.ensureChannel(context);
         Intent open=new Intent();
         open.setComponent(new ComponentName(context.getPackageName(), "ru.aeroclub.informer.MainActivity"));
         open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -49,6 +45,10 @@ public class FlightReminderReceiver extends BroadcastReceiver {
             .setContentText(date+" • "+time)
             .setStyle(new android.app.Notification.BigTextStyle().bigText(date+" • "+time+"\nМесто встречи: "+place))
             .setContentIntent(content).setAutoCancel(true);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            builder.setDefaults(android.app.Notification.DEFAULT_ALL)
+                .setPriority(android.app.Notification.PRIORITY_DEFAULT);
+        }
         manager.notify(flightId==null?1:flightId.hashCode(),builder.build());
         EventLogRepository.record(context,"NTF-01","local_reminder_delivered","notification_posted",flightId);
     }

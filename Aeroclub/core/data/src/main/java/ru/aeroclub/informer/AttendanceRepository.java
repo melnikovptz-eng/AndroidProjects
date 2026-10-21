@@ -42,14 +42,15 @@ public final class AttendanceRepository {
         return id;
     }
 
-    public static synchronized void setResponse(Context c, String flightId, String status) {
-        setResponse(c, getLocalParticipantId(c), flightId, status);
+    public static synchronized boolean setResponse(Context c, String flightId, String status) {
+        return setResponse(c, getLocalParticipantId(c), flightId, status);
     }
 
-    public static synchronized void setResponse(Context c, String participantId, String flightId, String status) {
+    public static synchronized boolean setResponse(Context c, String participantId, String flightId, String status) {
         status = normalizeStatus(status);
         if(participantId==null || participantId.trim().isEmpty() ||
-           flightId==null || flightId.trim().isEmpty() || status==null) return;
+           flightId==null || flightId.trim().isEmpty() || status==null) return false;
+        if (FlightRepository.getById(c, flightId) == null) return false;
         JSONArray source=read(prefs(c).getString(RECORDS,"[]"));
         JSONArray target=new JSONArray();
         String now=String.valueOf(System.currentTimeMillis());
@@ -66,6 +67,7 @@ public final class AttendanceRepository {
         prefs(c).edit().putString(RECORDS,target.toString()).apply();
         Flight linkedFlight = FlightRepository.getById(c, flightId);
         if (linkedFlight != null && !linkedFlight.isDemo) SyncRepository.enqueue(c,"attendance",participantId+":"+flightId,"upsert");
+        return LocalFilePreferences.get(c).isStorageHealthy();
     }
 
     public static synchronized void setSelectedParticipantId(Context c, String participantId) {

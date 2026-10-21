@@ -86,6 +86,8 @@ Aeroclub/
 | Список участников и агрегаты | feature:admin-participants | common, data |
 | Календарь | feature:calendar | common, data |
 | Шаблоны/черновики/история | feature:messages | common, data, android |
+
+Для канала локальных объявлений оба потребителя (`feature:admin` и `feature:informer`) получают `MessageTransport` через единственный `MessageTransportProvider` в `feature:messages`. Не создавать транспорт в экранах напрямую; конкретная локальная реализация выбирается только в провайдере.
 | Настройки клуба | feature:settings | common, data |
 | Локальные напоминания | feature:notifications | common, data, android |
 | API и DTO | integration:api | common |

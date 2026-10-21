@@ -14,14 +14,17 @@ public class FlightWidgetProvider extends AppWidgetProvider {
     private static final String SHARE = "ru.aeroclub.informer.SHARE";
 
     @Override public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
+        ModuleDebugLog.log(context, "WID-01", "widget_update", "started", "instances=" + ids.length);
         FlightRepository.ensureInitialized(context);
         for (int id : ids) render(context, manager, id);
+        ModuleDebugLog.log(context, "WID-01", "widget_update", "completed", "instances=" + ids.length);
     }
 
     @Override public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         if (intent == null) return;
         String action = intent.getAction();
+        ModuleDebugLog.log(context, "WID-01", "widget_action", "received", action == null ? "null_action" : action);
         FlightRepository.ensureInitialized(context);
         if (GOING.equals(action) || NOT_GOING.equals(action)) {
             Intent choose = new Intent(context, MainActivity.class);
@@ -62,6 +65,7 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         bindBroadcast(c, v, R.id.btn_route, ROUTE, 3);
         bindBroadcast(c, v, R.id.btn_telegram, SHARE, 4);
         manager.updateAppWidget(id, v);
+        ModuleDebugLog.log(c, "WID-01", "widget_render", "success", "instance_updated");
     }
 
     private static void bindBroadcast(Context c, RemoteViews v, int viewId, String action, int request) {

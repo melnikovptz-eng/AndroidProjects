@@ -29,13 +29,11 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         String flightId = FlightRepository.getActiveId(context);
 
         if (GOING.equals(action) || NOT_GOING.equals(action)) {
-            String status = GOING.equals(action) ? "Вы подтвердили участие" : "Вы не участвуете";
-            AttendanceRepository.setResponse(context, flightId, status);
-            EventLogRepository.record(context,"ATT-01","response_update","success",flightId);
-            AppWidgetManager manager = AppWidgetManager.getInstance(context);
-            for (int id : manager.getAppWidgetIds(new ComponentName(context, FlightWidgetProvider.class))) {
-                render(context, manager, id);
-            }
+            Intent choose = new Intent(context, MainActivity.class);
+            choose.putExtra("attendance_action", GOING.equals(action)
+                ? AttendanceRepository.STATUS_GOING : AttendanceRepository.STATUS_NOT_GOING);
+            choose.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            context.startActivity(choose);
         } else if (ROUTE.equals(action)) {
             Flight active = FlightRepository.getActive(context);
             String place = active == null ? "" : active.place;
@@ -77,7 +75,17 @@ public class FlightWidgetProvider extends AppWidgetProvider {
         FlightRepository.ensureInitialized(c);
         Flight active = FlightRepository.getActive(c);
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.flight_widget);
-        String status = AttendanceRepository.getResponse(c, FlightRepository.getActiveId(c));
+        String selectedId = AttendanceRepository.getSelectedParticipantId(c);
+        String status = "Выберите участника для ответа";
+        if (selectedId != null) {
+            for (Participant participant : ParticipantRepository.getAll(c)) {
+                if (selectedId.equals(participant.id)) {
+                    status = participant.displayName + ": " +
+                        AttendanceRepository.getResponse(c, participant.id, FlightRepository.getActiveId(c));
+                    break;
+                }
+            }
+        }
         v.setTextViewText(R.id.flight_status, status);
         v.setTextViewText(R.id.flight_title, active == null ? "Ближайший вылет" : active.title);
         v.setTextViewText(R.id.flight_time, active == null ? "Дата и время уточняются" : active.date + "  •  " + active.time);

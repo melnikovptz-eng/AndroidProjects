@@ -530,7 +530,10 @@ public class AdminActivity extends Activity {
                         render();
                     }).show();
             });
-        card("Уведомления", "Локальные напоминания: не настроены\nPush-уведомления: требуется Firebase и серверный отправитель.",
+        String reminderState = FlightReminderScheduler.notificationsEnabled(this)
+            ? "разрешены в настройках Android" : "запрещены в настройках Android";
+        card("Уведомления", "Локальные напоминания: " + reminderState
+                + "\nPush-уведомления: требуется Firebase и серверный отправитель.",
                 "Настроить уведомления", () -> { section="Уведомления"; render(); });
         card("Синхронизация", SyncRepository.getStatus(this), "Просмотреть очередь изменений", () ->
             new AlertDialog.Builder(this).setTitle("Ожидающие изменения")

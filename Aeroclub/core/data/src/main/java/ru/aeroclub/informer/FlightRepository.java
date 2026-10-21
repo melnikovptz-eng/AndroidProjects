@@ -43,11 +43,12 @@ public final class FlightRepository {
     }
 
     public static synchronized List<Flight> getFlights(Context c) {
-        if (!prefs(c).contains(FLIGHTS)) ensureInitialized(c);
+        SharedPreferences p = prefs(c);
+        if (!p.contains(FLIGHTS)) ensureInitialized(c);
         ArrayList<Flight> result = new ArrayList<>();
         boolean needsMigration=false;
         try {
-            JSONArray arr = new JSONArray(prefs(c).getString(FLIGHTS, "[]"));
+            JSONArray arr = new JSONArray(p.getString(FLIGHTS, "[]"));
             for (int i=0; i<arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 if (o != null) {

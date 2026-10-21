@@ -29,7 +29,7 @@ jobs:
           gradle-version: '8.7'
       - name: Run unit tests and build debug APK
         working-directory: Aeroclub
-        run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :app:assembleDebug
+        run: gradle --no-daemon :core:common:test :feature:messages:testDebugUnitTest :feature:admin-flights:testDebugUnitTest :feature:admin-participants:testDebugUnitTest :app:assembleDebug
       - name: Verify APK
         run: |
           echo "Source commit: $GITHUB_SHA"

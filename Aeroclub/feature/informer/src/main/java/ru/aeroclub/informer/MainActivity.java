@@ -8,6 +8,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
+import android.view.SoundEffectConstants;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -184,6 +185,8 @@ public class MainActivity extends Activity {
     }
 
     private void runTimedAction(String module, String action, Runnable body) {
+        // Play the native Android button-click sound for every action routed through this handler.
+        getWindow().getDecorView().playSoundEffect(SoundEffectConstants.CLICK);
         DebugOperation operation = ModuleDebugLog.startOperation(this, module, action, "user_action");
         try {
             body.run();

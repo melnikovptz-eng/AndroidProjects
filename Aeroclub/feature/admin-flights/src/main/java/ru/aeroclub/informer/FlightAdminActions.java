@@ -7,7 +7,7 @@ public final class FlightAdminActions {
     private FlightAdminActions() {}
 
     public static boolean isValidTitle(String title) {
-        return title != null && !title.trim().isEmpty();
+        return FlightValidation.isValidTitle(title);
     }
 
     public static Flight createAndActivate(Context context, String title, String date,

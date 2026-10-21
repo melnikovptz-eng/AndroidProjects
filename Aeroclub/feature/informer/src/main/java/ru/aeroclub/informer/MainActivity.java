@@ -40,7 +40,6 @@ public class MainActivity extends Activity {
         root.addView(card, cardParams);
 
         FlightRepository.ensureInitialized(this);
-        FlightReminderScheduler.ensureChannel(this);
         FlightReminderScheduler.syncAll(this);
         Flight activeFlight = FlightRepository.getActive(this);
         flightTitle = text(activeFlight == null ? "Ближайший вылет" : (activeFlight.isDemo ? "ДЕМО · " : "") + activeFlight.title, 18, NAVY, true);

@@ -7,7 +7,7 @@ public final class ParticipantAdminActions {
     private ParticipantAdminActions() {}
 
     public static boolean isValidName(String name) {
-        return name != null && !name.trim().isEmpty();
+        return ParticipantValidation.isValidName(name);
     }
 
     public static Participant add(Context context, String displayName) {

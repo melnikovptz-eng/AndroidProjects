@@ -66,3 +66,10 @@ YYYY-MM-DD | PROJECT_ID | branch | source SHA | изменение | прове�
 - APK проверен на реальном устройстве.
 
 Это пять разных утверждений.
+
+
+## AEROCLUB — W01 informer design rebuild (2026-10-22)
+- Branch: `aeroclub-informer`; runtime source SHA built by CI: `ab4da64d9c7f222e1311df06e42862c9238e4b57`.
+- Reworked W01 into the reference's single-row header, 14-segment variometer with seven labels, clock/date panel and one horizontal row of four colored actions; added separate vector icons and pressed-state resources. Screen tree S01–S11 and existing repositories/actions remain intact.
+- CI run #397 succeeded: https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39768506462; artifact ID `12420319406`; APK SHA-256 `b2f59c3902bbb209635e575e5c94916b46735499bb899bf57b70ee34396d0ba1`; package ID `ru.aeroclub.informer.mobile`; signing certificate SHA-256 `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`.
+- Remaining: `dezign.jpg` is a flattened mockup and no separate mountain-photo asset is in the repository; current background is a vector approximation. Physical launcher geometry, actual pressed feedback and four device-level action scenarios are not yet verified. Do not call the design fully accepted.

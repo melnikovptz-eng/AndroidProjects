@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.widget.Toast;
 
-/** One implementation for route and share actions used by the screen and home-screen widget. */
+/** One implementation for route and share actions used by the event card. */
 public final class FlightActionLauncher {
     private FlightActionLauncher() {}
 

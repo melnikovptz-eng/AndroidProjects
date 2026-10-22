@@ -89,3 +89,9 @@
 - При подтверждении «Да» уведомление руководителю не отправляется, потому что существующий проект не содержит настроенного канала/адресата; пользователь видит явное сообщение об этом. При выборе «Нет» уведомление не пытается отправляться.
 - Если Android не находит обработчик geo-intent, есть fallback на Google Maps в браузере.
 - Эти изменения требуют нового CI run и физической проверки. Никакого подтверждения доставки сообщения нет.
+
+
+## CI confirmation after route/attendance fixes — 2026-10-22
+- Run #370 succeeded for source SHA `0c25a4e90e3babe1cbbd68879f461327ead67b8b` (APK SHA-256 `8f5e81e5157c78684118b87e08f256d08c47cfb158d33c6a532d8df021b3e79a`; package ID read from APK: `ru.aeroclub.informer.mobile`; certificate SHA-256 `85728a0c380e3dffc930e4297dcee43c5b99d8e0b09a6881cdb214f223aa6aeb`). CI tests and APK signature/package verification succeeded.
+- The signing-key cache was saved successfully on run #370. A following run must verify the same certificate is restored.
+- Physical-device/launcher UI, two-cell width, pressed feedback and all four actions remain unverified. Full original image match is not claimed.

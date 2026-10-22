@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+ android:padding="10dp" android:background="@drawable/widget_flight_card">
+ <LinearLayout android:id="@+id/widget_header" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+  <TextView android:layout_width="7dp" android:layout_height="7dp" android:background="@drawable/widget_flight_dot" />
+  <TextView android:id="@+id/widget_club_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="АЭРОКЛУБ" android:textColor="#6B7B91" android:textSize="10sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+ </LinearLayout>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="БЛИЖАЙШИЙ ВЫЛЕТ" android:textColor="#B52D38" android:textSize="10sp" android:textStyle="bold" />
+ <TextView android:id="@+id/widget_flight_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Нет запланированных вылетов" android:textColor="#142B49" android:textSize="15sp" android:textStyle="bold" android:maxLines="2" android:ellipsize="end" />
+ <TextView android:id="@+id/widget_flight_datetime" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Дата и время" android:textColor="#263A53" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
+ <TextView android:id="@+id/widget_flight_place" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Место встречи" android:textColor="#6B7B91" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" />
+ <TextView android:id="@+id/widget_flight_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="УЧАСТИЕ: ОЖИДАЕТСЯ ОТВЕТ" android:textColor="#24734B" android:textSize="9sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
+  <TextView android:id="@+id/widget_going" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/widget_flight_action_primary" android:gravity="center" android:text="Я поеду" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+  <TextView android:id="@+id/widget_not_going" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:layout_marginStart="3dp" android:background="@drawable/widget_flight_action_secondary" android:gravity="center" android:text="Я не поеду" android:textColor="#142B49" android:textSize="11sp" android:textStyle="bold" />
+ </LinearLayout>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+  <TextView android:id="@+id/widget_route" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/widget_flight_action_secondary" android:gravity="center" android:text="Маршрут" android:textColor="#142B49" android:textSize="11sp" android:textStyle="bold" />
+  <TextView android:id="@+id/widget_telegram" android:layout_width="0dp" android:layout_height="36dp" android:layout_weight="1" android:layout_marginStart="3dp" android:background="@drawable/widget_flight_action_secondary" android:gravity="center" android:text="Telegram" android:textColor="#142B49" android:textSize="11sp" android:textStyle="bold" />
+ </LinearLayout>
+</LinearLayout>

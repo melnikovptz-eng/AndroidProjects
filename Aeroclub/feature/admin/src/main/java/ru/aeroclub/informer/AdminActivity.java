@@ -59,7 +59,7 @@ public class AdminActivity extends Activity {
     private final Runnable flightSyncPoll = new Runnable() {
         @Override public void run() {
             if (isFinishing()) return;
-            if (FlightRepository.syncFromDownload(AdminActivity.this)) { WidgetRefreshManager.refresh(AdminActivity.this, "ru.aeroclub.informer.FlightWidgetProvider"); render(); }
+            if (FlightRepository.syncFromDownload(AdminActivity.this)) {  render(); }
             flightSyncHandler.postDelayed(this, 5000L);
         }
     };
@@ -112,7 +112,7 @@ public class AdminActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         flightSyncHandler.removeCallbacks(flightSyncPoll);
-        if (FlightRepository.syncFromDownload(this) && root != null) { WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider"); render(); }
+        if (FlightRepository.syncFromDownload(this) && root != null) {  render(); }
         flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         LocalFilePreferences storage = LocalFilePreferences.get(this);
         if (!storage.isStorageHealthy() && !storageWarningShown) {
@@ -271,7 +271,7 @@ public class AdminActivity extends Activity {
                             return;
                         }
                         loadDraftFromActiveFlight();
-                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                        
                         render();
                     }
                 });
@@ -305,7 +305,7 @@ public class AdminActivity extends Activity {
                         loadDraftFromActiveFlight();
                         FlightReminderScheduler.cancel(this, flight.id);
                         FlightReminderScheduler.syncAll(this);
-                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                        
                         render();
                     }).show());
             }
@@ -421,7 +421,7 @@ public class AdminActivity extends Activity {
             editingFlightId = null;
             dialog.dismiss();
             loadDraftFromActiveFlight();
-            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+            
             FlightReminderScheduler.syncAll(this);
             Toast.makeText(this, "Сохранено на этом устройстве", Toast.LENGTH_SHORT).show();
             render();
@@ -669,7 +669,7 @@ public class AdminActivity extends Activity {
         for(Flight flight:matches){
             card("Вылет",FlightPresentation.title(flight)+"\n"+flight.date+" • "+flight.time+"\n"+flight.place,"Открыть в вылетах",()->{
                 if(!flight.id.equals(FlightRepository.getActiveId(this)))FlightAdminActions.activate(this,flight.id);
-                loadDraftFromActiveFlight();WidgetRefreshManager.refresh(this,"ru.aeroclub.informer.FlightWidgetProvider");section="Вылеты";render();});
+                loadDraftFromActiveFlight();section="Вылеты";render();});
             Button prepare=actionButton("Подготовить сообщение по этому вылету",true);content.addView(prepare,lp(-1,dp(48)));
             prepare.setOnClickListener(v->{selectedMessageFlightId=flight.id;navigateTo("Сообщения");});
         }
@@ -839,7 +839,7 @@ public class AdminActivity extends Activity {
             }
             dialog.dismiss();
             Toast.makeText(this, "Участник добавлен", Toast.LENGTH_SHORT).show();
-            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+            
             render();
         }));
         dialog.show();
@@ -887,7 +887,7 @@ public class AdminActivity extends Activity {
                                 FlightRepository.getActiveId(this), options[which])) {
                             Toast.makeText(this, "Не удалось изменить ответ: проверьте активный вылет.", Toast.LENGTH_SHORT).show();
                         } else {
-                            WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                            
                         }
                         render();
                     }).show();
@@ -903,7 +903,7 @@ public class AdminActivity extends Activity {
                             return;
                         }
                         renameDialog.dismiss();
-                        WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                        
                         render();
                     }));
                     renameDialog.show();
@@ -914,7 +914,7 @@ public class AdminActivity extends Activity {
                             if (!ParticipantAdminActions.delete(this, participant.id)) {
                                 Toast.makeText(this, "Участник уже отсутствует.", Toast.LENGTH_SHORT).show();
                             } else {
-                                WidgetRefreshManager.refresh(this, "ru.aeroclub.informer.FlightWidgetProvider");
+                                
                             }
                             render();
                         }).show();

@@ -42,7 +42,8 @@ public final class FlightHomeWidgetProvider extends AppWidgetProvider {
         String a = i.getAction();
         if (GOING.equals(a) || NOT_GOING.equals(a)) {
             boolean going = GOING.equals(a);
-            boolean ok = AttendanceRepository.setResponse(c, f.id, going ? AttendanceRepository.STATUS_GOING : AttendanceRepository.STATUS_NOT_GOING);
+            String participant = AttendanceRepository.getSelectedParticipantId(c);
+            boolean ok = participant == null ? AttendanceRepository.setResponse(c, f.id, going ? AttendanceRepository.STATUS_GOING : AttendanceRepository.STATUS_NOT_GOING) : AttendanceRepository.setResponse(c, participant, f.id, going ? AttendanceRepository.STATUS_GOING : AttendanceRepository.STATUS_NOT_GOING);
             Toast.makeText(c, ok ? (going ? "Ответ сохранён: Я поеду" : "Ответ сохранён: Я не поеду") : "Не удалось сохранить ответ", Toast.LENGTH_SHORT).show();
             refresh(c);
         } else if (ROUTE.equals(a)) FlightActionLauncher.openRoute(c, f);
@@ -73,7 +74,9 @@ public final class FlightHomeWidgetProvider extends AppWidgetProvider {
             v.setTextViewText(R.id.widget_flight_title, FlightPresentation.title(f));
             v.setTextViewText(R.id.widget_flight_datetime, f.date + " • " + f.time);
             v.setTextViewText(R.id.widget_flight_place, "Место: " + (f.place == null || f.place.trim().isEmpty() ? "не указано" : f.place));
-            v.setTextViewText(R.id.widget_flight_status, "УЧАСТИЕ: " + AttendanceRepository.getResponse(c, f.id).toUpperCase(java.util.Locale.getDefault()));
+            String participant = AttendanceRepository.getSelectedParticipantId(c);
+            String response = participant == null ? AttendanceRepository.getResponse(c, f.id) : AttendanceRepository.getResponse(c, participant, f.id);
+            v.setTextViewText(R.id.widget_flight_status, "УЧАСТИЕ: " + response.toUpperCase(java.util.Locale.getDefault()));
         }
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent op = PendingIntent.getActivity(c, 8100 + id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

@@ -63,11 +63,10 @@ class FlightHomeWidgetProvider : AppWidgetProvider() {
     private fun render(c: Context, manager: AppWidgetManager, widgetId: Int, flight: Flight?, hasFlightToday: Boolean) {
         val views = RemoteViews(c.packageName, R.layout.widget_flight_home)
         views.setTextViewText(R.id.widget_logo, "KD PILOT")
-        views.setTextViewText(R.id.widget_club_name, ClubSettingsRepository.get(c).clubName.uppercase(Locale.getDefault()).take(22))
         views.setTextViewText(R.id.widget_status, when {
-            hasFlightToday -> "СЕГОДНЯ ПОЛЁТЫ"
-            flight != null -> "БЛИЖАЙШИЙ ВЫЛЕТ"
-            else -> "НЕТ ЗАПЛАНИРОВАННЫХ ПОЛЁТОВ"
+            hasFlightToday -> "Сегодня полёты"
+            flight != null -> "Ближайший вылет"
+            else -> "Нет полётов"
         })
         views.setTextViewText(R.id.widget_aerodrome, flight?.place?.takeIf { it.isNotBlank() } ?: "Аэродром не указан")
         views.setTextViewText(R.id.widget_time, flight?.time ?: "--:--")

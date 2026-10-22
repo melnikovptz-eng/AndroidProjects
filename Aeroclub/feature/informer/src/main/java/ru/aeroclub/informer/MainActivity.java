@@ -238,17 +238,6 @@ public class MainActivity extends Activity {
         try { startActivityForResult(intent, REQUEST_IMPORT_MESSAGES); }
         catch (RuntimeException error) {
             android.widget.Toast.makeText(this, "Не удалось открыть выбор файла", android.widget.Toast.LENGTH_LONG).show();
-            ModuleDebugLog.log(this, "MSG-02", "file_exchange", "cancelled", "user_cancelled_or_no_uri");
-        }
-    }
-
-    private void launchMessageImport() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/json");
-        try { startActivityForResult(intent, REQUEST_IMPORT_MESSAGES); }
-        catch (RuntimeException error) {
-            android.widget.Toast.makeText(this, "Не удалось открыть выбор файла", android.widget.Toast.LENGTH_LONG).show();
             ModuleDebugLog.log(this, "MSG-02", "file_import_picker", "error", error.getClass().getSimpleName());
         }
     }
@@ -298,7 +287,7 @@ public class MainActivity extends Activity {
                     if (newest == null || item.createdAt > newest.createdAt) newest = item;
                 }
                 localAnnouncement.setText(newest == null ? "Объявлений в локальном файле пока нет"
-                    : "Локальное объявление (только этот телефон):\n" + newest.body);
+                    : "Локальное объявление (только этот телефон):\\n" + newest.body);
             }
             @Override public void onReadError() {
                 if (localAnnouncement != null) localAnnouncement.setText("Не удалось прочитать локальный файл объявлений");
@@ -372,7 +361,12 @@ public class MainActivity extends Activity {
                 }
                 dialog.dismiss();
                 refreshStatusLabel();
-                
+                String responseLabel = AttendanceRepository.STATUS_GOING.equals(value) ? "Я поеду" : "Я не поеду";
+                android.widget.Toast.makeText(this,
+                    "Сохранено: " + participant.displayName + " — " + responseLabel,
+                    android.widget.Toast.LENGTH_LONG).show();
+                EventLogRepository.record(this, "ATT-01", "response_update", "success",
+                    "flight=" + flightId + "; participant=" + participant.id + "; status=" + value);
             })
             .setNegativeButton("Отмена", (dialog, which) ->
                 EventLogRepository.record(this, "ATT-01", "response_update", "cancelled", FlightRepository.getActiveId(this)))
@@ -439,3 +433,69 @@ public class MainActivity extends Activity {
                 ModuleDebugLog.log(MainActivity.this, "MSG-02", "announcement_refresh", "success", "count=" + messages.size());
                 if (localAnnouncement == null) return;
                 LocalTransportMessage newest = null;
+                for (LocalTransportMessage item : messages) {
+                    if (newest == null || item.createdAt > newest.createdAt) newest = item;
+                }
+                if (newest == null) {
+                    localAnnouncement.setText("Объявлений в локальном файле пока нет");
+                } else {
+                    localAnnouncement.setText("Локальное объявление (только этот телефон):\n" + newest.body);
+                }
+            }
+            @Override public void onReadError() {
+                ModuleDebugLog.log(MainActivity.this, "MSG-02", "announcement_refresh", "error", "read_failed");
+                if (localAnnouncement != null) localAnnouncement.setText("Не удалось прочитать локальный файл объявлений");
+            }
+        });
+    }
+
+    @Override protected void onPause() {
+        flightSyncHandler.removeCallbacks(flightSyncPoll);
+        LocalFilePreferences.get(this).flushPendingWrites(500L);
+        ModuleDebugLog.log(this, "UI-01", "informer_onPause", "stopped", "screen_background");
+        if (messageWatcher != null) messageWatcher.stop();
+        super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        ModuleDebugLog.log(this, "UI-01", "informer_onDestroy", "stopped", "screen_destroyed");
+        if (messageWatcher != null) {
+            messageWatcher.close();
+            messageWatcher = null;
+        }
+        super.onDestroy();
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        return t;
+    }
+
+    private Button button(String value) {
+        Button b = new Button(this);
+        b.setText(value);
+        b.setAllCaps(false);
+        b.setTextSize(14);
+        b.setMinHeight(dp(48));
+        b.setMinimumHeight(dp(48));
+        return b;
+    }
+
+    private LinearLayout.LayoutParams weightedButtonParams(boolean spaced) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(48), 1);
+        if (spaced) p.leftMargin = dp(6);
+        return p;
+    }
+
+    private LinearLayout.LayoutParams lp(int w, int h) {
+        return new LinearLayout.LayoutParams(w, h);
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+}

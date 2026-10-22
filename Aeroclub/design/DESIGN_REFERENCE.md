@@ -100,3 +100,11 @@
 ## Signing verification follow-up — 2026-10-22
 - Run #372 всё ещё использовал временную подпись (certificate SHA-256 `25a008153f86362fa4b959293a1175e5305be8d8768975241240b91a2612d15e`), несмотря на успешное восстановление cache. Исправлено явное назначение `signingConfigs.stableDebug` на keystore в `$HOME/.android/debug.keystore`.
 - Workflow теперь сравнивает сертификат APK с сертификатом keystore и не должен публиковать APK при несовпадении. Новый run должен подтвердить стабильный отпечаток. Не считать APK #368–#372 безопасными для обновления друг поверх друга.
+
+
+## Explicit signing verification — 2026-10-22
+- Run #373 succeeded for source SHA `c1810020733ed9b78c367e5cf5d60ad503eb17e8` and artifact ID `12398360738`.
+- APK SHA-256: `f771cd50190c97f4c96b6ba6c74765982249ae70d916988f152beeacb0c92922`.
+- Package ID verified from APK: `ru.aeroclub.informer.mobile`.
+- APK signing certificate SHA-256: `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; CI compared it to the cached keystore fingerprint and passed.
+- A following build is still required to prove the same certificate survives cache restoration. Device checks remain outstanding.

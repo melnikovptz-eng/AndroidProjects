@@ -134,3 +134,12 @@
 - Дополнительная сверка run #372 показала, что хотя cache v2 восстанавливается, APK всё ещё подписывался другим временным debug-ключом: certificate SHA-256 run #370 = `85728a0c380e3dffc930e4297dcee43c5b99d8e0b09a6881cdb214f223aa6aeb`, run #372 = `25a008153f86362fa4b959293a1175e5305be8d8768975241240b91a2612d15e`. Причина: Android Gradle Plugin не использовал явно подготовленный файл ключа.
 - Исправлено: `app/build.gradle` теперь явно задаёт debug signingConfig с `$HOME/.android/debug.keystore`; workflow сравнивает отпечаток сертификата APK с отпечатком сертификата этого файла и завершает сборку ошибкой при несовпадении.
 - Артефакты run #368–#372 не следует использовать как последовательные обновления друг друга: отпечатки подписи различались. До проверки нового run не устанавливать новый APK поверх уже установленной версии.
+
+
+## Explicit signing verification — 2026-10-22
+- Run #373: success for source SHA `c1810020733ed9b78c367e5cf5d60ad503eb17e8`; all configured unit-test tasks and APK build passed.
+- APK SHA-256: `f771cd50190c97f4c96b6ba6c74765982249ae70d916988f152beeacb0c92922`.
+- Package ID extracted from the built APK and verified: `ru.aeroclub.informer.mobile`.
+- APK certificate SHA-256: `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; workflow also verified that it equals the SHA-256 fingerprint of the cached keystore explicitly configured in Gradle.
+- Artifact ID: `12398360738`. This is the first artifact after explicit signingConfig correction. Run #374 is used to verify the same signing certificate is reused on a subsequent build.
+- Device/launcher interaction tests remain pending; this CI run does not certify visual match or real Telegram/leader delivery.

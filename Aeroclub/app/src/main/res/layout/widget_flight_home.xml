@@ -1,54 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
- android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
- android:padding="9dp" android:background="@drawable/widget_flight_card">
- <LinearLayout android:id="@+id/widget_header" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-   <TextView android:id="@+id/widget_logo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="KD PILOT" android:textColor="#F5FAFF" android:textSize="15sp" android:textStyle="bold" android:letterSpacing="0.08" android:maxLines="1"/>
-   <TextView android:id="@+id/widget_club_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="АЭРОКЛУБ" android:textColor="#91B6D4" android:textSize="8sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
-  </LinearLayout>
-  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:orientation="horizontal" android:paddingHorizontal="5dp" android:paddingVertical="3dp" android:background="@drawable/widget_message_badge_bg">
-   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="✉" android:textColor="#EAF5FF" android:textSize="12sp"/>
-   <TextView android:id="@+id/widget_message_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="0" android:textColor="#FFFFFF" android:textSize="10sp" android:textStyle="bold"/>
-  </LinearLayout>
- </LinearLayout>
- <TextView android:id="@+id/widget_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:paddingHorizontal="8dp" android:paddingVertical="3dp" android:background="@drawable/flight_status_pill" android:text="СЕГОДНЯ ПОЛЁТЫ" android:textColor="#D8FFF0" android:textSize="9sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:gravity="center_vertical" android:orientation="horizontal">
-  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="АЭРОДРОМ" android:textColor="#91B6D4" android:textSize="8sp" android:textStyle="bold"/>
-   <TextView android:id="@+id/widget_aerodrome" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="Аэродром не указан" android:textColor="#F5FAFF" android:textSize="11sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
-  </LinearLayout>
-  <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:gravity="end" android:orientation="vertical">
-   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ВЫЛЕТ" android:textColor="#91B6D4" android:textSize="8sp" android:textStyle="bold"/>
-   <TextView android:id="@+id/widget_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#66D2FF" android:textSize="16sp" android:textStyle="bold" android:maxLines="1"/>
-  </LinearLayout>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−3" android:textColor="#FF777E" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−2" android:textColor="#FF777E" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−1" android:textColor="#FF777E" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="0" android:textColor="#DCEBFA" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+1" android:textColor="#6FE4B1" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+2" android:textColor="#6FE4B1" android:textSize="9sp"/>
-  <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+3" android:textColor="#6FE4B1" android:textSize="9sp"/>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="7dp" android:layout_marginTop="2dp" android:orientation="horizontal">
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_green"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_green"/>
-  <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/vario_green"/>
- </LinearLayout>
- <TextClock android:id="@+id/widget_clock" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:gravity="center" android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:text="10:30" android:textColor="#FFFFFF" android:textSize="30sp" android:textStyle="bold" android:includeFontPadding="false"/>
- <TextClock android:id="@+id/widget_date" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:format12Hour="EEEE, d MMMM" android:format24Hour="EEEE, d MMMM" android:text="суббота, 25 октября" android:textColor="#AFCBE2" android:textSize="10sp" android:includeFontPadding="false"/>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
-  <TextView android:id="@+id/widget_going" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/widget_action_going" android:gravity="center" android:padding="3dp" android:text="Я поеду" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:contentDescription="Ответить: Я еду"/>
-  <TextView android:id="@+id/widget_not_going" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginStart="3dp" android:background="@drawable/widget_action_not_going" android:gravity="center" android:padding="3dp" android:text="Я не поеду" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:contentDescription="Ответить: Я не еду"/>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
-  <TextView android:id="@+id/widget_route" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="@drawable/widget_action_route" android:gravity="center" android:padding="3dp" android:text="Маршрут" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:contentDescription="Построить маршрут"/>
-  <TextView android:id="@+id/widget_telegram" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:layout_marginStart="3dp" android:background="@drawable/widget_action_telegram" android:gravity="center" android:padding="3dp" android:text="Telegram" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:contentDescription="Поделиться информацией о полёте"/>
- </LinearLayout>
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="6dp"
+    android:background="@drawable/widget_flight_card">
+
+    <LinearLayout android:id="@+id/widget_header" android:layout_width="match_parent"
+        android:layout_height="19dp" android:orientation="horizontal" android:gravity="center_vertical">
+        <ImageView android:layout_width="11dp" android:layout_height="11dp"
+            android:src="@drawable/widget_ic_plane" android:contentDescription="KD PILOT"/>
+        <TextView android:id="@+id/widget_logo" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginStart="2dp"
+            android:text="KD PILOT" android:textColor="#FFFFFF" android:textSize="9sp"
+            android:textStyle="bold" android:letterSpacing="0.03" android:maxLines="1"/>
+        <TextView android:id="@+id/widget_status" android:layout_width="wrap_content"
+            android:layout_height="17dp" android:layout_marginStart="5dp"
+            android:paddingStart="4dp" android:paddingEnd="4dp" android:gravity="center"
+            android:background="@drawable/flight_status_pill" android:text="Сегодня полёты"
+            android:textColor="#E8FFF6" android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
+        <ImageView android:layout_width="8dp" android:layout_height="10dp"
+            android:layout_marginStart="4dp" android:src="@drawable/widget_ic_location"
+            android:contentDescription="Аэродром"/>
+        <TextView android:id="@+id/widget_aerodrome" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="2dp"
+            android:text="Сокольники" android:textColor="#F4F8FC" android:textSize="6sp"
+            android:maxLines="1" android:ellipsize="end"/>
+        <ImageView android:layout_width="8dp" android:layout_height="8dp"
+            android:layout_marginStart="3dp" android:src="@drawable/widget_ic_clock"
+            android:contentDescription="Время вылета"/>
+        <TextView android:id="@+id/widget_time" android:layout_width="24dp"
+            android:layout_height="wrap_content" android:layout_marginStart="1dp"
+            android:text="10:00" android:textColor="#FFFFFF" android:textSize="7sp"
+            android:textStyle="bold" android:maxLines="1"/>
+        <FrameLayout android:layout_width="14dp" android:layout_height="17dp"
+            android:layout_marginStart="3dp" android:layout_marginEnd="1dp">
+            <ImageView android:id="@+id/widget_message_icon" android:layout_width="12dp"
+                android:layout_height="12dp" android:layout_gravity="center_vertical|start"
+                android:src="@drawable/widget_ic_mail" android:contentDescription="Сообщения"/>
+            <TextView android:id="@+id/widget_message_badge" android:layout_width="9dp"
+                android:layout_height="9dp" android:layout_gravity="top|end"
+                android:background="@drawable/widget_message_badge_bg" android:gravity="center"
+                android:text="0" android:textColor="#FFFFFF" android:textSize="5sp" android:textStyle="bold"/>
+        </FrameLayout>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:layout_marginTop="2dp" android:background="#557FA0BE"/>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:minHeight="34dp" android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:orientation="vertical" android:gravity="center_vertical"
+            android:paddingStart="3dp" android:paddingEnd="2dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="9dp"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_red"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_neutral"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_green"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_green"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:layout_marginEnd="1dp" android:background="@drawable/vario_green"/>
+                <View android:layout_width="0dp" android:layout_height="8dp" android:layout_weight="1" android:background="@drawable/vario_green"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="12dp"
+                android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="2dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−3" android:textColor="#FF8B96" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−2" android:textColor="#FF8B96" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="−1" android:textColor="#FF8B96" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="0" android:textColor="#E6F0FA" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+1" android:textColor="#7AF0BB" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+2" android:textColor="#7AF0BB" android:textSize="7sp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="+3" android:textColor="#7AF0BB" android:textSize="7sp"/>
+            </LinearLayout>
+        </LinearLayout>
+        <View android:layout_width="1dp" android:layout_height="match_parent"
+            android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:background="#8CB5D1E8"/>
+        <LinearLayout android:layout_width="64dp" android:layout_height="match_parent"
+            android:orientation="vertical" android:gravity="center_vertical|start">
+            <TextClock android:id="@+id/widget_clock" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:gravity="center_vertical|start"
+                android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:text="20:29"
+                android:textColor="#FFFFFF" android:textSize="25sp" android:includeFontPadding="false"/>
+            <TextClock android:id="@+id/widget_date" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:gravity="start"
+                android:format12Hour="EEE, d MMM" android:format24Hour="EEE, d MMM"
+                android:text="Вт, 26 окт." android:textColor="#D6E5F2" android:textSize="7sp"
+                android:includeFontPadding="false"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:layout_marginTop="2dp" android:background="#557FA0BE"/>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="25dp"
+        android:layout_marginTop="4dp" android:orientation="horizontal">
+        <LinearLayout android:id="@+id/widget_going" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_action_going" android:gravity="center"
+            android:orientation="horizontal" android:clickable="true" android:focusable="true"
+            android:contentDescription="Ответить: Я еду">
+            <ImageView android:layout_width="10dp" android:layout_height="10dp" android:src="@drawable/widget_ic_check"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="2dp" android:text="Я еду" android:textColor="#FFFFFF"
+                android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
+        </LinearLayout>
+        <LinearLayout android:id="@+id/widget_not_going" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="1dp"
+            android:layout_marginEnd="2dp" android:background="@drawable/widget_action_not_going"
+            android:gravity="center" android:orientation="horizontal" android:clickable="true"
+            android:focusable="true" android:contentDescription="Ответить: Я не еду">
+            <ImageView android:layout_width="10dp" android:layout_height="10dp" android:src="@drawable/widget_ic_cross"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="2dp" android:text="Я не еду" android:textColor="#FFFFFF"
+                android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
+        </LinearLayout>
+        <LinearLayout android:id="@+id/widget_route" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="1dp"
+            android:layout_marginEnd="2dp" android:background="@drawable/widget_action_route"
+            android:gravity="center" android:orientation="horizontal" android:clickable="true"
+            android:focusable="true" android:contentDescription="Построить маршрут">
+            <ImageView android:layout_width="11dp" android:layout_height="11dp" android:src="@drawable/widget_ic_route"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="2dp" android:text="Маршрут" android:textColor="#20354A"
+                android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
+        </LinearLayout>
+        <LinearLayout android:id="@+id/widget_telegram" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="1dp"
+            android:background="@drawable/widget_action_telegram" android:gravity="center"
+            android:orientation="horizontal" android:clickable="true" android:focusable="true"
+            android:contentDescription="Поделиться информацией о полёте">
+            <ImageView android:layout_width="10dp" android:layout_height="10dp" android:src="@drawable/widget_ic_telegram"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="2dp" android:text="Telegram" android:textColor="#FFFFFF"
+                android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

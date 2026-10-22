@@ -13,7 +13,7 @@ import java.util.List;
 /** W01: nearest upcoming flight and four actions. */
 public final class FlightHomeWidgetProvider extends AppWidgetProvider {
     private static final String P = "ru.aeroclub.informer.widget.";
-    public static final String GOING = P + "GOING", NOT_GOING = P + "NOT_GOING", ROUTE = P + "ROUTE", TELEGRAM = P + "TELEGRAM";
+    public static final String GOING = P + "GOING", NOT_GOING = P + "NOT_GOING", ROUTE = P + "ROUTE", TELEGRAM = P + "TELEGRAM", REFRESH = P + "REFRESH";
     private static final String FLIGHT_ID = "flight_id";
 
     public static void refresh(Context c) {
@@ -33,6 +33,7 @@ public final class FlightHomeWidgetProvider extends AppWidgetProvider {
     @Override public void onReceive(Context c, Intent i) {
         super.onReceive(c, i);
         if (i == null || i.getAction() == null || !i.getAction().startsWith(P)) return;
+        if (REFRESH.equals(i.getAction())) { refresh(c); return; }
         Flight f = FlightRepository.getById(c, i.getStringExtra(FLIGHT_ID));
         if (f == null) {
             Toast.makeText(c, "Мероприятие не найдено. Откройте календарь.", Toast.LENGTH_SHORT).show();

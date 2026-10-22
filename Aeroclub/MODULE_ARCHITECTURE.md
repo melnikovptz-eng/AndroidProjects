@@ -6,9 +6,9 @@
 
 ## 1. Цель разбиения
 
-Разделить проект по ответственности так, чтобы каждая бизнес-функция имела одного владельца, а повторно используемые модели, правила, UI-компоненты и Android-интеграции не копировались между экраном, виджетом и административной панелью.
+Разделить проект по ответственности так, чтобы каждая бизнес-функция имела одного владельца, а повторно используемые модели, правила, UI-компоненты и Android-интеграции не копировались между календарём, карточкой мероприятия и административной панелью.
 
-**Фактическое состояние на текущем этапе:** созданы реальные Gradle-модули core:common, core:data, core:ui, core:android, feature:notifications, feature:admin-flights, feature:admin-participants, feature:calendar, feature:messages, feature:settings, feature:admin и feature:informer. Модуль app сохраняет провайдер виджета и манифест. AdminActivity остаётся общим навигационным UI-хостом; записи/обновления и основные сценарии вынесены в feature use cases.
+**Фактическое состояние на текущем этапе:** созданы реальные Gradle-модули core:common, core:data, core:ui, core:android, feature:notifications, feature:admin-flights, feature:admin-participants, feature:calendar, feature:messages, feature:settings, feature:admin и feature:informer. Модуль app содержит манифест; домашний виджет удалён по решению пользователя. AdminActivity остаётся общим навигационным UI-хостом; записи/обновления и основные сценарии вынесены в feature use cases.
 
 ## 2. Целевая структура Gradle
 
@@ -19,7 +19,7 @@ Aeroclub/
     common/                    # Android-free: модели, типы результата, валидация, правила
     data/                      # контракты репозиториев и локальные реализации/миграции
     ui/                        # общие визуальные компоненты и оформление Android UI
-    android/                   # адаптеры Android: карты, share chooser, widget refresh
+    android/                   # адаптеры Android: карты и share chooser
   feature/
     informer/                  # карточка ближайшего вылета / экран-превью
     admin-flights/              # управление вылетами
@@ -54,10 +54,10 @@ Aeroclub/
 - однократное копирование значений старого `SharedPreferences` `flight_informer` с сохранением исходных данных;
 - атомарная запись файла и запрет молчаливого сброса повреждённого хранилища;
 - единая точка изменения данных, устойчивые ID и правила сохранения;
-- все доменные репозитории используют один файл, UI и виджет не читают его напрямую;
+- все доменные репозитории используют один файл, UI не читает его напрямую;
 - граница локального хранилища и будущего API.
 
-Запрещено: самостоятельное чтение данных из Activity, виджета или экранов; дублирующие ключи одного поля; сообщение об успешной серверной синхронизации без подтверждения.
+Запрещено: самостоятельное чтение данных из Activity или экранов; дублирующие ключи одного поля; сообщение об успешной серверной синхронизации без подтверждения.
 
 ### LIB-UI — `:core:ui` (Android library)
 Повторно используемые компоненты:
@@ -66,14 +66,13 @@ Aeroclub/
 - общие форматтеры для отображения даты/времени и статуса, если они зависят от Android resources;
 - доступность, content descriptions и единые размеры интерактивных элементов.
 
-Карточка на домашнем экране Android использует RemoteViews и ограничена возможностями App Widget. Поэтому общие данные, цвета, подписи и правила должны переиспользоваться, но XML/View-компонент нельзя механически подключить к RemoteViews. Не обещать идентичность пиксель-в-пиксель ценой несовместимого UI.
+Домашний экранный виджет удалён; интерфейс реализуется нативными Android View-компонентами в приложении.
 
 ### LIB-ANDROID — `:core:android`
 Общие Android-адаптеры:
 - открытие карты через один маршрутный сервис;
 - формирование Intent для системного «Поделиться»;
 - единая обработка отсутствующего приложения и отмены chooser;
-- запрос обновления всех экземпляров виджета после изменения вылета/ответа;
 - безопасная обёртка системных уведомлений при необходимости.
 
 Бизнес-правила не размещать в адаптерах. FCM не добавлять в библиотеку как фиктивную заглушку: подключить только вместе с Firebase-конфигурацией и серверным отправителем.
@@ -82,8 +81,7 @@ Aeroclub/
 
 | Функция | Единственный владелец | Использует общие библиотеки |
 |---|---|---|
-| Главная карточка/превью | feature:informer | common, data, ui, android |
-| Домашний виджет | app / adapter widget в core:android | common, data, общие токены/форматтеры |
+| Главный календарь и карточка мероприятия | feature:informer | common, data, ui, android |
 | Ответ «еду/не еду» | feature:admin-participants (сценарий ответа — общий domain use case) | common, data, android |
 | CRUD и активный вылет | feature:admin-flights | common, data |
 | Список участников и агрегаты | feature:admin-participants | common, data |
@@ -105,9 +103,9 @@ Aeroclub/
 2. Данные читаются и изменяются через один репозиторий/контракт из LIB-DATA. UI не хранит собственную копию списка.
 3. Правило расчёта счётчиков/статусов реализуется один раз в domain/common, а экраны только отображают результат.
 4. Формирование текста сообщения — единый formatter; каналы отправки — отдельные адаптеры. Открытие chooser не является доставкой.
-5. Маршрут строится одним сервисом; экран и виджет не формируют разные geo-URI самостоятельно.
+5. Маршрут строится одним сервисом; карточка мероприятия не формирует geo-URI самостоятельно.
 6. Дата хранится в ISO-формате, а локализованная подпись вычисляется единым форматтером.
-7. Все изменения активного вылета/ответа вызывают единый механизм обновления виджета.
+7. Изменения вылета/ответа отражаются при повторном отображении календаря/карточки.
 8. Журналирование вызывается через общий контракт. Нельзя логировать токены, пароли, полные сообщения и лишние персональные данные.
 9. Общий элемент извлекается в библиотеку только после определения его API и минимум двух реальных потребителей. Не создавать копию ради будущего использования.
 10. Перед переносом проверять импорты, сохранность SharedPreferences-ключей и миграцию. Удалять старую реализацию только после подтверждения отсутствия потребителей и прохождения тестов.
@@ -117,7 +115,7 @@ Aeroclub/
 1. Зафиксировать текущую сборку и SHA; сохранить все существующие исходники и историю.
 2. Вынести в `:core:common` чистые модели/статусы/валидацию, не меняя поведение.
 3. Вынести контракты и текущие репозитории в `:core:data`; сохранить старые ключи и миграцию.
-4. Создать `:core:android` и перенести общие операции карты/share/widget refresh только после тестов текущего поведения.
+4. Создать `:core:android` и перенести общие операции карты/share только после тестов текущего поведения.
 5. Создать `:core:ui` и извлечь реально повторяющиеся токены/компоненты для экранов; RemoteViews оставить адаптированным представлением.
 6. Отделить функциональные пакеты/Gradle-модули по одному: informer → flights → participants/attendance → calendar → messages → settings → notifications.
 7. Только после согласования сервера создавать api/auth/sync модули; локальную очередь не называть сетевой синхронизацией.
@@ -128,7 +126,7 @@ Aeroclub/
 - В `settings.gradle` перечислены только реальные модули; все Gradle-зависимости разрешаются.
 - У каждой модели и бизнес-правила один владелец.
 - UI не обращается напрямую к SharedPreferences и не содержит сетевого кода.
-- Превью, виджет и админка показывают данные из одного источника.
+- Календарь, карточка мероприятия и админка показывают данные из одного источника.
 - Повторяющиеся цвета/отступы/форматирование не разъезжаются между экранами.
 - Миграция старых локальных данных проверена на обновлении поверх предыдущей версии.
 - Проверки сборки и функциональные сценарии относятся к точному SHA.
@@ -138,7 +136,7 @@ Aeroclub/
 ## Runtime safety rules (mandatory)
 
 1. Repository initialization must be one-way: a repository's `ensureInitialized` may call lower-level repositories only if the dependency graph stays acyclic. Never call back into the initializer through a getter.
-2. Run legacy migrations once and mark completion atomically. Do not rescan all entities on every screen render or widget refresh.
+2. Run legacy migrations once and mark completion atomically. Do not rescan all entities on every screen render.
 3. No unbounded retry loops, recursive worker starts, duplicate services, or self-rescheduling immediate work. Scheduled Android operations must use stable PendingIntent identities and explicit cancel/reschedule behavior.
 4. All loops must terminate over a finite, validated collection. Any future API retry policy must be bounded and use backoff; no server request may recursively enqueue another request without an explicit guard.
 5. Verify one instance of each responsibility before adding a worker, receiver, repository, or utility. Shared implementations must have a clear owner.
@@ -154,7 +152,7 @@ Aeroclub/
 | :core:common | Доменные модели, канонические статусы ответов, единое форматирование DEMO, ISO/date-time validation; unit-тесты | Java standard library |
 | :core:data | Единый локальный JSON-файл, репозитории, миграции и event log; серверный outbox отключён | :core:common |
 | :core:ui | AeroclubUi, общая палитра, shape helper и цвета | :core:common |
-| :core:android | FlightActionLauncher, WidgetRefreshManager | :core:common, :core:data |
+| :core:android | FlightActionLauncher | :core:common, :core:data |
 | :feature:notifications | Планировщик локальных напоминаний, receiver и восстановление после перезагрузки | :core:common, :core:data |
 | :feature:admin-flights | FlightAdminActions: create/update/delete, reminder side effects, журналирование | common, data, notifications |
 | :feature:admin-participants | ParticipantAdminActions: CRUD, ответы, валидация и журналирование | common, data |
@@ -163,9 +161,9 @@ Aeroclub/
 | :feature:settings | ClubSettingsActions: чтение/сохранение и журналирование | common, data |
 | :feature:admin | AdminActivity и UI разделов админ-панели | common, data, ui, android, notifications, admin use cases |
 | :feature:informer | MainActivity — превью, действия участника и показ локальных объявлений | common, data, ui, android, notifications, admin-participants, messages |
-| :app | FlightWidgetProvider, manifest и упаковка приложения | общие библиотеки и feature-модули |
+| :app | manifest и упаковка приложения | общие библиотеки и feature-модули |
 
-Граф ацикличен: use-case модули зависят от data/common; feature:messages не зависит от UI; репозитории не зависят от feature-модулей. feature:informer использует общие сценарии participants/settings без обратной зависимости. WidgetRefreshManager принимает имя класса провайдера строкой, поэтому core:android не зависит от app. AdminActivity остаётся общим навигационным UI-хостом, а операции вылетов, участников, календаря, шаблонов сообщений и настроек принадлежат отдельным feature-модулям.
+Граф ацикличен: use-case модули зависят от data/common; feature:messages не зависит от UI; репозитории не зависят от feature-модулей. feature:informer использует общие сценарии participants/settings без обратной зависимости. Домашний виджет и его обновляющий адаптер удалены; `:core:android` обслуживает маршрут и системное «Поделиться». AdminActivity остаётся общим навигационным UI-хостом, а операции вылетов, участников, календаря, шаблонов сообщений и настроек принадлежат отдельным feature-модулям.
 
 Остаётся незавершённым: разбиение административного UI на отдельные экранные модули, серверный API, авторизация/роли, FCM и подтверждаемая синхронизация.
 

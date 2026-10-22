@@ -125,6 +125,6 @@
 
 
 ## Контрольный CI signing run — 2026-10-22
-- Run #370: success; source SHA `0c25a4e90e3babe1cbbd68879f461327ead67b8b`; artifact ID `12397699103` (проверить актуальный ID в Actions перед загрузкой); APK SHA-256 `8f5e81e5157c78684118b87e08f256d08c47cfb158d33c6a532d8df021b3e79a`; certificate SHA-256 `85728a0c380e3dffc930e4297dcee43c5b99d8e0b09a6881cdb214f223aa6aeb`.
+- Run #370: success; source SHA `0c25a4e90e3babe1cbbd68879f461327ead67b8b`; artifact ID `12397544265` (проверить актуальный ID в Actions перед загрузкой); APK SHA-256 `8f5e81e5157c78684118b87e08f256d08c47cfb158d33c6a532d8df021b3e79a`; certificate SHA-256 `85728a0c380e3dffc930e4297dcee43c5b99d8e0b09a6881cdb214f223aa6aeb`.
 - Cache v2 впервые сохранён с реальным `~/.android/debug.keystore`; повторный run нужен для подтверждения, что кэш восстанавливает тот же ключ.
 - APK из run #368/#369 не считать взаимозаменяемыми для обновления: их certificate SHA-256 различаются.

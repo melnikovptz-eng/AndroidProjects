@@ -15,7 +15,6 @@ public class FlightReminderBootReceiver extends BroadcastReceiver {
                 && !"android.intent.action.DATE_CHANGED".equals(action)) return;
         FlightRepository.ensureInitialized(context);
         FlightReminderScheduler.syncAll(context);
-        WidgetRefreshManager.refresh(context, "ru.aeroclub.informer.FlightWidgetProvider");
         String result = FlightReminderScheduler.notificationsEnabled(context) ? "completed" : "notifications_disabled";
         String event = Intent.ACTION_BOOT_COMPLETED.equals(action)
             ? "restore_after_reboot" : "reschedule_after_clock_change";

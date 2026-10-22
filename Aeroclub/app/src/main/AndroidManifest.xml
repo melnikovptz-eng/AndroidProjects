@@ -10,6 +10,7 @@
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
         <activity android:name=".AdminActivity" android:exported="false" />
+        <receiver android:name=".FlightHomeWidgetProvider" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_flight_info" /></receiver>
         <receiver android:name=".FlightReminderReceiver" android:exported="false" />
         <receiver android:name=".FlightReminderBootReceiver" android:enabled="true" android:exported="false">
             <intent-filter>

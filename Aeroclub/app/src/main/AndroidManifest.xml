@@ -19,9 +19,5 @@
                 <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".FlightWidgetProvider" android:exported="true">
-            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="ru.aeroclub.informer.GOING"/><action android:name="ru.aeroclub.informer.NOT_GOING"/><action android:name="ru.aeroclub.informer.ROUTE"/><action android:name="ru.aeroclub.informer.SHARE"/></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/flight_widget_info"/>
-        </receiver>
     </application>
 </manifest>

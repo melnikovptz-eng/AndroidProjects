@@ -43,16 +43,19 @@ class FlightHomeWidgetProvider : AppWidgetProvider() {
         when (action) {
             GOING, NOT_GOING -> {
                 val going = action == GOING
-                val participant = AttendanceRepository.getSelectedParticipantId(context)
                 val status = if (going) AttendanceRepository.STATUS_GOING else AttendanceRepository.STATUS_NOT_GOING
-                val saved = if (participant.isNullOrBlank())
-                    AttendanceRepository.setResponse(context, flight.id, status)
-                else AttendanceRepository.setResponse(context, participant, flight.id, status)
+                // The widget answers for this device only; never reuse an admin-selected participant.
+                val saved = AttendanceRepository.setResponse(context, flight.id, status)
                 val message = if (!saved) "Не удалось сохранить ответ" else if (going) "Ответ сохранён: Я еду" else "Ответ сохранён: Я не еду"
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 refresh(context)
             }
-            ROUTE -> FlightActionLauncher.openRoute(context, flight)
+            ROUTE -> {
+                val routeIntent = Intent(context, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .putExtra("widget_route_flight_id", flight.id)
+                context.startActivity(routeIntent)
+            }
             TELEGRAM -> FlightActionLauncher.shareFlight(context, flight)
         }
     }

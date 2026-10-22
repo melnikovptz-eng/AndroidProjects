@@ -24,10 +24,19 @@ public final class FlightActionLauncher {
             context.startActivity(map);
             EventLogRepository.record(context, "MAP-01", "open_route", "intent_started", flightId);
             return true;
-        } catch (Exception e) {
-            Toast.makeText(context, "Не найдено приложение для карт", Toast.LENGTH_SHORT).show();
-            EventLogRepository.record(context, "MAP-01", "open_route", "no_maps_app", flightId);
-            return false;
+        } catch (Exception noGeoHandler) {
+            Intent fallback = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(place)));
+            if (!(context instanceof Activity)) fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                context.startActivity(fallback);
+                EventLogRepository.record(context, "MAP-01", "open_route", "browser_fallback_started", flightId);
+                return true;
+            } catch (Exception noHandler) {
+                Toast.makeText(context, "Не удалось открыть карты или браузер", Toast.LENGTH_SHORT).show();
+                EventLogRepository.record(context, "MAP-01", "open_route", "no_map_or_browser_handler", flightId);
+                return false;
+            }
         }
     }
 

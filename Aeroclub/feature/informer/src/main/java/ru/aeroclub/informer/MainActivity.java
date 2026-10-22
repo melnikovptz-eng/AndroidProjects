@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
         FlightRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
         renderCalendarScreen();
+        handleWidgetRouteIntent(getIntent());
         ensureLegacyDownloadsPermission();
         if (screenOpenOperation != null) {
             screenOpenOperation.finish("success", "calendar_ready");
@@ -210,7 +211,7 @@ public class MainActivity extends Activity {
         AlertDialog dialog = new AlertDialog.Builder(this).setView(card).setNegativeButton("Закрыть", null).create();
         going.setOnClickListener(v -> { dialog.dismiss(); runTimedAction("ATT-01", "event_card_going", () -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_GOING, flight)); });
         notGoing.setOnClickListener(v -> { dialog.dismiss(); runTimedAction("ATT-01", "event_card_not_going", () -> chooseParticipantAndSetStatus(AttendanceRepository.STATUS_NOT_GOING, flight)); });
-        route.setOnClickListener(v -> runTimedAction("MAP-01", "event_card_route", () -> FlightActionLauncher.openRoute(this, flight)));
+        route.setOnClickListener(v -> runTimedAction("MAP-01", "event_card_route", () -> showRouteConfirmation(flight)));
         telegram.setOnClickListener(v -> runTimedAction("SHR-01", "event_card_telegram", () -> FlightActionLauncher.shareFlight(this, flight)));
         dialog.show();
     }
@@ -300,6 +301,37 @@ public class MainActivity extends Activity {
         ModuleDebugLog.log(this, "UI-01", "informer_onNewIntent", "received", "intent_received");
         setIntent(intent);
         handleAttendanceAction(intent);
+        handleWidgetRouteIntent(intent);
+    }
+
+    private void handleWidgetRouteIntent(Intent intent) {
+        if (intent == null) return;
+        String flightId = intent.getStringExtra("widget_route_flight_id");
+        if (flightId == null || flightId.trim().isEmpty()) return;
+        intent.removeExtra("widget_route_flight_id");
+        Flight flight = FlightRepository.getById(this, flightId);
+        if (flight == null) {
+            android.widget.Toast.makeText(this, "Мероприятие не найдено. Обновите календарь.", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        showRouteConfirmation(flight);
+    }
+
+    private void showRouteConfirmation(Flight flight) {
+        if (flight == null) return;
+        new AlertDialog.Builder(this)
+            .setTitle("Маршрут к месту полётов")
+            .setMessage("Вы выехали к месту полётов?")
+            .setPositiveButton("Да, и построить маршрут", (dialog, which) -> {
+                android.widget.Toast.makeText(this,
+                    "Канал уведомления руководителю не настроен. Сообщение не отправлено; открываю маршрут.",
+                    android.widget.Toast.LENGTH_LONG).show();
+                FlightActionLauncher.openRoute(this, flight);
+            })
+            .setNegativeButton("Нет, и построить маршрут", (dialog, which) ->
+                FlightActionLauncher.openRoute(this, flight))
+            .setNeutralButton("Отмена", null)
+            .show();
     }
 
     private void handleAttendanceAction(Intent intent) {

@@ -1,6 +1,6 @@
 name: Build Aeroclub Informer APK
 # Run the control build manually after a complete logical implementation batch.
-# Full regression build for AERO-001 through AERO-007, including package, widget and Downloads exchange fixes.
+# Control build for current Aeroclub source, including calendar-first event-card flow and Downloads exchange.
 # Avoid starting a new Android build for every small source/documentation commit.
 
 on:

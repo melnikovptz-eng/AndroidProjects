@@ -33,6 +33,13 @@ public class MainActivity extends Activity {
     private final Handler flightSyncHandler = new Handler(Looper.getMainLooper());
     private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) renderCalendarScreen(); flightSyncHandler.postDelayed(this, 5000L); } };
 
+    @Override protected void onResume() {
+        super.onResume();
+        Intent refreshWidget = new Intent("ru.aeroclub.informer.widget.REFRESH");
+        refreshWidget.setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.FlightHomeWidgetProvider"));
+        sendBroadcast(refreshWidget);
+    }
+
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         screenOpenOperation = ModuleDebugLog.startOperation(this, "UI-01", "calendar_screen_open", "screen_created");

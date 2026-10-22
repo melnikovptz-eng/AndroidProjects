@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
         root.setPadding(dp(16), dp(16), dp(16), dp(16));
         root.setBackgroundColor(AeroclubUi.BACKGROUND);
 
-        TextView title = text("АЭРОКЛУБ • КАЛЕНДАРЬ МЕРОПРИЯТИЙ", 16, NAVY, true);
+        TextView title = text("S01  •  АЭРОКЛУБ • КАЛЕНДАРЬ МЕРОПРИЯТИЙ", 16, NAVY, true);
         root.addView(title, lp(-1, -2));
 
         LinearLayout monthRow = new LinearLayout(this);
@@ -327,10 +327,10 @@ public class MainActivity extends Activity {
             .setTitle("Для кого сохранить ответ?")
             .setSingleChoiceItems(names, checked, (dialog, which) -> {
                 Participant participant = participants.get(which);
-                String flightId = FlightRepository.getActiveId(this);
-                if (flightId == null || FlightRepository.getActive(this) == null) {
+                String flightId = targetFlight == null ? null : targetFlight.id;
+                if (flightId == null) {
                     dialog.dismiss();
-                    android.widget.Toast.makeText(this, "Нет активного вылета", android.widget.Toast.LENGTH_SHORT).show();
+                    android.widget.Toast.makeText(this, "Мероприятие не выбрано", android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
                 AttendanceRepository.setSelectedParticipantId(this, participant.id);

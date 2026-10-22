@@ -114,3 +114,10 @@
 - Run #374 succeeded (artifact ID `12397209712`). APK SHA-256 `f771cd50190c97f4c96b6ba6c74765982249ae70d916988f152beeacb0c92922` and certificate SHA-256 `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b` exactly match run #373.
 - Package ID `ru.aeroclub.informer.mobile` and certificate-vs-keystore verification passed. CI cache now restores the explicit signing key consistently.
 - Device UI/launcher/action verification and pixel-perfect visual comparison remain pending.
+
+
+## Rebuild pass — 2026-10-22
+- Предыдущая реализация W01 не принимается как финальная. Новый проход использует исходное расположение элементов: шапка в одну строку, горизонтальная шкала из 14 сегментов с семью метками, часы/дата справа за вертикальным разделителем, четыре цветные кнопки в одном нижнем ряду.
+- Добавлены отдельные vector drawable для логотипа/значков и состояния кнопок, а не символы Unicode в тексте.
+- В репозитории есть только сведённый JPG макета, без отдельного файла фоновой фотографии. В текущем проходе фон восстановлен векторными горными слоями; точное совпадение фотографии и окончательная визуальная приёмка остаются открытыми.
+- Не считать сборку доказательством реального размера/поведения W01 на лаунчере.

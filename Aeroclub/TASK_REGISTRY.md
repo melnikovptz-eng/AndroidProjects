@@ -5,7 +5,7 @@
 Обновлено: 2026-10-22. Ветка: `aeroclub-informer`.
 
 ### AERO-011 — Заменить старый виджет W01 новым по оригинальному дизайну
-- **Статус:** OPEN / BLOCKER — добавлена Kotlin-реализация W01 и обновлена RemoteViews-разметка по карте экрана; CI и физическое устройство ещё не проверены.
+- **Статус:** OPEN / BLOCKER — Kotlin-реализация W01 собрана и unit-тесты прошли; осталось физическое устройство, фактическая ширина/pressed-state, четыре ручных сценария и точное визуальное сравнение с оригиналом.
 - **Основание:** `Aeroclub/design/dezign.jpg` и `Aeroclub/design/DESIGN_REFERENCE.md`.
 - **Важно:** прежнее требование удалить старую реализацию виджета не означает удалить саму функцию виджета. Новый W01 должен повторять оригинальный KD PILOT: шапка/статус/аэродром/время/индикатор сообщения, шкала вариометра −3…+3, крупные часы и дата, нижний ряд из четырёх действий и их pressed-состояния. Целевая ширина — две ячейки лаунчера.
 - **Параллельный поток приложения:** S01 календарь → красная дата с мероприятием → C01 карточка выбранного мероприятия → «Я поеду» / «Я не поеду» / «Маршрут» / «Telegram». Виджет W01 и календарь S01 — разные поверхности; не заменять одно другим.
@@ -143,3 +143,12 @@
 - APK certificate SHA-256: `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; workflow also verified that it equals the SHA-256 fingerprint of the cached keystore explicitly configured in Gradle.
 - Artifact ID: `12398360738`. This is the first artifact after explicit signingConfig correction. Run #374 is used to verify the same signing certificate is reused on a subsequent build.
 - Device/launcher interaction tests remain pending; this CI run does not certify visual match or real Telegram/leader delivery.
+
+
+## Повторная сборка для проверки стабильной подписи — 2026-10-22
+- Run #374: success, source SHA `920b570be4a39cbd5523283a58a647b5e09a3982`; artifact ID `12397209712`.
+- APK SHA-256 совпал с run #373: `f771cd50190c97f4c96b6ba6c74765982249ae70d916988f152beeacb0c92922`.
+- Package ID: `ru.aeroclub.informer.mobile` (извлечён из APK, проверка успешна).
+- Certificate SHA-256 совпал с run #373: `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; workflow успешно сравнил его с сертификатом keystore. Стабильность подписи между двумя последовательными сборками подтверждена.
+- Run #374 построен после документационного коммита; код приложения не менялся относительно run #373.
+- Физическое устройство не подключено к CI: установка/обновление поверх уже установленной версии, отображение и реальные нажатия не проверены.

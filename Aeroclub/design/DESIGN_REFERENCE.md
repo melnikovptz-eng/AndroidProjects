@@ -108,3 +108,9 @@
 - Package ID verified from APK: `ru.aeroclub.informer.mobile`.
 - APK signing certificate SHA-256: `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; CI compared it to the cached keystore fingerprint and passed.
 - A following build is still required to prove the same certificate survives cache restoration. Device checks remain outstanding.
+
+
+## Repeat-build signing check — 2026-10-22
+- Run #374 succeeded (artifact ID `12397209712`). APK SHA-256 `f771cd50190c97f4c96b6ba6c74765982249ae70d916988f152beeacb0c92922` and certificate SHA-256 `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b` exactly match run #373.
+- Package ID `ru.aeroclub.informer.mobile` and certificate-vs-keystore verification passed. CI cache now restores the explicit signing key consistently.
+- Device UI/launcher/action verification and pixel-perfect visual comparison remain pending.

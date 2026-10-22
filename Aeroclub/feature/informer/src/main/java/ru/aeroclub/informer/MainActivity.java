@@ -150,6 +150,17 @@ public class MainActivity extends Activity {
         admin.setOnClickListener(v -> runTimedAction("ADM-01", "open_admin", () ->
             startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")))));
 
+        Button exportMessages = button("Экспортировать файл сообщений");
+        Button importMessages = button("Импортировать файл сообщений");
+        LinearLayout.LayoutParams exchangeParams = lp(-1, dp(48));
+        exchangeParams.topMargin = dp(8);
+        root.addView(exportMessages, exchangeParams);
+        LinearLayout.LayoutParams importParams = lp(-1, dp(48));
+        importParams.topMargin = dp(4);
+        root.addView(importMessages, importParams);
+        exportMessages.setOnClickListener(v -> launchMessageExport());
+        importMessages.setOnClickListener(v -> launchMessageImport());
+
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);

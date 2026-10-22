@@ -28,12 +28,26 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Restore stable debug signing identity
+      - name: Prepare Android debug signing directory
         run: mkdir -p "$HOME/.android"
       - uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: aeroclub-debug-keystore-v1
+          key: aeroclub-debug-keystore-v2
+      - name: Ensure stable debug signing identity exists
+        shell: bash
+        run: |
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [ ! -s "$KEYSTORE" ]; then
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -keyalg RSA -keysize 2048 -validity 10000 -noprompt
+          fi
+          test -s "$KEYSTORE"
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -64,6 +78,13 @@ jobs:
           APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          PACKAGE_ID="$("$AAPT" dump badging "$APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
+          test "$PACKAGE_ID" = "ru.aeroclub.informer.mobile"
+          "$APKSIGNER" verify "$APK"
+          CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}')"
+          test -n "$CERT_SHA256"
           INFO="Aeroclub/app/build/outputs/apk/debug/build-info.txt"
           {
             echo "project_id=AEROCLUB"
@@ -72,13 +93,11 @@ jobs:
             echo "source_sha=$GITHUB_SHA"
             echo "workflow_run_id=$GITHUB_RUN_ID"
             echo "build_variant=debug"
-            echo "application_id=ru.aeroclub.informer.mobile"
+            echo "application_id=$PACKAGE_ID"
             echo "apk_path=$APK"
             echo "apk_sha256=$APK_SHA256"
+            echo "signing_certificate_sha256=$CERT_SHA256"
           } > "$INFO"
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}')"
-          echo "signing_certificate_sha256=$CERT_SHA256" >> "$INFO"
           cat "$INFO"
       - uses: actions/upload-artifact@v4
         with:

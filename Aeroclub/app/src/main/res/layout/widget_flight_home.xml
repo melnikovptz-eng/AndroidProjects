@@ -15,7 +15,7 @@
         <TextView android:id="@+id/widget_status" android:layout_width="wrap_content"
             android:layout_height="17dp" android:layout_marginStart="5dp"
             android:paddingStart="4dp" android:paddingEnd="4dp" android:gravity="center"
-            android:background="@drawable/flight_status_pill" android:text="Сегодня полёты"
+            android:background="@drawable/flight_status_pill" android:drawableStart="@drawable/widget_status_dot" android:drawablePadding="3dp" android:text="Сегодня полёты"
             android:textColor="#E8FFF6" android:textSize="6sp" android:textStyle="bold" android:maxLines="1"/>
         <ImageView android:layout_width="8dp" android:layout_height="10dp"
             android:layout_marginStart="4dp" android:src="@drawable/widget_ic_location"

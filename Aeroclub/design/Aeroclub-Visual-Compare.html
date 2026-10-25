@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Aeroclub — HTML/CSS Visual Compare</title>
+<style>
+:root {
+  --ui-bg: #f2f4f7;
+  --ui-panel: #fff;
+  --ui-text: #17202b;
+  --ui-muted: #586575;
+  --ui-border: #c8d0da;
+  --ui-accent: #165dce;
+  --ui-radius: 10px;
+  --ui-gap: 12px;
+  --phone-width: 360px;
+  --phone-height: 800px;
+  --reference-opacity: .5;
+  --radius-card: 0px;
+  --radius-button: 0px;
+  --radius-avatar: 0px;
+  --radius-popup: 0px;
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button {
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--ui-text);
+  background: #fff;
+  cursor: pointer;
+}
+button:hover { border-color: var(--ui-accent); }
+button:active { transform: translateY(1px); background: #e8eef9; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--ui-accent); outline-offset: 2px;
+}
+input, select, textarea {
+  max-width: 100%; border: 1px solid var(--ui-border); border-radius: 7px;
+  padding: 7px; background: #fff; color: var(--ui-text);
+}
+textarea { width: 100%; min-height: 220px; resize: vertical; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+header {
+  position: sticky; top: 0; z-index: 20; padding: 12px 16px;
+  background: #17202b; color: white; border-bottom: 1px solid #384555;
+}
+header h1 { margin: 0; font-size: 18px; }
+header p { margin: 4px 0 0; color: #d6deea; }
+main { display: grid; grid-template-columns: minmax(280px, 350px) minmax(0, 1fr); gap: var(--ui-gap); padding: var(--ui-gap); align-items: start; }
+.panel { background: var(--ui-panel); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); padding: 12px; min-width: 0; }
+.panel h2 { margin: 0 0 10px; font-size: 16px; }
+.panel h3 { margin: 14px 0 6px; font-size: 13px; }
+.field { display: grid; gap: 4px; margin: 8px 0; }
+.field label, .muted { color: var(--ui-muted); font-size: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.row > label { display: flex; align-items: center; gap: 5px; }
+.file-label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ui-border); border-radius: 8px; padding: 7px 10px; cursor: pointer; background: #fff; }
+.file-label input { width: 1px; height: 1px; opacity: 0; position: absolute; }
+.status { color: var(--ui-muted); font-size: 12px; overflow-wrap: anywhere; }
+.workspace { display: grid; gap: var(--ui-gap); min-width: 0; }
+.views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ui-gap); align-items: start; }
+.view-card { min-width: 0; background: #fff; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); padding: 10px; }
+.view-card h2 { margin: 0 0 8px; font-size: 14px; }
+.stage {
+  position: relative; margin: auto; width: min(100%, var(--phone-width)); aspect-ratio: var(--phone-width) / var(--phone-height);
+  height: auto; overflow: hidden; background: #e5e9ee; border: 1px solid #8994a2; border-radius: 8px;
+  isolation: isolate;
+}
+.stage img, .stage iframe, .stage canvas, .stage .screen-layer {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+}
+.stage img { object-fit: fill; }
+.stage iframe { background: white; }
+.stage .screen-layer { pointer-events: none; }
+.stage .grid-overlay {
+  position: absolute; inset: 0; pointer-events: none; z-index: 8;
+  background-image: linear-gradient(to right, rgba(255,0,0,.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,0,0,.3) 1px, transparent 1px);
+  background-size: 20px 20px; display: none;
+}
+.stage.show-grid .grid-overlay { display: block; }
+.stage .crosshair {
+  position: absolute; z-index: 10; width: 17px; height: 17px; transform: translate(-50%,-50%);
+  border: 1px solid #f00; border-radius: 50%; box-shadow: 0 0 0 1px #fff; display: none; pointer-events: none;
+}
+.stage .crosshair::before, .stage .crosshair::after { content: ""; position: absolute; background: #f00; }
+.stage .crosshair::before { width: 25px; height: 1px; left: -5px; top: 7px; }
+.stage .crosshair::after { height: 25px; width: 1px; left: 7px; top: -5px; }
+.stage.measuring { cursor: crosshair; }
+.stage.measuring .crosshair { display: block; }
+.stage .measure-label { position: absolute; z-index: 11; display: none; background: #17202b; color: white; padding: 2px 5px; border-radius: 4px; font: 11px/1.4 monospace; pointer-events: none; }
+.stage .measure-label.visible { display: block; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.toolbar button[aria-pressed="true"] { background: #dce9ff; border-color: var(--ui-accent); }
+.dual { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dual > * { min-width: 0; }
+.slider-row { display: grid; grid-template-columns: 1fr 54px; gap: 8px; align-items: center; }
+.slider-row input { width: 100%; padding: 0; }
+pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+#inspector { max-height: 240px; overflow: auto; background: #f7f8fa; border: 1px solid var(--ui-border); padding: 8px; border-radius: 7px; font-size: 12px; }
+details { border-top: 1px solid var(--ui-border); margin-top: 10px; padding-top: 8px; }
+summary { cursor: pointer; font-weight: 650; }
+.catalog { columns: 2; column-gap: 20px; font-size: 12px; }
+.catalog li { break-inside: avoid; margin: 2px 0; }
+.warning { padding: 8px; border-left: 3px solid #d18a00; background: #fff6df; border-radius: 4px; }
+@media (max-width: 1050px) {
+  main { grid-template-columns: minmax(250px, 320px) minmax(0,1fr); }
+  .views { grid-template-columns: 1fr; }
+  .view-card .stage { width: min(100%, var(--phone-width)); }
+}
+@media (max-width: 720px) {
+  header { position: static; }
+  main { display: flex; flex-direction: column; padding: 8px; }
+  main > *, .workspace { width: 100%; }
+  .dual { grid-template-columns: 1fr; }
+  .catalog { columns: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Aeroclub — HTML/CSS Visual Compare</h1>
+  <p>Сравнение эталона, скриншота с телефона и HTML/CSS-рендера. Не меняет исходный dezign.jpg в репозитории.</p>
+</header>
+<main>
+  <aside class="panel">
+    <h2>1. Источники изображения</h2>
+    <div class="field">
+      <label for="referenceFile">Эталонный макет dezign.jpg</label>
+      <input id="referenceFile" type="file" accept="image/*">
+    </div>
+    <div class="field">
+      <label for="phoneFile">Скриншот реального отображения на телефоне</label>
+      <input id="phoneFile" type="file" accept="image/*">
+    </div>
+    <p class="status" id="fileStatus">Загрузите эталон и/или скриншот. Изображения обрабатываются локально в браузере.</p>
+    <h2>2. Размер виртуального экрана</h2>
+    <div class="dual">
+      <div class="field"><label for="screenW">Ширина (CSS px)</label><input id="screenW" type="number" min="120" max="1600" value="360"></div>
+      <div class="field"><label for="screenH">Высота (CSS px)</label><input id="screenH" type="number" min="200" max="3000" value="800"></div>
+    </div>
+    <div class="field">
+      <label for="scaleMode">Отображение изображения</label>
+      <select id="scaleMode"><option value="fill">Растянуть по экрану (сравнение координат)</option><option value="contain">Вписать целиком</option><option value="cover">Заполнить с обрезкой</option></select>
+    </div>
+    <div class="field">
+      <label for="opacity">Прозрачность верхнего слоя</label>
+      <div class="slider-row"><input id="opacity" type="range" min="0" max="100" value="50"><output id="opacityValue">50%</output></div>
+    </div>
+    <div class="field">
+      <label for="blendMode">Режим наложения</label>
+      <select id="blendMode"><option value="normal">Обычный</option><option value="difference">Difference — выявить сдвиги</option><option value="multiply">Multiply</option><option value="screen">Screen</option></select>
+    </div>
+    <div class="toolbar">
+      <button id="swapBtn" type="button">Поменять слои</button>
+      <button id="gridBtn" type="button" aria-pressed="false">Сетка 20 px</button>
+      <button id="measureBtn" type="button" aria-pressed="false">Измерить точку</button>
+      <button id="resetBtn" type="button">Сбросить измерение</button>
+    </div>
+    <p class="status">Для сопоставления снимите скриншот приложения на телефоне и загрузите его сюда. Важно сравнивать одинаковые состояния интерфейса и учитывать системные панели/вырезы.</p>
+    <h2>3. Точка и цвет</h2>
+    <div id="measureResult" class="status">Нажмите «Измерить точку», затем выберите место на любом экране.</div>
+    <div class="row">
+      <button id="pickColorBtn" type="button">Пипетка цвета</button>
+      <span id="colorPreview" style="display:inline-block;width:22px;height:22px;border:1px solid #777;border-radius:4px;background:#fff"></span>
+      <code id="colorValue">—</code>
+    </div>
+    <h2>4. Инспектор HTML/CSS</h2>
+    <p class="status">Нажмите на элемент в HTML-предпросмотре, чтобы увидеть его вычисленные стили. Редактирование CSS применяется сразу.</p>
+    <div id="inspector">Элемент ещё не выбран.</div>
+    <div class="toolbar"><button id="exportBtn" type="button">Экспорт измерений JSON</button><button id="copyCssBtn" type="button">Скопировать CSS</button></div>
+    <p class="status" id="exportStatus"></p>
+    <details>
+      <summary>Каталог CSS-свойств, которые проверяем</summary>
+      <p class="muted">Это полный контрольный список категорий, а не указание применять каждое свойство. Используем только то, что требуется оригиналу.</p>
+      <ul class="catalog">
+        <li><b>Расположение:</b> display, flex, grid, flex-direction, justify-content, align-items, align-self, place-items, place-content, order, flex-wrap, gap.</li>
+        <li><b>Позиционирование:</b> position, top, right, bottom, left, inset, z-index, overflow, visibility, opacity.</li>
+        <li><b>Размеры:</b> width, height, min/max-width, min/max-height, box-sizing, aspect-ratio.</li>
+        <li><b>Отступы:</b> margin, padding, flex-basis, flex-grow, flex-shrink.</li>
+        <li><b>Grid:</b> grid-template-columns/rows/areas, grid-column, grid-row, minmax().</li>
+        <li><b>Единицы:</b> px, %, fr, rem, em, vw, vh, dvw, dvh, min(), max(), clamp().</li>
+        <li><b>Текст:</b> font-family, font-size, font-weight, font-style, line-height, letter-spacing, word-spacing, text-align, text-transform, text-decoration, white-space, overflow-wrap, hyphens, vertical-align, font-variant-numeric.</li>
+        <li><b>Цвет/фон:</b> color, background-color, background-image, background-size, background-position, background-repeat, background-origin, background-clip, background-blend-mode, mix-blend-mode.</li>
+        <li><b>Границы:</b> border и стороны, border-width/style/color, border-radius, outline, outline-offset, border-collapse, border-spacing.</li>
+        <li><b>Тени/эффекты:</b> box-shadow, text-shadow, filter, drop-shadow, blur, backdrop-filter.</li>
+        <li><b>Фото/аватары:</b> object-fit, object-position, border-radius, border, opacity, transform, overflow, z-index, isolation.</li>
+        <li><b>Кнопки:</b> appearance, cursor, user-select, touch-action, pointer-events, :hover, :active, :focus, :focus-visible, :disabled, [aria-pressed], .selected.</li>
+        <li><b>Календарь:</b> grid, gap, place-items, text-align, border, radius, background, color; состояния дней отдельными классами.</li>
+        <li><b>SVG:</b> fill, stroke, stroke-width.</li>
+        <li><b>Адаптивность:</b> @media, @supports, относительные единицы, min/max/clamp, гибкие контейнеры.</li>
+        <li><b>Анимация:</b> transition, transform, animation, @keyframes, prefers-reduced-motion.</li>
+        <li><b>Прокрутка:</b> overflow, overscroll-behavior, scrollbar-width/color, scroll-padding/margin.</li>
+        <li><b>Слои:</b> z-index, isolation, clip-path, mask, transform, transform-origin.</li>
+        <li><b>Переменные:</b> :root и custom properties для цветов, шрифтов, промежутков, границ, радиусов.</li>
+      </ul>
+    </details>
+  </aside>
+
+  <section class="workspace">
+    <div class="panel">
+      <h2>Сравнение трёх состояний</h2>
+      <div class="views">
+        <section class="view-card">
+          <h2>А — эталон</h2>
+          <div class="stage" id="referenceStage" aria-label="Эталонный макет">
+            <img id="referenceImg" alt="Эталонный макет" hidden>
+            <div class="grid-overlay"></div><div class="crosshair"></div><div class="measure-label"></div>
+          </div>
+          <p class="status" id="referenceInfo">Нет изображения</p>
+        </section>
+        <section class="view-card">
+          <h2>Б — телефон</h2>
+          <div class="stage" id="phoneStage" aria-label="Скриншот телефона">
+            <img id="phoneImg" alt="Скриншот с телефона" hidden>
+            <div class="grid-overlay"></div><div class="crosshair"></div><div class="measure-label"></div>
+          </div>
+          <p class="status" id="phoneInfo">Нет изображения</p>
+        </section>
+        <section class="view-card">
+          <h2>В — HTML/CSS</h2>
+          <div class="stage" id="htmlStage" aria-label="HTML CSS предпросмотр">
+            <iframe id="htmlPreview" title="HTML/CSS-предпросмотр" sandbox="allow-scripts"></iframe>
+            <div class="grid-overlay"></div><div class="crosshair"></div><div class="measure-label"></div>
+          </div>
+          <p class="status">Предпросмотр обновляется из редакторов ниже.</p>
+        </section>
+      </div>
+      <div class="toolbar">
+        <button id="overlayRefPhone" type="button">А поверх Б</button>
+        <button id="overlayRefHtml" type="button">А поверх В</button>
+        <button id="overlayPhoneHtml" type="button">Б поверх В</button>
+        <button id="clearOverlay" type="button">Убрать наложение</button>
+      </div>
+      <p class="status">Режим наложения показывает верхний слой поверх нижнего с заданной прозрачностью. Режим Difference помогает заметить несовпадающие края, но не заменяет проверку размеров и системных отступов.</p>
+    </div>
+    <div class="panel">
+      <h2>HTML/CSS-код для предпросмотра</h2>
+      <p class="warning">Вставьте сюда разметку и стили реконструируемого экрана. Начальный шаблон намеренно пустой: он не выдумывает внешний вид вместо оригинала.</p>
+      <div class="dual">
+        <div><h3>HTML</h3><textarea id="htmlCode" spellcheck="false"><main class="screen">
+  <!-- Восстановите структуру по dezign.jpg.
+       Используйте контейнеры, относительное выравнивание
+       и только подтверждённые наложения. -->
+</main></textarea></div>
+        <div><h3>CSS</h3><textarea id="cssCode" spellcheck="false">:root {
+  /* Запишите сюда измеренные значения из оригинала. */
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; min-height: 100%; }
+body { font-family: sans-serif; }
+.screen {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  /* Не задавайте примерные размеры и цвета:
+     измерьте их по эталону. */
+}
+</textarea></div>
+      </div>
+      <div class="toolbar"><button id="renderBtn" type="button">Обновить HTML</button><button id="restoreBtn" type="button">Вернуть шаблон</button></div>
+      <p class="status" id="renderStatus">Шаблон готов. Вставьте реконструированный код и обновите предпросмотр.</p>
+    </div>
+    <div class="panel">
+      <h2>Как получить честное сравнение</h2>
+      <ol>
+        <li>Откройте исходный <code>dezign.jpg</code> и загрузите его как эталон.</li>
+        <li>На телефоне откройте приложение/экран в нужном состоянии и сделайте скриншот без изменения масштаба.</li>
+        <li>Загрузите скриншот. Убедитесь, что сравниваются одинаковые области: статус-бар и навигационную панель либо включаем в оба изображения, либо исключаем из обоих.</li>
+        <li>Введите HTML/CSS, затем используйте одинаковую ширину и высоту виртуального экрана.</li>
+        <li>Наложите А на Б, затем А на В; проверьте края карточек, аватары, радиусы, разделители, размеры шрифтов и отступы.</li>
+        <li>Кликните по элементам HTML для просмотра вычисленных CSS-свойств. Экспортируйте измерения JSON.</li>
+      </ol>
+      <p class="muted">Этот файл — локальный инструмент сопоставления, а не автоматическое доказательство пиксельной точности. Фактические размеры и значения должны быть измерены и проверены.</p>
+    </div>
+  </section>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const defaultHtml = '<main class="screen">\n  <!-- Восстановите структуру по dezign.jpg.\n       Используйте контейнеры, относительное выравнивание\n       и только подтверждённые наложения. -->\n</main>';
+  const defaultCss = ':root {\n  /* Запишите сюда измеренные значения из оригинала. */\n}\n* { box-sizing: border-box; }\nhtml, body { margin: 0; width: 100%; min-height: 100%; }\nbody { font-family: sans-serif; }\n.screen {\n  position: relative;\n  width: 100%;\n  min-height: 100%;\n  /* Не задавайте примерные размеры и цвета: измерьте их по эталону. */\n}\n';
+  const state = { referenceUrl: null, phoneUrl: null, overlay: null, measuring: false, picking: false, measurements: [], selected: null, swapped: false };
+  const stages = ['referenceStage','phoneStage','htmlStage'].map($);
+  const imgs = { reference: $('referenceImg'), phone: $('phoneImg') };
+  const info = { reference: $('referenceInfo'), phone: $('phoneInfo') };
+
+  function loadImage(inputId, key) {
+    $(inputId).addEventListener('change', () => {
+      const file = $(inputId).files && $(inputId).files[0];
+      if (!file) return;
+      if (state[key + 'Url']) URL.revokeObjectURL(state[key + 'Url']);
+      state[key + 'Url'] = URL.createObjectURL(file);
+      imgs[key].src = state[key + 'Url'];
+      imgs[key].hidden = false;
+      imgs[key].style.objectFit = $('scaleMode').value;
+      imgs[key].onload = () => {
+        info[key].textContent = file.name + ' — ' + imgs[key].naturalWidth + ' × ' + imgs[key].naturalHeight + ' px; ' + file.size.toLocaleString() + ' байт';
+        $('fileStatus').textContent = 'Файлы загружаются локально; ничего не отправляется на сервер.';
+        updateOverlay();
+      };
+    });
+  }
+  loadImage('referenceFile','reference');
+  loadImage('phoneFile','phone');
+
+  function applyScreenSize() {
+    const w = Math.max(120, Number($('screenW').value) || 360);
+    const h = Math.max(200, Number($('screenH').value) || 800);
+    document.documentElement.style.setProperty('--phone-width', w + 'px');
+    document.documentElement.style.setProperty('--phone-height', h + 'px');
+    stages.forEach(s => { s.style.aspectRatio = w + ' / ' + h; });
+  }
+  $('screenW').addEventListener('input', applyScreenSize);
+  $('screenH').addEventListener('input', applyScreenSize);
+  $('scaleMode').addEventListener('change', () => {
+    Object.values(imgs).forEach(img => img.style.objectFit = $('scaleMode').value);
+  });
+  $('opacity').addEventListener('input', () => {
+    $('opacityValue').textContent = $('opacity').value + '%';
+    document.documentElement.style.setProperty('--reference-opacity', Number($('opacity').value)/100);
+    updateOverlay();
+  });
+  $('blendMode').addEventListener('change', updateOverlay);
+
+  function overlayElement(stage, url, visible) {
+    let layer = stage.querySelector('.screen-layer');
+    if (!layer) { layer = document.createElement('img'); layer.className = 'screen-layer'; layer.alt = 'Сравниваемый слой'; stage.appendChild(layer); }
+    layer.src = url || '';
+    layer.hidden = !visible || !url;
+    layer.style.opacity = Number($('opacity').value)/100;
+    layer.style.mixBlendMode = $('blendMode').value === 'normal' ? 'normal' : $('blendMode').value;
+    layer.style.objectFit = $('scaleMode').value;
+    return layer;
+  }
+  function updateOverlay() {
+    stages.forEach(s => { const l=s.querySelector('.screen-layer'); if(l) l.remove(); });
+    if (!state.overlay) return;
+    const pairs = { refPhone: ['referenceStage', state.phoneUrl], refHtml: ['referenceStage', null], phoneHtml: ['phoneStage', null] };
+    const [stageId, url] = pairs[state.overlay];
+    if (state.overlay === 'refPhone') overlayElement($(stageId), state.phoneUrl, true);
+    if (state.overlay === 'refHtml') {
+      const frame = $('htmlPreview');
+      const layer = document.createElement('iframe'); layer.className='screen-layer'; layer.title='HTML overlay'; layer.srcdoc=buildDocument(); layer.style.opacity=Number($('opacity').value)/100; layer.style.mixBlendMode=$('blendMode').value; $(stageId).appendChild(layer);
+    }
+    if (state.overlay === 'phoneHtml') {
+      const layer = document.createElement('iframe'); layer.className='screen-layer'; layer.title='HTML overlay'; layer.srcdoc=buildDocument(); layer.style.opacity=Number($('opacity').value)/100; layer.style.mixBlendMode=$('blendMode').value; $('phoneStage').appendChild(layer);
+    }
+  }
+  $('overlayRefPhone').onclick = () => { state.overlay='refPhone'; updateOverlay(); };
+  $('overlayRefHtml').onclick = () => { state.overlay='refHtml'; updateOverlay(); };
+  $('overlayPhoneHtml').onclick = () => { state.overlay='phoneHtml'; updateOverlay(); };
+  $('clearOverlay').onclick = () => { state.overlay=null; stages.forEach(s=>s.querySelectorAll('.screen-layer').forEach(n=>n.remove())); };
+
+  $('gridBtn').onclick = () => {
+    const enabled = $('gridBtn').getAttribute('aria-pressed') !== 'true';
+    $('gridBtn').setAttribute('aria-pressed', String(enabled));
+    stages.forEach(s=>s.classList.toggle('show-grid',enabled));
+  };
+  $('measureBtn').onclick = () => {
+    state.measuring = !state.measuring;
+    $('measureBtn').setAttribute('aria-pressed', String(state.measuring));
+    stages.forEach(s=>s.classList.toggle('measuring',state.measuring));
+    $('measureResult').textContent = state.measuring ? 'Нажмите в точке внутри любого экрана.' : 'Режим измерения выключен.';
+  };
+  $('resetBtn').onclick = () => {
+    state.measurements = [];
+    stages.forEach(s=>{const c=s.querySelector('.crosshair'); const l=s.querySelector('.measure-label'); if(c)c.style.display='none'; if(l)l.classList.remove('visible');});
+    $('measureResult').textContent = 'Измерения очищены.';
+  };
+  stages.forEach((stage, index) => {
+    stage.addEventListener('click', e => {
+      const r = stage.getBoundingClientRect();
+      const x = (e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
+      if (state.measuring) {
+        const item={view:['reference','phone','html'][index],xPercent:+(x*100).toFixed(2),yPercent:+(y*100).toFixed(2),xCssPx:+(x*(Number($('screenW').value)||360)).toFixed(1),yCssPx:+(y*(Number($('screenH').value)||800)).toFixed(1)};
+        state.measurements.push(item);
+        const cross=stage.querySelector('.crosshair'), label=stage.querySelector('.measure-label');
+        cross.style.left=(x*100)+'%'; cross.style.top=(y*100)+'%'; cross.style.display='block';
+        label.style.left=Math.min(x*100,70)+'%'; label.style.top=Math.min(y*100,90)+'%'; label.textContent=item.xCssPx+', '+item.yCssPx+' px'; label.classList.add('visible');
+        $('measureResult').textContent=JSON.stringify(item);
+      } else if (state.picking) {
+        const img = index===0 ? imgs.reference : index===1 ? imgs.phone : null;
+        if (!img || img.hidden || !img.complete) { $('measureResult').textContent='Пипетка по пикселям доступна для загруженных изображений А и Б.'; return; }
+        const canvas=document.createElement('canvas'); canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});
+        try {
+          ctx.drawImage(img,0,0);
+          const px=ctx.getImageData(Math.min(img.naturalWidth-1,Math.floor(x*img.naturalWidth)),Math.min(img.naturalHeight-1,Math.floor(y*img.naturalHeight)),1,1).data;
+          const hex='#'+[px[0],px[1],px[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+          $('colorValue').textContent=hex; $('colorPreview').style.background=hex; $('measureResult').textContent='Цвет '+hex+'; alpha '+px[3];
+        } catch(err) { $('measureResult').textContent='Браузер не разрешил прочитать пиксели этого изображения.'; }
+        state.picking=false; $('pickColorBtn').setAttribute('aria-pressed','false');
+      } else if (index===2) {
+        // Inspector messages are sent from the sandboxed preview.
+      }
+    });
+  });
+  $('pickColorBtn').onclick = () => { state.picking=true; state.measuring=false; $('measureBtn').setAttribute('aria-pressed','false'); stages.forEach(s=>s.classList.remove('measuring')); $('pickColorBtn').setAttribute('aria-pressed','true'); $('measureResult').textContent='Нажмите на изображение эталона или скриншота, чтобы прочитать цвет.'; };
+
+  function buildDocument() {
+    const html=$('htmlCode').value;
+    const css=$('cssCode').value.replace(/<\/style/gi,'<\\/style');
+    return '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;width:100%;min-height:100%;}'+css+'</style></head><body>'+html+'<script>document.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var el=e.target;var data={tag:el.tagName.toLowerCase(),id:el.id||"",className:typeof el.className==="string"?el.className:"",rect:(function(r){return{x:+r.x.toFixed(1),y:+r.y.toFixed(1),width:+r.width.toFixed(1),height:+r.height.toFixed(1)}})(el.getBoundingClientRect()),styles:{}};var cs=getComputedStyle(el);["display","position","width","height","minWidth","maxWidth","minHeight","maxHeight","boxSizing","margin","padding","gap","gridTemplateColumns","gridTemplateRows","flexDirection","justifyContent","alignItems","fontFamily","fontSize","fontWeight","lineHeight","letterSpacing","textAlign","color","backgroundColor","border","borderRadius","boxShadow","opacity","overflow","objectFit","objectPosition","zIndex","transform"].forEach(function(k){data.styles[k]=cs[k]});parent.postMessage({type:"aero-inspector",data:data},"*")},true);<\/script></body></html>';
+  }
+  function render() {
+    $('htmlPreview').srcdoc=buildDocument();
+    $('renderStatus').textContent='Предпросмотр обновлён. Размер экрана: '+$('screenW').value+' × '+$('screenH').value+' CSS px.';
+    if(state.overlay) updateOverlay();
+  }
+  $('renderBtn').onclick=render;
+  $('restoreBtn').onclick=()=>{$('htmlCode').value=defaultHtml;$('cssCode').value=defaultCss;render();};
+  window.addEventListener('message', e=>{
+    if(!e.data || e.data.type!=='aero-inspector') return;
+    state.selected=e.data.data;
+    $('inspector').textContent=JSON.stringify(state.selected,null,2);
+  });
+  $('exportBtn').onclick=()=>{
+    const data={project:'Aeroclub',generatedAt:new Date().toISOString(),screen:{widthCssPx:Number($('screenW').value),heightCssPx:Number($('screenH').value)},referenceImage:imgs.reference.hidden?null:{width:imgs.reference.naturalWidth,height:imgs.reference.naturalHeight},phoneScreenshot:imgs.phone.hidden?null:{width:imgs.phone.naturalWidth,height:imgs.phone.naturalHeight},measurements:state.measurements,selectedElement:state.selected,notes:'Coordinates are normalized to displayed viewport. Confirm crop/status/navigation bars before interpreting as device pixel coordinates.'};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Aeroclub-design-measurements.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    $('exportStatus').textContent='JSON экспортирован: Aeroclub-design-measurements.json';
+  };
+  $('copyCssBtn').onclick=async()=>{
+    try { await navigator.clipboard.writeText($('cssCode').value); $('exportStatus').textContent='CSS скопирован.'; }
+    catch(e) { $('cssCode').focus(); $('cssCode').select(); $('exportStatus').textContent='Выделил CSS — скопируйте вручную.'; }
+  };
+  $('swapBtn').onclick=()=>{
+    const a=imgs.reference.src, b=imgs.phone.src, ah=imgs.reference.hidden, bh=imgs.phone.hidden;
+    imgs.reference.src=b; imgs.phone.src=a; imgs.reference.hidden=bh; imgs.phone.hidden=ah;
+    const ai=info.reference.textContent; info.reference.textContent=info.phone.textContent; info.phone.textContent=ai;
+    const au=state.referenceUrl; state.referenceUrl=state.phoneUrl; state.phoneUrl=au; updateOverlay();
+  };
+  $('resetBtn').click();
+  applyScreenSize();
+  render();
+})();
+</script>
+</body>
+</html>

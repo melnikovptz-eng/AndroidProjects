@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#092b50">
+<title>Aeroclub · W01 KD PILOT</title>
+<style>
+:root{color-scheme:dark;--blue:#0066ff;--green:#00c853;--red:#ff3b30;--ink:#102d50}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#071d35;color:#fff}
+body{display:grid;place-items:center;padding:clamp(8px,2vw,28px);background:linear-gradient(180deg,#123b64,#07182c)}
+main{width:min(100%,1200px)}
+.caption{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 2px 12px;color:#dceaf8;font-size:clamp(11px,1.25vw,14px)}
+.caption strong{letter-spacing:.12em}
+.stage{width:100%;aspect-ratio:1200/360;position:relative;filter:drop-shadow(0 12px 24px #0005)}
+svg{display:block;width:100%;height:100%;overflow:visible}
+.label{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;fill:#f5f9ff}
+.small{font-size:14px}.medium{font-size:18px}.large{font-size:24px;font-weight:650}
+#clockText{font-size:82px;font-weight:350;letter-spacing:-2px}
+#dateText{font-size:27px;fill:#dce9f7}
+.button{cursor:pointer;outline:none;transform-box:fill-box;transform-origin:center;transition:filter .12s,transform .12s}
+.button:focus-visible .button-bg{stroke:#fff;stroke-width:4}
+.button:active,.button.pressed{filter:brightness(.82);transform:scale(.99)}
+.button[aria-pressed="true"] .button-bg{stroke:#ffffff;stroke-width:3;stroke-opacity:.85}
+#routeDialog{position:fixed;inset:0;z-index:5;display:none;place-items:center;padding:18px;background:#03101ed1}
+#routeDialog.open{display:grid}
+.dialog{width:min(100%,430px);padding:22px;border:1px solid #ffffff30;border-radius:18px;background:#102d4c;box-shadow:0 20px 60px #0008}
+.dialog h2{font-size:20px;margin:0 0 10px}.dialog p{font-size:14px;line-height:1.5;color:#d9e6f3;margin:0 0 18px}
+.dialog-actions{display:grid;gap:9px}
+.dialog button{min-height:44px;border:0;border-radius:10px;padding:10px 12px;font:600 14px system-ui;cursor:pointer}
+.dialog .yes{background:#00a95a;color:white}.dialog .no{background:#f5f8fc;color:#12304f}.dialog .cancel{background:transparent;color:#dceaf8;border:1px solid #ffffff42}
+#toast{position:fixed;z-index:10;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 28px);padding:12px 16px;border-radius:12px;background:#061b31;color:#fff;box-shadow:0 8px 30px #0008;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s}
+#toast.show{opacity:1}
+.note{margin:12px 2px 0;color:#a9c0d8;font-size:12px;line-height:1.45}
+@media(max-width:520px){.caption{margin-bottom:8px}.note{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="caption"><strong>KD PILOT · W01</strong><span>Предпросмотр виджета · адаптивный масштаб</span></div>
+  <div class="stage">
+    <svg viewBox="0 0 1200 360" role="group" aria-label="Виджет KD PILOT: статус полётов, вариометр, часы и четыре действия">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#66a8d8"/><stop offset=".48" stop-color="#b7d4e8"/><stop offset="1" stop-color="#244e70"/></linearGradient>
+        <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#05294f" stop-opacity=".91"/><stop offset=".5" stop-color="#07345f" stop-opacity=".86"/><stop offset="1" stop-color="#041f42" stop-opacity=".94"/></linearGradient>
+        <linearGradient id="greenBtn" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#20b878"/><stop offset="1" stop-color="#009a5a"/></linearGradient>
+        <linearGradient id="redBtn" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f33e49"/><stop offset="1" stop-color="#d90824"/></linearGradient>
+        <linearGradient id="blueBtn" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#0878ec"/><stop offset="1" stop-color="#0053bd"/></linearGradient>
+        <linearGradient id="whiteBtn" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#dbe7f0"/></linearGradient>
+        <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#00152c" flood-opacity=".28"/></filter>
+        <clipPath id="panelClip"><rect x="10" y="10" width="1180" height="340" rx="32"/></clipPath>
+      </defs>
+      <!-- Decorative mountain landscape behind the glass panel. -->
+      <g clip-path="url(#panelClip)">
+        <rect width="1200" height="360" fill="url(#sky)"/>
+        <path d="M0 175 L75 123 119 149 185 78 243 142 302 105 362 162 431 92 489 151 553 111 617 168 690 95 750 149 823 91 887 151 950 106 1015 151 1080 83 1140 134 1200 94 V360 H0Z" fill="#e0eaf0" opacity=".78"/>
+        <path d="M0 205 L80 151 136 190 213 105 285 185 359 138 424 208 500 124 566 185 634 145 703 209 776 126 841 185 914 132 978 191 1053 115 1120 177 1200 139 V360 H0Z" fill="#63859b"/>
+        <path d="M0 236 L91 189 157 223 238 153 304 222 379 178 453 247 526 170 604 229 675 184 750 247 828 173 899 228 979 165 1052 222 1123 178 1200 216 V360 H0Z" fill="#315b76"/>
+        <path d="M0 272 L92 226 171 264 248 203 324 269 404 226 484 287 558 220 638 276 718 232 797 286 875 218 952 271 1030 220 1106 266 1200 235 V360 H0Z" fill="#193e5c"/>
+        <path d="M0 307 L120 268 202 301 301 260 382 314 480 270 570 322 667 269 754 316 849 264 943 313 1044 263 1130 306 1200 281 V360 H0Z" fill="#0c2d4a"/>
+        <rect width="1200" height="360" fill="#061e3c" opacity=".25"/>
+        <rect x="10" y="10" width="1180" height="340" rx="32" fill="url(#glass)" stroke="#8fc3ed" stroke-opacity=".9" stroke-width="1.7"/>
+        <path d="M35 82 H1165" stroke="#d9ecff" stroke-opacity=".17" stroke-width="1.5"/>
+        <path d="M35 226 H1165" stroke="#d9ecff" stroke-opacity=".18" stroke-width="1.5"/>
+      </g>
+
+      <!-- Header: original paper-plane mark and KD PILOT brand. -->
+      <g transform="translate(42 30)" fill="#f3f8ff">
+        <path d="M0 23 L43 0 L28 45 L18 29 L0 23 Z"/>
+        <path d="M18 29 L43 0 L12 22 Z" fill="#bcdcf4"/>
+      </g>
+      <text class="label" x="102" y="56" font-size="29" font-weight="750" letter-spacing=".3">KD PILOT</text>
+
+      <g transform="translate(314 30)">
+        <rect width="230" height="39" rx="20" fill="#008f70" fill-opacity=".83" stroke="#4ce3a9" stroke-opacity=".2"/>
+        <circle cx="21" cy="19.5" r="8" fill="#2cff9b"/>
+        <text class="label" x="39" y="26" font-size="16" font-weight="600">Сегодня полёты</text>
+      </g>
+
+      <g transform="translate(585 30)" fill="#f4f8ff">
+        <path d="M12 0C4 0 0 6 0 13c0 9 12 22 12 22s12-13 12-22C24 6 20 0 12 0zm0 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+      </g>
+      <text class="label" x="616" y="55" font-size="16">Аэродром «Сокольники»</text>
+
+      <g transform="translate(865 32)" fill="none" stroke="#f4f8ff" stroke-width="2.5">
+        <circle cx="13" cy="13" r="11"/><path d="M13 5v9l6 3"/>
+      </g>
+      <text class="label" x="894" y="55" font-size="17">10:00</text>
+
+      <g transform="translate(1101 31)" fill="none" stroke="#f4f8ff" stroke-width="3" stroke-linejoin="round">
+        <path d="M0 4H29V25H0Z"/><path d="M1 5L14.5 16L28 5"/>
+      </g>
+      <circle cx="1133" cy="28" r="12" fill="#e42f45"/>
+      <text x="1133" y="33" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">1</text>
+
+      <!-- Vario: 14 segments, red / neutral / green. -->
+      <g id="varioScale">
+        <rect x="62" y="112" width="42" height="32" rx="5" fill="#ed2439"/>
+        <rect x="110" y="112" width="42" height="32" rx="5" fill="#ed2439"/>
+        <rect x="158" y="112" width="42" height="32" rx="5" fill="#ed2439"/>
+        <rect x="206" y="112" width="42" height="32" rx="5" fill="#ed2439"/>
+        <rect x="254" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="302" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="350" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="398" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="446" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="494" y="112" width="42" height="32" rx="5" fill="#526b86"/>
+        <rect x="542" y="112" width="42" height="32" rx="5" fill="#16c987"/>
+        <rect x="590" y="112" width="42" height="32" rx="5" fill="#16c987"/>
+        <rect x="638" y="112" width="42" height="32" rx="5" fill="#16c987"/>
+        <rect x="686" y="112" width="42" height="32" rx="5" fill="#16c987"/>
+        <g class="label" font-size="21" text-anchor="middle">
+          <text x="94" y="178">-3</text><text x="214" y="178">-2</text><text x="334" y="178">-1</text>
+          <text x="454" y="178">0</text><text x="574" y="178">+1</text><text x="634" y="178" opacity="0">+1</text>
+          <text x="654" y="178">+2</text><text x="704" y="178">+3</text>
+        </g>
+      </g>
+
+      <path d="M790 101 V211" stroke="#d7e8f9" stroke-opacity=".55" stroke-width="1.5"/>
+      <text id="clockText" class="label" x="1088" y="158" text-anchor="end">20:29</text>
+      <text id="dateText" class="label" x="1088" y="196" text-anchor="end">Вт, 26 окт.</text>
+
+      <!-- Four actions, each with a distinct normal and pressed state. -->
+      <g id="goButton" class="button" role="button" tabindex="0" aria-label="Я еду" aria-pressed="false">
+        <rect class="button-bg" x="44" y="244" width="258" height="82" rx="19" fill="url(#greenBtn)" filter="url(#shadow)"/>
+        <circle cx="114" cy="285" r="19" fill="#e6fff4"/>
+        <path d="M105 285l6 6 12-14" fill="none" stroke="#1c9e69" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <text class="label" x="177" y="293" font-size="21" text-anchor="middle">Я еду</text>
+      </g>
+
+      <g id="noButton" class="button" role="button" tabindex="0" aria-label="Я не еду" aria-pressed="false">
+        <rect class="button-bg" x="322" y="244" width="258" height="82" rx="19" fill="url(#redBtn)" filter="url(#shadow)"/>
+        <circle cx="392" cy="285" r="19" fill="#fff0f0"/>
+        <path d="M384 277l16 16m0-16l-16 16" fill="none" stroke="#d72c3a" stroke-width="4" stroke-linecap="round"/>
+        <text class="label" x="463" y="293" font-size="21" text-anchor="middle">Я не еду</text>
+      </g>
+
+      <g id="routeButton" class="button" role="button" tabindex="0" aria-label="Маршрут">
+        <rect class="button-bg" x="600" y="244" width="258" height="82" rx="19" fill="url(#whiteBtn)" filter="url(#shadow)"/>
+        <g transform="translate(635 263)">
+          <path d="M0 20L20 8L42 20L22 32Z" fill="#74c79b"/>
+          <path d="M0 20L20 8V0L0 12Z" fill="#9bc8f4"/>
+          <path d="M20 8L42 20V12L20 0Z" fill="#f4d86a"/>
+          <path d="M21 0C13 0 8 6 8 13c0 9 13 22 13 22s13-13 13-22C34 6 29 0 21 0zm0 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" fill="#d63e49"/>
+        </g>
+        <text x="755" y="293" font-size="21" font-weight="650" fill="#173451" text-anchor="middle">Маршрут</text>
+      </g>
+
+      <g id="telegramButton" class="button" role="button" tabindex="0" aria-label="Telegram">
+        <rect class="button-bg" x="878" y="244" width="278" height="82" rx="19" fill="url(#blueBtn)" filter="url(#shadow)"/>
+        <g transform="translate(913 267)" fill="#eef8ff">
+          <path d="M0 16L43 0L31 43L19 28L11 34L12 23Z"/>
+          <path d="M12 23L31 43L24 19L43 0Z" fill="#a9d7ff"/>
+        </g>
+        <text class="label" x="1040" y="293" font-size="21" text-anchor="middle">Telegram</text>
+      </g>
+    </svg>
+  </div>
+  <p class="note">Интерактивный HTML-прототип W01 по эталону dezign.jpg. Масштабируется целиком; нажатия «Я еду» / «Я не еду» имеют отдельное состояние. Фоновый пейзаж здесь векторно реконструирован, а не выдан за исходную фотографию.</p>
+</main>
+
+<div id="routeDialog" role="dialog" aria-modal="true" aria-labelledby="routeTitle">
+  <div class="dialog">
+    <h2 id="routeTitle">Построение маршрута</h2>
+    <p>Вы выехали к месту полётов?</p>
+    <div class="dialog-actions">
+      <button class="yes" id="routeYes">Да, и построить маршрут</button>
+      <button class="no" id="routeNo">Нет, и построить маршрут</button>
+      <button class="cancel" id="routeCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let toastTimer;
+  function toast(message) {
+    const node = $("toast");
+    node.textContent = message;
+    node.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => node.classList.remove("show"), 3000);
+  }
+  function setPressed(id, pressed) {
+    const node = $(id);
+    node.setAttribute("aria-pressed", String(pressed));
+    node.classList.toggle("pressed", pressed);
+  }
+  function attachButton(id, handler) {
+    const node = $(id);
+    node.addEventListener("click", handler);
+    node.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handler();
+      }
+    });
+    node.addEventListener("pointerdown", () => node.classList.add("pressed"));
+    ["pointerup","pointerleave","pointercancel"].forEach(name =>
+      node.addEventListener(name, () => node.classList.remove("pressed")));
+  }
+
+  attachButton("goButton", () => {
+    const next = $("goButton").getAttribute("aria-pressed") !== "true";
+    setPressed("goButton", next);
+    if (next) setPressed("noButton", false);
+    toast(next ? "Вы отметили: «Я еду»." : "Ответ «Я еду» снят.");
+  });
+
+  attachButton("noButton", () => {
+    const next = $("noButton").getAttribute("aria-pressed") !== "true";
+    setPressed("noButton", next);
+    if (next) setPressed("goButton", false);
+    toast(next ? "Вы отметили: «Я не еду»." : "Ответ «Я не еду» снят.");
+  });
+
+  attachButton("routeButton", () => $("routeDialog").classList.add("open"));
+  attachButton("telegramButton", () => toast("Telegram-адресат для этого виджета ещё не настроен."));
+  $("routeCancel").addEventListener("click", () => $("routeDialog").classList.remove("open"));
+  $("routeDialog").addEventListener("click", e => {
+    if (e.target === $("routeDialog")) $("routeDialog").classList.remove("open");
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") $("routeDialog").classList.remove("open");
+  });
+
+  function openRoute(notifyLeader) {
+    $("routeDialog").classList.remove("open");
+    if (notifyLeader) {
+      toast("Канал уведомления руководителю не настроен. Открываем маршрут без отправки сообщения.");
+    } else {
+      toast("Открываем маршрут без уведомления руководителя.");
+    }
+    const destination = encodeURIComponent("Аэродром Сокольники");
+    const geo = "geo:0,0?q=" + destination;
+    const fallback = "https://www.google.com/maps/search/?api=1&query=" + destination;
+    const link = document.createElement("a");
+    link.href = geo;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    try { link.click(); } catch (_) {}
+    link.remove();
+    setTimeout(() => {
+      if (document.visibilityState === "visible") window.open(fallback, "_blank", "noopener");
+    }, 350);
+  }
+  $("routeYes").addEventListener("click", () => openRoute(true));
+  $("routeNo").addEventListener("click", () => openRoute(false));
+
+  const weekdays = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+  const months = ["янв.","фев.","мар.","апр.","мая","июн.","июл.","авг.","сен.","окт.","ноя.","дек."];
+  function updateClock() {
+    const now = new Date();
+    $("clockText").textContent = new Intl.DateTimeFormat("ru-RU", {
+      hour:"2-digit", minute:"2-digit", hour12:false
+    }).format(now);
+    $("dateText").textContent = weekdays[now.getDay()] + ", " + now.getDate() + " " + months[now.getMonth()];
+  }
+  updateClock();
+  setInterval(updateClock, 15000);
+})();
+</script>
+</body>
+</html>

@@ -110,7 +110,9 @@ class MainActivity : Activity() {
             setPadding(0, dp(14), 0, 0)
         }, matchWrap())
 
-        ScrollView(this).apply { addView(root) }.also(::setContentView)
+        val scroll = ScrollView(this)
+        scroll.addView(root)
+        setContentView(scroll)
     }
 
     private fun showAppPicker() {

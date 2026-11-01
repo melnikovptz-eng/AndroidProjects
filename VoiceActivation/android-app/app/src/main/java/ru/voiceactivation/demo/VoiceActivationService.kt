@@ -156,19 +156,20 @@ class VoiceActivationService : Service() {
             updateNotification("Выбранное приложение недоступно")
             return
         }
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val targetPendingIntent = PendingIntent.getActivity(
+            this,
+            20,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         try {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(launchIntent)
-            updateNotification("Голос подтверждён · приложение запущено")
+            updateNotification("Голос подтверждён · приложение открыто или доступно по нажатию", targetPendingIntent)
         } catch (e: Exception) {
+            // Android may block activity starts from a foreground service.
             Log.w(TAG, "Background activity launch blocked; notification action required", e)
-            val pending = PendingIntent.getActivity(
-                this,
-                20,
-                launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            updateNotification("Голос подтверждён · нажмите, чтобы открыть приложение", pending)
+            updateNotification("Голос подтверждён · нажмите, чтобы открыть приложение", targetPendingIntent)
         }
     }
 

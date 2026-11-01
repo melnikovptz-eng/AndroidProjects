@@ -11,6 +11,7 @@ class SpeakerEngine(
     modelPath: String,
     private val threshold: Float = 0.6f,
     numThreads: Int = 2,
+    private val profileStore: OwnerProfileStore? = null,
 ) : Closeable {
     private val extractor = SpeakerEmbeddingExtractor(
         config = SpeakerEmbeddingExtractorConfig(
@@ -22,21 +23,36 @@ class SpeakerEngine(
     )
     private val manager = SpeakerEmbeddingManager(extractor.dim())
 
+    init {
+        profileStore?.load()?.let { saved ->
+            check(manager.add(OWNER_ID, saved)) { "Unable to restore owner voice profile" }
+        }
+    }
+
     fun enrollOwner(utterances: List<FloatArray>, sampleRate: Int = SAMPLE_RATE): Boolean {
         require(utterances.size >= MIN_ENROLLMENT_UTTERANCES) {
             "At least $MIN_ENROLLMENT_UTTERANCES enrollment utterances are required"
         }
         val embeddings = utterances.map { extract(it, sampleRate) }.toTypedArray()
-        return manager.add(OWNER_ID, embeddings)
+        val added = manager.add(OWNER_ID, embeddings)
+        if (added) profileStore?.save(embeddings)
+        return added
     }
 
     fun verifyOwner(candidate: FloatArray, sampleRate: Int = SAMPLE_RATE): VerificationResult {
         val embedding = extract(candidate, sampleRate)
         val accepted = manager.verify(OWNER_ID, embedding, threshold)
-        return VerificationResult(accepted, threshold, threshold)
+        // The current native Kotlin API exposes a boolean verification result,
+        // not a calibrated similarity score. Never fabricate a confidence value.
+        return VerificationResult(accepted = accepted, threshold = threshold)
     }
 
     fun hasOwnerProfile(): Boolean = manager.contains(OWNER_ID)
+
+    fun clearOwnerProfile() {
+        if (manager.contains(OWNER_ID)) manager.remove(OWNER_ID)
+        profileStore?.clear()
+    }
 
     private fun extract(samples: FloatArray, sampleRate: Int): FloatArray {
         require(sampleRate == SAMPLE_RATE) { "Speaker model expects 16 kHz audio" }
@@ -58,7 +74,6 @@ class SpeakerEngine(
 
     data class VerificationResult(
         val accepted: Boolean,
-        val score: Float,
         val threshold: Float,
     )
 

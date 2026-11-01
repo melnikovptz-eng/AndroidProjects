@@ -15,6 +15,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ScrollView
 import android.widget.Toast
 import ru.voiceactivation.demo.voice.OwnerProfileStore
 import ru.voiceactivation.demo.voice.PcmCapture
@@ -109,7 +110,7 @@ class MainActivity : Activity() {
             setPadding(0, dp(14), 0, 0)
         }, matchWrap())
 
-        setContentView(root)
+        ScrollView(this).apply { addView(root) }.also(::setContentView)
     }
 
     private fun showAppPicker() {

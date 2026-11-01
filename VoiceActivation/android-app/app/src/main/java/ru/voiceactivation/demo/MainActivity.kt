@@ -77,10 +77,10 @@ class MainActivity : Activity() {
         root.addView(actionButton("Выбрать приложение") { showAppPicker() }, matchWrap())
         root.addView(actionButton("Проверить ручной запуск") { launchSelectedApp() }, matchWrap())
 
-        root.addView(section("2. Русская ключевая фраза"), matchWrap())
+        root.addView(section("2. Команда запуска"), matchWrap())
         wakePhraseInput = EditText(this).apply {
             setSingleLine(true)
-            hint = "Например: окей помощник"
+            hint = "Например: открой приложение"
             setText(prefs.getString(KEY_WAKE_PHRASE, "окей голосовой помощник"))
         }
         root.addView(wakePhraseInput, matchWrap())

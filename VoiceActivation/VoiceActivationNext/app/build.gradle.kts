@@ -3,11 +3,11 @@ android {
     namespace = "ru.voiceactivation.next"
     compileSdk = 35
     defaultConfig {
-        applicationId = "ru.voiceactivation.next"
+        applicationId = "ru.voiceactivation.next.test"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

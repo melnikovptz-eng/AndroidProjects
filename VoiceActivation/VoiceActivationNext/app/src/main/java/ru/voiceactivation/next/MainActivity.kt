@@ -120,6 +120,29 @@ class MainActivity : Activity() {
             }
         }
 
+        button("Калибровка: записать правильную команду") {
+            val expected = command.text.toString().trim()
+            if (expected.isBlank() || expected !in matcher.commands()) {
+                ui("Сначала выберите существующую команду в поле названия.")
+            } else recordCalibrationSample(expected, true)
+        }
+
+        button("Калибровка: записать постороннюю фразу своим голосом") {
+            recordCalibrationSample(null, true)
+        }
+
+        button("Калибровка: записать чужой голос") {
+            recordCalibrationSample(null, false)
+        }
+
+        button("Рассчитать и проверить пороги") {
+            runCalibration()
+        }
+
+        button("Показать данные калибровки") {
+            ui(CalibrationEngine.summary(CalibrationEngine.load(this)))
+        }
+
         testButton = button("Проверить голосовую команду") {
             if (testActive.get()) {
                 stopMessage = "Проверка отменена пользователем."
@@ -391,6 +414,59 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun recordCalibrationSample(expectedCommand: String?, owner: Boolean) {
+        if (matcher.commands().isEmpty()) {
+            ui("Сначала запишите образцы команд.")
+            return
+        }
+        if (matcher.ownerSimilarity(DoubleArray(0)) == null) {
+            // Проверка наличия профиля без использования аудиоданных выполняется ниже через флаг.
+        }
+        capture { audio ->
+            val measured = matcher.match(audio)
+            val ownerScore = matcher.ownerSimilarity(audio)
+            if (ownerScore == null) {
+                ui("Сначала запишите профиль владельца. Калибровочный пример не сохранён.")
+                return@capture
+            }
+            if (measured == null) {
+                ui("Не удалось измерить DTW. Повторите запись.")
+                return@capture
+            }
+            val sample = CalibrationEngine.Sample(
+                expectedCommand = expectedCommand,
+                owner = owner,
+                predictedCommand = measured.command,
+                bestDistance = measured.bestDistance,
+                marginRatio = measured.marginRatio,
+                ownerCosine = ownerScore
+            )
+            CalibrationEngine.append(this, sample)
+            ui("Калибровочный пример сохранён: " +
+                (expectedCommand ?: "посторонняя речь") +
+                ", говорящий=" + (if (owner) "владелец" else "другой") +
+                ". Всего: " + CalibrationEngine.load(this).size)
+        }
+    }
+
+    private fun runCalibration() {
+        val result = CalibrationEngine.fit(CalibrationEngine.load(this))
+        if (!result.success) {
+            ui("КАЛИБРОВКА НЕ ВЫПОЛНЕНА\n" + result.message)
+            return
+        }
+        matcher.applyThresholds(result.dtwThreshold, result.ownerThreshold, result.marginThreshold)
+        ui(
+            "КАЛИБРОВКА ЗАВЕРШЕНА\n" +
+            "DTW < " + fmt(result.dtwThreshold) + "\n" +
+            "Owner cosine > " + fmt(result.ownerThreshold) + "\n" +
+            "Отрыв best/second < " + fmt(result.marginThreshold) + "\n" +
+            "Проверочная выборка: команды " + fmt(result.commandValidation * 100) + "%, " +
+            "владелец " + fmt(result.ownerValidation * 100) + "%\n" +
+            "Образцов: " + result.totalSamples + ". Пороги сохранены и применяются в тесте и боевом режиме."
+        )
+    }
+
     private fun ownerLabel(score: Double?, accepted: Boolean): String {
         if (score == null) return "профиль не найден"
         return (if (accepted) "ПРОЙДЕНА" else "НЕ ПРОЙДЕНА") +
@@ -525,14 +601,24 @@ private class AcousticMatcher(ctx: Context) {
         val second = sorted.getOrNull(1)?.value ?: Double.POSITIVE_INFINITY
         val accepted = best.value < dtwThreshold() &&
             (second.isInfinite() || best.value < second * marginThreshold())
-        return MatchResult(best.key, best.value, second, accepted)
+        val marginRatio = if (second.isInfinite() || second <= 0.0) 0.0 else best.value / second
+        return MatchResult(best.key, best.value, second, accepted, marginRatio)
+    }
+
+    fun applyThresholds(dtw: Double, owner: Double, margin: Double) {
+        p.edit()
+            .putFloat("dtw_threshold", dtw.toFloat())
+            .putFloat("owner_threshold", owner.toFloat())
+            .putFloat("margin_threshold", margin.toFloat())
+            .apply()
     }
 
     data class MatchResult(
         val command: String,
         val bestDistance: Double,
         val secondDistance: Double,
-        val accepted: Boolean
+        val accepted: Boolean,
+        val marginRatio: Double
     )
 
     private fun enc(a: DoubleArray): String =

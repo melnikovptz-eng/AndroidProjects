@@ -1,81 +1,100 @@
 # VoiceActivation — technical specification
 
-## Product behavior
+## Target product behavior
 
-The user selects an installed Android application and a Russian wake phrase. VoiceActivation listens only while the user has explicitly started the microphone foreground service and Android permits microphone use.
+VoiceActivation continuously analyzes microphone audio while the user has explicitly started the microphone foreground service and Android permits microphone use. There is no mandatory wake phrase.
 
-Activation requires two sequential checks:
+The intended activation pipeline is:
 
-1. Russian wake phrase detection from the microphone stream.
-2. Speaker verification of the same captured utterance against the enrolled owner profile.
+1. Capture mono PCM audio continuously.
+2. Estimate background noise, speech level and signal-to-noise ratio (SNR).
+3. Detect speech with adaptive thresholds and segment it into utterances.
+4. Compare the utterance with user-recorded command templates using a command-content model. A command match must be based on what was said, not only on who said it.
+5. Verify the speaker against the enrolled owner profile.
+6. Execute the action bound to the matched command only when command and owner checks pass.
+7. If audio quality is insufficient or a match is ambiguous, do nothing and continue listening.
 
-Only after both checks pass does VoiceActivation attempt to open the selected application. If Android blocks background activity launch, the persistent notification provides a user-tap action for that target.
+A separate speaker embedding model answers “who is speaking”; it does not recognize command meaning. Command matching therefore requires its own ASR or audio-embedding model.
 
-## User configuration
+## Acoustic front end
 
-- Wake phrase: editable Russian phrase, recognized using a Russian streaming ASR model as a phrase detector.
-- Owner voice profile: guided enrollment from at least three clean utterances.
-- Speaker model: imported ONNX model, validated against the exact model fingerprint stored with the encrypted profile.
-- Target application: selected from installed applications exposing a launcher activity.
-- User can change the target, change the wake phrase, stop listening, or delete the voice profile.
+Implemented in `voice/AcousticAnalyzer.kt` and connected to the microphone service:
 
-## Implemented prototype pipeline
+- Per-frame RMS level and peak level.
+- Adaptive background-noise estimate updated during non-speech frames.
+- Hysteresis-based voice activity detection (VAD).
+- Approximate SNR estimate in dB.
+- Quality bands: no speech, poor, weak, good.
+- Current service rejects an utterance before speaker verification when average estimated SNR is below 6 dB.
 
-1. Capture mono 16 kHz PCM from AudioRecord.
-2. Downsample to 8 kHz for the Russian T-one streaming CTC model.
-3. Match the configured phrase in the recognized endpoint transcript.
-4. Use the corresponding captured speech utterance for speaker embedding extraction at 16 kHz.
-5. Verify the embedding with SpeakerEmbeddingManager and the enrolled owner profile.
-6. If verified, resolve the selected package and attempt to launch its launcher activity.
-7. If rejected, do not launch anything; resume wake phrase monitoring.
+This is an acoustic level/VAD analyzer, not a neural noise-removal system. The SNR estimate is provisional and must be calibrated using real recordings on the target phone. A low SNR gate may reject quiet speech; thresholds must be tuned against false accepts and false rejects.
 
-## Model choices
+## Current prototype status
 
-- Russian phrase detection: sherpa-onnx streaming T-one CTC model, `sherpa-onnx-streaming-t-one-russian-2025-09-08`. This is ASR-based phrase detection, not a dedicated Russian KWS model. The upstream T-one project declares Apache-2.0.
-- Speaker verification: imported sherpa-onnx speaker embedding ONNX model. The supplied downloader retrieves a 3D-Speaker ERes2Net VoxCeleb English model candidate. Its performance on Russian utterances must be measured before acceptance.
-- Threshold 0.6 is provisional, not a calibrated production threshold.
+The currently built prototype still contains the earlier Russian wake-phrase detector and its UI. The acoustic analyzer has been added to the microphone path, but the no-wake-phrase command-template flow is not yet implemented. Do not treat the current APK as the final command-vector design.
 
-## Target-app picker
+Existing pieces:
+- 16 kHz mono microphone capture in a user-started foreground service.
+- Adaptive acoustic analysis and speech segmentation.
+- Speaker embedding enrollment and verification.
+- AES-GCM encrypted owner embeddings using Android Keystore.
+- Selected-app launch with notification fallback for Android background-launch restrictions.
 
-- Query installed applications with a launcher activity.
-- Display human-readable app labels.
-- Persist package name, not list position.
+## Planned command-template subsystem
+
+- Record one or more example utterances for each user-defined command.
+- Extract a content representation or transcript for each example.
+- Store the command representation and its bound action locally.
+- At runtime, compare each speech segment against saved command templates.
+- Require a calibrated similarity margin between the best and second-best match; otherwise reject.
+- Optionally require owner-speaker verification before executing the action.
+- Do not confuse command embeddings with speaker embeddings.
+
+## Models
+
+- Existing Russian phrase detector: sherpa-onnx streaming T-one CTC ASR model. It is only part of the legacy wake-phrase prototype.
+- Speaker verification: imported sherpa-onnx speaker embedding ONNX model. The supplied downloader retrieves a 3D-Speaker ERes2Net VoxCeleb English candidate; performance on Russian speech remains unvalidated.
+- Command-content recognition: model and representation format are not yet selected or implemented.
+- Speaker threshold 0.6 and acoustic SNR gate 6 dB are provisional, not production-calibrated.
+
+## Target-app and action handling
+
+- Query installed apps with a launcher activity and persist package names.
 - Revalidate package availability before launch.
-- Use narrow package visibility through the launcher intent query; do not request QUERY_ALL_PACKAGES.
+- Use narrow package visibility; do not request QUERY_ALL_PACKAGES.
+- Android may block direct app launches from a foreground service; provide a notification action fallback.
+- Future command actions must be explicitly mapped and confirmed by the user before activation.
 
 ## Privacy and security
 
-- No Internet permission in the app manifest.
 - Audio processing is local.
 - Raw audio is held in memory only and is not written to storage.
-- Owner embeddings are encrypted with AES-GCM using an AndroidKeyStore key.
-- Encrypted profiles are bound to the SHA-256 fingerprint of the selected speaker model.
-- Provide an explicit profile deletion control.
-- Do not log raw audio or embeddings.
+- Owner embeddings and command templates should be stored locally; protect owner embeddings with AES-GCM / Android Keystore.
+- Do not log raw audio, transcripts containing sensitive content, or embeddings.
 - Voice verification is probabilistic; replay and voice imitation can succeed. Sensitive actions require a second factor.
 
 ## Android constraints
 
 - Microphone monitoring is user-started through a foreground service with microphone service type and visible notification.
 - Android 13+ notification permission is requested before starting listening.
-- Android background activity launch restrictions may block direct target-app opening from a service. A notification action is provided as fallback.
 - Automatic start after reboot, unrestricted screen-off operation and battery-optimization exemptions are not claimed until tested on TECNO KJ6.
 
 ## Acceptance tests still required
 
 - Build, install and run on TECNO KJ6 / Android 13 / ARM64.
-- Validate configured Russian phrases, accent variation, noise and distance.
-- Test false acceptance and false rejection with owner and non-owner recordings.
-- Calibrate threshold on device recordings.
+- Measure command recognition accuracy with Russian speech, accents, distance and noise.
+- Calibrate SNR/VAD thresholds using quiet speech and multiple noise environments.
+- Test false command activation and false rejection.
+- Test owner/non-owner speaker verification, replay resistance limits and threshold calibration.
 - Benchmark CPU, RAM, latency, thermal behavior and battery.
-- Test microphone service lifecycle, screen-off behavior and background launch policy.
-- Verify license/provenance of the selected speaker model before redistribution.
+- Test microphone lifecycle, screen-off behavior and background launch policy.
+- Verify license/provenance of all selected models before redistribution.
 
 ## Planned public API (not frozen)
 
 - `VoiceActivation.initialize(context, config)`
 - `VoiceActivation.enrollOwner(guidedEnrollmentSession)`
-- `VoiceActivation.selectTargetApp(packageName)`
+- `VoiceActivation.addCommandTemplate(audio, action)`
 - `VoiceActivation.startListening()`
 - `VoiceActivation.stopListening()`
 - `VoiceActivation.setListener(listener)`

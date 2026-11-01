@@ -155,23 +155,36 @@ class VoiceActivationService : Service() {
                     Log.i(TAG, "Wake phrase detected")
                     val candidate = utterance.toFloatArray()
                     val averageSnrDb = if (snrFrames > 0) snrSumDb / snrFrames else Float.NEGATIVE_INFINITY
-                    if (candidate.size >= MIN_VERIFICATION_SAMPLES && averageSnrDb >= MIN_ACCEPTABLE_SNR_DB) {
+                    // ASR has already recognized the configured command. A fixed
+                    // SNR cutoff rejected quiet but intelligible speech, so use
+                    // utterance length here and let speaker verification decide.
+                    if (candidate.size >= MIN_VERIFICATION_SAMPLES) {
                         val result = speakerEngine?.verifyOwner(candidate)
                         if (result?.accepted == true) {
-                            Log.i(TAG, "Owner voice verified; average SNR=%.1f dB".format(java.util.Locale.ROOT, averageSnrDb))
-                            launchTarget(targetPackage)
+                            Log.i(
+                                TAG,
+                                "Owner voice verified; transcript='%s'; average SNR=%.1f dB".format(
+                                    java.util.Locale.ROOT, detected.transcript, averageSnrDb
+                                )
+                            )
+                            launchTarget(targetPackage, detected.transcript)
                         } else {
-                            Log.i(TAG, "Speaker rejected; average SNR=%.1f dB".format(java.util.Locale.ROOT, averageSnrDb))
+                            Log.i(
+                                TAG,
+                                "Speaker rejected; transcript='%s'; average SNR=%.1f dB".format(
+                                    java.util.Locale.ROOT, detected.transcript, averageSnrDb
+                                )
+                            )
+                            updateNotification("Команда распознана, но голос владельца не подтверждён")
                         }
                     } else {
                         Log.i(
                             TAG,
-                            "Audio rejected before speaker check: samples=%d average SNR=%.1f dB".format(
-                                java.util.Locale.ROOT,
-                                candidate.size,
-                                averageSnrDb,
+                            "Audio too short for owner verification: samples=%d average SNR=%.1f dB".format(
+                                java.util.Locale.ROOT, candidate.size, averageSnrDb
                             )
                         )
+                        updateNotification("Команда распознана, но записи недостаточно для проверки голоса")
                     }
                     utterance.clear()
                     speechActive = false
@@ -214,7 +227,7 @@ class VoiceActivationService : Service() {
         }
     }
 
-    private fun launchTarget(packageName: String) {
+    private fun launchTarget(packageName: String, transcript: String) {
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent == null) {
             updateNotification("Выбранное приложение недоступно")
@@ -229,11 +242,11 @@ class VoiceActivationService : Service() {
         )
         try {
             startActivity(launchIntent)
-            updateNotification("Голос подтверждён · приложение открыто или доступно по нажатию", targetPendingIntent)
+            updateNotification("Команда «\${transcript.take(48)}» · голос подтверждён", targetPendingIntent)
         } catch (e: Exception) {
             // Android may block activity starts from a foreground service.
             Log.w(TAG, "Background activity launch blocked; notification action required", e)
-            updateNotification("Голос подтверждён · нажмите, чтобы открыть приложение", targetPendingIntent)
+            updateNotification("Команда «\${transcript.take(48)}» · нажмите, чтобы открыть", targetPendingIntent)
         }
     }
 
@@ -296,7 +309,6 @@ class VoiceActivationService : Service() {
         private const val CHANNEL_ID = "voice_activation_mic"
         private const val NOTIFICATION_ID = 4102
         private const val SAMPLE_RATE = 16_000
-        private const val MIN_ACCEPTABLE_SNR_DB = 6f
         private const val ACOUSTIC_LOG_INTERVAL_MS = 5_000L
         private const val SILENCE_RESET_SAMPLES = SAMPLE_RATE * 12 / 10
         private const val MAX_UTTERANCE_SAMPLES = SAMPLE_RATE * 8

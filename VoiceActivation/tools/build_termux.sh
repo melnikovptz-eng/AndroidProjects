@@ -30,8 +30,10 @@ command -v git >/dev/null
 command -v gradle >/dev/null
 command -v java >/dev/null
 gh auth status >/dev/null
-gradle --version | grep -q "Gradle 8.7"
-java -version 2>&1 | grep -q '21\.'
+GRADLE_INFO="$(gradle --version)"
+JAVA_INFO="$(java -version 2>&1)"
+echo "$GRADLE_INFO" | grep -q "Gradle 8.7"
+echo "$JAVA_INFO" | grep -q '21\.'
 test -f "$SDK/platforms/android-35/android.jar"
 test -x "$SDK/build-tools/35.0.0/aapt"
 test -x "$SDK/build-tools/35.0.0/apksigner"
@@ -75,7 +77,7 @@ APK="$APP/app/build/outputs/apk/debug/app-debug.apk"
 test -s "$APK"
 SIZE="$(wc -c < "$APK" | tr -d ' ')"
 (( SIZE > 5000000 ))
-BADGING="$(aapt dump badging "$APK" | head -n 1)"
+BADGING="$(aapt dump badging "$APK" | sed -n '1p')"
 echo "$BADGING" | grep -q "name='ru.voiceactivation.demo'"
 apksigner verify --verbose "$APK" >/dev/null
 HASH="$(sha256sum "$APK" | awk '{print $1}')"

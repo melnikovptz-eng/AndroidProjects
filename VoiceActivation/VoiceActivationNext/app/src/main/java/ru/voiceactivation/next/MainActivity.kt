@@ -261,8 +261,8 @@ class MainActivity : Activity() {
                             " | DTW = " + fmt(match.bestDistance) +
                             " | порог < " + fmt(DTW_THRESHOLD) +
                             " | второе = " + fmt(match.secondDistance) +
-                            " | отрыв: " + if (match.secondDistance.isInfinite()) "единственный кандидат" else
-                                if (match.bestDistance < match.secondDistance * 0.88) "пройден (< 0,88)" else "не пройден" +
+                            " | отрыв: " + (if (match.secondDistance.isInfinite()) "единственный кандидат" else
+                                if (match.bestDistance < match.secondDistance * 0.88) "пройден (< 0,88)" else "не пройден") +
                             " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
                     } else {
                         unmatchedCount++

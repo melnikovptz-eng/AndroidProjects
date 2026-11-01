@@ -274,7 +274,7 @@ class MainActivity : Activity() {
         if (!models.russianModelDirectory().resolve("model.onnx").isFile ||
             !models.russianModelDirectory().resolve("tokens.txt").isFile ||
             !models.speakerModelFile().isFile ||
-            OwnerProfileStore(this).load().isNullOrEmpty()
+            !OwnerProfileStore(this).hasProfile()
         ) {
             Toast.makeText(this, "Импортируйте обе модели и зарегистрируйте голос", Toast.LENGTH_LONG).show()
             return

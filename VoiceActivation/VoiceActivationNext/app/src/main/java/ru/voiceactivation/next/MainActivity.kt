@@ -290,14 +290,14 @@ class MainActivity : Activity() {
                             " | порог DTW < " + fmt(matcher.dtwThreshold()) +
                             " | второе = " + fmt(match.secondDistance) +
                             " | отрыв: " + (if (match.secondDistance.isInfinite()) "единственный кандидат" else
-                                if (match.bestDistance < match.secondDistance * 0.88) "пройден (< 0,88)" else "не пройден") +
+                                if (match.bestDistance < match.secondDistance * matcher.marginThreshold()) "пройден (< " + fmt(matcher.marginThreshold()) + ")" else "не пройден") +
                             " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
                     } else {
                         unmatchedCount++
                         "ФРАЗА #" + processedCount + ": НЕ ПРОШЛА — ближайшая команда «" + match.command +
                             "», порог не пройден" +
                             " | DTW = " + fmt(match.bestDistance) +
-                            " | порог < " + fmt(DTW_THRESHOLD) +
+                            " | порог DTW < " + fmt(matcher.dtwThreshold()) +
                             " | второе = " + fmt(match.secondDistance) +
                             " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
                     }

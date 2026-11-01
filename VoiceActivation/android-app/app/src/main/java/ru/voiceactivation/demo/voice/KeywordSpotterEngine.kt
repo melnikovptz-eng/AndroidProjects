@@ -21,6 +21,7 @@ class KeywordSpotterEngine(
     keywordsScore: Float = 1.5f,
     keywordsThreshold: Float = 0.25f,
 ) : Closeable {
+    private val inputSampleRate = sampleRate.also { require(it > 0) }
     private val spotter = KeywordSpotter(
         config = KeywordSpotterConfig(
             featConfig = FeatureConfig(sampleRate = sampleRate, featureDim = featureDim),
@@ -45,7 +46,7 @@ class KeywordSpotterEngine(
     @Synchronized
     fun acceptAudio(samples: FloatArray): String? {
         require(samples.isNotEmpty())
-        stream.acceptWaveform(samples, SAMPLE_RATE)
+        stream.acceptWaveform(samples, inputSampleRate)
         var detected: String? = null
         while (spotter.isReady(stream)) {
             spotter.decode(stream)

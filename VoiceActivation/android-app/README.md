@@ -1,31 +1,33 @@
 # VoiceActivation Android prototype
 
-This is the first Android application scaffold for the VoiceActivation project.
+## Included
 
-## Included in this revision
+- Kotlin Android application scaffold.
+- Installed launcher-app picker and persistent selected package.
+- Manual foreground launch test for the selected target.
+- sherpa-onnx v2.0.1 dependency with ARM64 ABI selection.
+- Speaker embedding engine using upstream `SpeakerEmbeddingExtractor` and `SpeakerEmbeddingManager`.
+- Owner enrollment from at least three clean 16 kHz utterances.
+- Owner verification against the enrolled in-memory profile.
+- Explicit two-stage activation state gate.
 
-- Kotlin Android application module.
-- Target app picker based on launcher activities.
-- Selected target package persisted in private app preferences.
-- Revalidation before launching the selected app.
-- Manual launch test from the foreground UI.
-- No network permission and no microphone capture in this scaffold.
+## Not yet complete
 
-## Explicitly not implemented yet
+- Persistent encrypted owner voice profile storage.
+- Microphone capture/enrollment UI and lifecycle.
+- Keyword spotting integration and model delivery.
+- Russian wake phrase model or validated Russian phrase detector.
+- Foreground microphone service and background launch policy.
+- End-to-end tests and APK validation on TECNO KJ6.
 
-- Wake-word detection.
-- Owner voice enrollment or speaker verification.
-- Microphone foreground service.
-- Automatic launch after voice verification.
-- AAR library module.
+The speaker profile is currently held in memory only and is lost when the process exits. Automatic target-app launch is not yet wired to verification. The manual launch button remains a UI test only.
 
-The UI deliberately reports the recognition engine as **not connected**. The manual launch button only validates app selection and Android launch-intent handling; it is not a voice-activation test.
-
-## Build baseline
+## Runtime baseline
 
 - Android Gradle Plugin 8.6.1
 - Kotlin Android plugin 2.0.20
-- compileSdk 35 / targetSdk 35 / minSdk 26
-- Java/Kotlin bytecode target 17
+- compileSdk / targetSdk 35, minSdk 26
+- ARM64 only (`arm64-v8a`)
+- sherpa-onnx v2.0.1 via JitPack
 
-A Gradle wrapper is not included in this commit. Use an installed Gradle 8.7 distribution or add the wrapper after validating the local build environment.
+Recognition thresholds are provisional and must be calibrated using genuine owner and non-owner recordings on the target device.

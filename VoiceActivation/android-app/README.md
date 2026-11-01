@@ -38,7 +38,7 @@ The model's language coverage and verification threshold must be validated with 
 
 - Android Gradle Plugin 8.6.1
 - Kotlin Android plugin 2.0.20
-- compileSdk / targetSdk 35, minSdk 26
+- compileSdk / targetSdk 35, minSdk 28
 - ARM64 only (`arm64-v8a`)
 - sherpa-onnx v2.0.1 via JitPack
 - GitHub Actions workflow: `.github/workflows/voice-activation-build.yml`

@@ -106,6 +106,8 @@ internal object CalibrationEngine {
             return Result(false,
                 "Недостаточно размеченных примеров. Нужно не менее $MIN_PER_CLASS для каждой группы:\n" +
                 missing.joinToString("\n") { it.first + ": " + it.second + " / $MIN_PER_CLASS" } +
+                (if (weakCommands.isEmpty()) "" else "\nПовторы по отдельным командам: " +
+                    weakCommands.entries.joinToString { it.key + " — " + it.value.size + "/" + MIN_PER_COMMAND }) +
                 "\nЗаписывайте правильные команды своим голосом, посторонние фразы своим голосом и образцы другого говорящего.")
         }
 
@@ -173,6 +175,11 @@ internal object CalibrationEngine {
             valOwners.count { it.ownerCosine > bestOwner }.toDouble() / valOwners.size +
             valOthers.count { it.ownerCosine <= bestOwner }.toDouble() / valOthers.size
         ) / 2.0
+        if (commandAccuracy <= 0.5 || ownerAccuracy <= 0.5) {
+            return Result(false,
+                "Отложенная проверка не подтвердила качество выше случайного уровня. " +
+                "Пороги не сохранены. Запишите более разнообразные и правильно размеченные примеры.")
+        }
 
         return Result(
             success = true,

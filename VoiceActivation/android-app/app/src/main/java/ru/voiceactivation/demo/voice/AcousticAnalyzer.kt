@@ -31,22 +31,31 @@ class AcousticAnalyzer(
             peak = maxOf(peak, kotlin.math.abs(value))
         }
         val rms = sqrt(squareSum / samples.size).toFloat()
-        // Learn the room's initial acoustic floor before opening the VAD gate.
-        // At the standard 100 ms audio chunk this is about 1.5 seconds.
+        // Calibrate only on frames that look like background noise. Do not
+        // suppress speech during startup: the first spoken command must be kept.
         if (calibrationFramesRemaining > 0) {
-            noiseFloorRms = (noiseFloorRms + CALIBRATION_ALPHA * (rms - noiseFloorRms))
-                .coerceIn(MIN_NOISE_RMS, MAX_NOISE_RMS)
-            calibrationFramesRemaining--
-            speechActive = false
+            val initialNoise = noiseFloorRms.coerceAtLeast(MIN_NOISE_RMS)
+            val startupThreshold = maxOf(minimumSpeechRms, initialNoise * speechToNoiseRatio)
+            speechActive = rms >= startupThreshold
+            if (!speechActive) {
+                noiseFloorRms = (noiseFloorRms + CALIBRATION_ALPHA * (rms - noiseFloorRms))
+                    .coerceIn(MIN_NOISE_RMS, MAX_NOISE_RMS)
+                calibrationFramesRemaining--
+            }
             val calibratedNoise = noiseFloorRms.coerceAtLeast(MIN_NOISE_RMS)
+            val startupSnr = 20f * log10((rms / calibratedNoise).coerceAtLeast(1e-6f))
             return Frame(
                 rms = rms,
                 peak = peak,
                 rmsDbfs = toDbfs(rms),
                 noiseFloorDbfs = toDbfs(calibratedNoise),
-                snrDb = 20f * log10((rms / calibratedNoise).coerceAtLeast(1e-6f)),
-                speechDetected = false,
-                quality = Quality.NO_SPEECH,
+                snrDb = startupSnr,
+                speechDetected = speechActive,
+                quality = if (!speechActive) Quality.NO_SPEECH else when {
+                    startupSnr >= GOOD_SNR_DB -> Quality.GOOD
+                    startupSnr >= USABLE_SNR_DB -> Quality.WEAK
+                    else -> Quality.POOR
+                },
             )
         }
 

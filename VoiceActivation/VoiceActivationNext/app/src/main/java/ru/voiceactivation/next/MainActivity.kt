@@ -447,21 +447,28 @@ class MainActivity : Activity() {
     }
 
     private fun runCalibration() {
-        val result = CalibrationEngine.fit(CalibrationEngine.load(this))
-        if (!result.success) {
-            ui("КАЛИБРОВКА НЕ ВЫПОЛНЕНА\n" + result.message)
-            return
+        ui("Выполняется расчёт порогов…")
+        thread(name = "VoiceActivationCalibration") {
+            try {
+                val result = CalibrationEngine.fit(CalibrationEngine.load(this))
+                if (!result.success) {
+                    ui("КАЛИБРОВКА НЕ ВЫПОЛНЕНА\n" + result.message)
+                    return@thread
+                }
+                matcher.applyThresholds(result.dtwThreshold, result.ownerThreshold, result.marginThreshold)
+                ui(
+                    "КАЛИБРОВКА ЗАВЕРШЕНА\n" +
+                    "DTW < " + fmt(result.dtwThreshold) + "\n" +
+                    "Owner cosine > " + fmt(result.ownerThreshold) + "\n" +
+                    "Отрыв best/second < " + fmt(result.marginThreshold) + "\n" +
+                    "Проверочная выборка: команды " + fmt(result.commandValidation * 100) + "%, " +
+                    "владелец " + fmt(result.ownerValidation * 100) + "%\n" +
+                    "Образцов: " + result.totalSamples + ". Пороги сохранены и применяются в тесте и боевом режиме."
+                )
+            } catch (e: Exception) {
+                ui("Ошибка расчёта калибровки: " + (e.message ?: e.javaClass.simpleName))
+            }
         }
-        matcher.applyThresholds(result.dtwThreshold, result.ownerThreshold, result.marginThreshold)
-        ui(
-            "КАЛИБРОВКА ЗАВЕРШЕНА\n" +
-            "DTW < " + fmt(result.dtwThreshold) + "\n" +
-            "Owner cosine > " + fmt(result.ownerThreshold) + "\n" +
-            "Отрыв best/second < " + fmt(result.marginThreshold) + "\n" +
-            "Проверочная выборка: команды " + fmt(result.commandValidation * 100) + "%, " +
-            "владелец " + fmt(result.ownerValidation * 100) + "%\n" +
-            "Образцов: " + result.totalSamples + ". Пороги сохранены и применяются в тесте и боевом режиме."
-        )
     }
 
     private fun ownerLabel(score: Double?, accepted: Boolean): String {
@@ -485,8 +492,8 @@ class MainActivity : Activity() {
             return
         }
         ui("Слушаю 2,5 секунды…")
-        thread(name = "VoiceActivationCapture") {
-            try {
+        thread(name = "VoiceActivationCaptureAndProcessing") {
+            val audio = try {
                 val rate = SAMPLE_RATE
                 val min = AudioRecord.getMinBufferSize(
                     rate,
@@ -518,10 +525,19 @@ class MainActivity : Activity() {
                     ui("Слишком тихо. Повторите запись.")
                     return@thread
                 }
-                val audio = DoubleArray(pcm.size) { pcm[it] / 32768.0 }
-                runOnUiThread { done(audio) }
+                DoubleArray(pcm.size) { pcm[it] / 32768.0 }
             } catch (e: Exception) {
                 ui("Ошибка микрофона: " + (e.message ?: e.javaClass.simpleName))
+                return@thread
+            }
+
+            // MFCC, DTW, сохранение шаблонов и калибровочные метрики
+            // выполняются в этом рабочем потоке, а не в UI-потоке.
+            ui("Запись получена. Обрабатываю акустические признаки…")
+            try {
+                done(audio)
+            } catch (e: Exception) {
+                ui("Ошибка обработки записи: " + (e.message ?: e.javaClass.simpleName))
             }
         }
     }

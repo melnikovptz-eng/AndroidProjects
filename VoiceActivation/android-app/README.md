@@ -3,56 +3,47 @@
 ## Implemented
 
 - Kotlin Android app scaffold and installed-app picker.
-- Persistent selected target package and manual launch check.
 - sherpa-onnx v2.0.1 runtime dependency, ARM64 ABI.
-- Streaming Russian wake-phrase candidate using sherpa-onnx T-one CTC model.
-- Streaming sherpa-onnx KWS wrapper for models with supported language/token sets.
-- Speaker embedding extraction, multi-utterance owner enrollment and verification.
-- AES-GCM encrypted owner embeddings using AndroidKeyStore.
+- Speaker embedding enrollment and verification.
+- AES-GCM encrypted owner embeddings using Android Keystore.
 - SAF import of model files into app-private storage.
 - Bounded 16 kHz microphone capture for owner enrollment.
 - User-started microphone foreground service.
-- Two-stage flow: Russian phrase transcript match -> owner voice verification -> selected app launch attempt.
+- Adaptive acoustic analyzer integrated into the live microphone path:
+  - RMS and peak level per audio frame;
+  - adaptive background-noise estimate;
+  - hysteresis-based voice activity detection;
+  - approximate SNR and quality classification;
+  - provisional 6 dB average-SNR gate before speaker verification.
 - Notification action fallback when Android blocks launching another app from a background service.
 
-## Russian wake phrase model
+## Important current limitation
 
-The current Russian candidate is `sherpa-onnx-streaming-t-one-russian-2025-09-08`:
-- streaming Russian CTC ASR used as a phrase detector (not a dedicated KWS model);
-- model input is 8 kHz; the microphone path captures 16 kHz and downsamples;
-- the app requires `model.onnx` and `tokens.txt`;
-- model/code license is Apache-2.0 according to the upstream T-one project.
+The current prototype still uses the old Russian wake-phrase detector and UI. The agreed target design has no mandatory wake phrase: it continuously segments speech, compares each utterance with user-recorded command templates, optionally verifies the owner, and executes the mapped action. The command-template subsystem is not implemented yet, so the current APK must not be described as supporting that final behavior.
 
-Termux downloader:
-`VoiceActivation/tools/download_russian_wake_model.sh`
+## Acoustic analyzer
 
-Import both files in the app using **Импортировать русскую модель**.
+Source: `app/src/main/java/ru/voiceactivation/demo/voice/AcousticAnalyzer.kt`.
 
-## Owner voice model
+The analyzer estimates the noise floor during frames classified as non-speech and applies adaptive VAD thresholds. It reports approximate SNR; it does not perform neural denoising. The 6 dB rejection threshold is provisional and needs calibration on the TECNO KJ6.
 
-Import a compatible sherpa-onnx speaker embedding ONNX model using **Импортировать модель голоса**. Then record three clean owner utterances. Embeddings are encrypted locally; raw audio is not saved.
+## Existing model import
 
-The model's language coverage and verification threshold must be validated with Russian recordings. A speaker model trained on another language is only a candidate until it passes device tests.
+- Russian T-one model: legacy wake-phrase detector only.
+- Speaker embedding ONNX model: speaker identity candidate, not command recognition.
+- Owner profile: created locally from three recordings; embeddings are encrypted and raw recordings are not saved.
 
 ## Build
 
-Termux build script: `VoiceActivation/tools/build_termux.sh` (one debug build, APK package/signature/hash checks, stable output `~/storage/downloads/VoiceActivation.apk`).
+Termux build script: `VoiceActivation/tools/build_termux.sh` (stable output `~/storage/downloads/VoiceActivation.apk`).
 
-- Android Gradle Plugin 8.6.1
-- Kotlin Android plugin 2.0.20
-- compileSdk / targetSdk 35, minSdk 28
-- ARM64 only (`arm64-v8a`)
-- sherpa-onnx v2.0.1 via JitPack
-- GitHub Actions workflow: `.github/workflows/voice-activation-build.yml`
+GitHub Actions workflow: `.github/workflows/voice-activation-build.yml`.
 
 ## Validation still required
 
-- Compile and run the APK on TECNO KJ6 / Android 13.
-- Validate T-one wake phrase recognition with the intended phrase, noise and distance.
-- Validate speaker false-accept / false-reject rates with owner and non-owner recordings.
-- Calibrate the threshold; the current 0.6 default is provisional.
-- Benchmark CPU, RAM, latency and battery.
-- Test foreground microphone restrictions and direct target-app launch behavior on the device.
-- Verify model license and provenance for the selected speaker ONNX file before distribution.
-
-Speaker verification is probabilistic and does not prevent replay or voice imitation. Do not use voice-only verification as the sole protection for sensitive actions.
+- Compile, install and run on TECNO KJ6 / Android 13 / ARM64.
+- Calibrate SNR/VAD thresholds with quiet speech, distance and background noise.
+- Implement and validate Russian command-template matching.
+- Validate speaker false-accept / false-reject rates with Russian owner and non-owner recordings.
+- Benchmark CPU, RAM, latency, thermal behavior and battery.
+- Test foreground microphone restrictions and target-app launch behavior.

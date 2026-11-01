@@ -1,6 +1,6 @@
 # Voice Activation Next
 
-Test application ID: `ru.voiceactivation.next.test` (side-by-side with the existing `ru.voiceactivation.next`). Offline voice-command prototype, version 1.2.0.
+Test application ID: `ru.voiceactivation.next.test` (side-by-side with the existing `ru.voiceactivation.next`). Offline voice-command prototype, version 1.3.0.
 
 ## Current diagnostic flow
 

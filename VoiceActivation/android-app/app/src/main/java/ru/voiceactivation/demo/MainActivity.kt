@@ -94,6 +94,7 @@ class MainActivity : Activity() {
         ownerStatus = statusText()
         root.addView(ownerStatus, matchWrap())
         root.addView(actionButton("Записать голос владельца (3 образца)") { requestMicForEnrollment() }, matchWrap())
+        root.addView(actionButton("Удалить голосовой профиль") { confirmDeleteVoiceProfile() }, matchWrap())
 
         root.addView(section("4. Голосовая активация"), matchWrap())
         root.addView(actionButton("Запустить прослушивание") { requestPermissionsForListening() }, matchWrap())
@@ -262,6 +263,20 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    private fun confirmDeleteVoiceProfile() {
+        AlertDialog.Builder(this)
+            .setTitle("Удалить голосовой профиль?")
+            .setMessage("Зашифрованный профиль владельца будет удалён. Для активации потребуется новая регистрация.")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
+                OwnerProfileStore(this).clear()
+                ownerStatus.text = "Профиль владельца удалён"
+                Toast.makeText(this, "Голосовой профиль удалён", Toast.LENGTH_SHORT).show()
+                refreshState()
+            }
+            .show()
     }
 
     private fun startListening() {

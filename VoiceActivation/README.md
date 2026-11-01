@@ -28,6 +28,19 @@ Replace the legacy wake-phrase UI/detector with:
 
 Speaker embeddings and command-content representations are different data and must use separate models.
 
+## Model files on Android
+
+Keep the downloaded models in this fixed Android Download layout:
+
+```text
+Download/vosk model/
+├── speaker-model/3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx
+└── russian-asr-model/model.onnx
+                            tokens.txt
+```
+
+The current app still imports through the document picker. Automatic import is a required next change: grant access to this directory once, persist the SAF folder permission, discover the fixed filenames, verify file size/SHA-256, and copy verified models into app-private storage. This is documented as a requirement, not a feature already implemented.
+
 ## Target device
 
 - TECNO KJ6

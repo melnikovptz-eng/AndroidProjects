@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import androidx.core.content.ContextCompat
 
 /** Explicit, bounded microphone capture for guided owner enrollment / verification. */
 class PcmCapture(context: Context) {
@@ -15,7 +14,7 @@ class PcmCapture(context: Context) {
     fun recordUtterance(durationMs: Int = DEFAULT_DURATION_MS): FloatArray {
         require(durationMs in 1_500..10_000) { "Capture duration must be 1.5-10 seconds" }
         check(
-            ContextCompat.checkSelfPermission(appContext, Manifest.permission.RECORD_AUDIO) ==
+            appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
         ) { "Microphone permission is not granted" }
 

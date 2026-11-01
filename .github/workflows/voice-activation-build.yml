@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - voice-activation
+      - voice-activation-rebuild
     paths:
       - "VoiceActivation/android-app/**"
+      - "VoiceActivation/VoiceActivationNext/**"
       - ".github/workflows/voice-activation-build.yml"
   workflow_dispatch:
 

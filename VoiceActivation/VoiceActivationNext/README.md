@@ -1,27 +1,27 @@
 # Voice Activation Next
 
-Android application ID: `ru.voiceactivation.next`. Offline voice-command prototype.
+Test application ID: `ru.voiceactivation.next.test` (side-by-side with the existing `ru.voiceactivation.next`). Offline voice-command prototype, version 1.2.0.
 
-## Current implementation — version 1.1.0
+## Current diagnostic flow
 
-- User-recorded command templates matched with 13-coefficient MFCC feature sequences and constrained DTW.
-- Multiple examples per command (up to 6); matching uses the best example distance per command.
-- Command decision uses an absolute DTW distance threshold (< 7.0) and a best-vs-second-command margin (best < 0.88 × second).
-- Owner verification is a separate acoustic-profile comparison using cosine similarity of averaged MFCC vectors (> 0.88).
-- A 15-second continuous command-test mode segments successive utterances and reports each match immediately.
-- One toggle button changes from “Проверить голосовую команду” to “Отменить проверку голосовой команды”.
-- Elapsed and remaining timers share Android monotonic elapsed-realtime time.
-- Each test result shows the matched command, DTW distance, threshold, second-best distance and separate owner-profile result.
-- Test mode is diagnostic only and does not launch the target application.
+1. Record the owner's acoustic profile.
+2. Record one or more command samples by name (up to 6 per command).
+3. Calibrate by repeating the same commands and reviewing measured DTW and owner-cosine values.
+4. Use the 15-second phrase test to inspect successive utterances. The later product stage will be the separate command-execution mode; this build does not execute actions.
 
-## Algorithm units
+## Per-phrase test output
 
-DTW distance is a dimensionless normalized MFCC-feature distance, not a percentage or probability. Lower is better. Owner cosine similarity is also dimensionless (nominally -1..1), not a probability. Both thresholds are provisional and require real-device calibration.
+- Each detected speech segment is numbered and analysed as soon as its boundary is detected.
+- Every detected segment is accounted for; segments shorter than 200 ms are explicitly reported as too short rather than silently discarded.
+- Each usable phrase reports nearest command, accepted/rejected DTW result, actual DTW distance, absolute threshold (7.0), second-best distance, margin check (0.88), and separate owner MFCC cosine result (threshold 0.88).
+- Final counters report detected phrases, accepted command matches, rejected/unmatched phrases, owner accepted and owner rejected.
+- The elapsed and remaining timers share Android `SystemClock.elapsedRealtime()`.
+- Phrase boundary: 250 ms silence; a segment is forcibly processed at 5 seconds.
 
-## Project documentation
+## Important interpretation
 
-See [PROJECT_PASSPORT.md](PROJECT_PASSPORT.md) for the architecture, feature parameters, thresholds, timer/VAD behavior, storage and open validation items. The parent [REBUILD_PLAN.md](../REBUILD_PLAN.md) records the overall product decisions.
+MFCC + DTW is the command-template comparison. The owner MFCC cosine is a separate speaker-profile check. The owner may pass while the command fails; the two results are intentionally independent.
 
-## Validation status
+There is no speech-to-text transcription in this build: the UI shows the closest registered command label and acoustic metrics, not the literal words spoken.
 
-The source change must pass GitHub Actions before an APK is published. Runtime behavior still requires testing on TECNO KJ6 / Android 13: quiet speech, pauses between commands, background noise, immediate match display, cancel behavior and timer synchronization. Do not treat CI success as device acceptance.
+See [PROJECT_PASSPORT.md](PROJECT_PASSPORT.md) for complete architecture, thresholds, units, limitations, storage and validation requirements.

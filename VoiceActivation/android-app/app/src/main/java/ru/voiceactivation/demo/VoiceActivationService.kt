@@ -101,8 +101,9 @@ class VoiceActivationService : Service() {
             recorder?.startRecording()
 
             val chunk = ShortArray(SAMPLE_RATE / 10)
-            var verificationAudio: FloatArray? = null
-            var verificationOffset = 0
+            val utterance = ArrayList<Float>(SAMPLE_RATE * 4)
+            var speechActive = false
+            var silenceSamples = 0
             while (running.get()) {
                 val count = recorder?.read(chunk, 0, chunk.size) ?: -1
                 if (count <= 0) {
@@ -110,33 +111,50 @@ class VoiceActivationService : Service() {
                     continue
                 }
                 val samples = FloatArray(count) { chunk[it] / 32768.0f }
-                if (verificationAudio == null) {
-                    val detected = wakeDetector?.acceptAudio16k(samples)
-                    if (detected != null) {
-                        Log.i(TAG, "Wake phrase detected")
-                        verificationAudio = FloatArray(VERIFY_DURATION_SAMPLES)
-                        verificationOffset = 0
-                    }
-                } else {
-                    val copyCount = minOf(samples.size, verificationAudio.size - verificationOffset)
-                    samples.copyInto(
-                        destination = verificationAudio,
-                        destinationOffset = verificationOffset,
-                        startIndex = 0,
-                        endIndex = copyCount,
-                    )
-                    verificationOffset += copyCount
-                    if (verificationOffset >= verificationAudio.size) {
-                        val result = speakerEngine?.verifyOwner(verificationAudio)
+                val energy = kotlin.math.sqrt(
+                    samples.sumOf { (it * it).toDouble() } / samples.size
+                ).toFloat()
+
+                if (energy >= SPEECH_RMS_THRESHOLD) {
+                    if (!speechActive) utterance.clear()
+                    speechActive = true
+                    silenceSamples = 0
+                    utterance.addAll(samples.asList())
+                } else if (speechActive) {
+                    utterance.addAll(samples.asList())
+                    silenceSamples += count
+                }
+
+                // The embedding is computed from the actual wake-phrase utterance,
+                // not from a new three-second recording after the phrase.
+                val detected = wakeDetector?.acceptAudio16k(samples)
+                if (detected != null) {
+                    Log.i(TAG, "Wake phrase detected")
+                    val candidate = utterance.toFloatArray()
+                    if (candidate.size >= MIN_VERIFICATION_SAMPLES) {
+                        val result = speakerEngine?.verifyOwner(candidate)
                         if (result?.accepted == true) {
                             Log.i(TAG, "Owner voice verified")
                             launchTarget(targetPackage)
                         } else {
                             Log.i(TAG, "Speaker rejected")
                         }
-                        verificationAudio = null
-                        verificationOffset = 0
+                    } else {
+                        Log.i(TAG, "Wake phrase audio too short for speaker verification")
                     }
+                    utterance.clear()
+                    speechActive = false
+                    silenceSamples = 0
+                } else if (speechActive && silenceSamples >= SILENCE_RESET_SAMPLES) {
+                    utterance.clear()
+                    speechActive = false
+                    silenceSamples = 0
+                }
+
+                if (utterance.size > MAX_UTTERANCE_SAMPLES) {
+                    utterance.clear()
+                    speechActive = false
+                    silenceSamples = 0
                 }
             }
         } catch (e: Exception) {
@@ -241,7 +259,9 @@ class VoiceActivationService : Service() {
         private const val CHANNEL_ID = "voice_activation_mic"
         private const val NOTIFICATION_ID = 4102
         private const val SAMPLE_RATE = 16_000
-        private const val VERIFY_DURATION_SECONDS = 3
-        private const val VERIFY_DURATION_SAMPLES = SAMPLE_RATE * VERIFY_DURATION_SECONDS
+        private const val SPEECH_RMS_THRESHOLD = 0.008f
+        private const val SILENCE_RESET_SAMPLES = SAMPLE_RATE * 12 / 10
+        private const val MAX_UTTERANCE_SAMPLES = SAMPLE_RATE * 8
+        private const val MIN_VERIFICATION_SAMPLES = SAMPLE_RATE * 3 / 2
     }
 }

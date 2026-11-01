@@ -13,6 +13,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import ru.voiceactivation.demo.voice.AcousticAnalyzer
 import ru.voiceactivation.demo.voice.OwnerProfileStore
 import ru.voiceactivation.demo.voice.RussianWakePhraseDetector
 import ru.voiceactivation.demo.voice.SpeakerEngine
@@ -102,8 +103,12 @@ class VoiceActivationService : Service() {
 
             val chunk = ShortArray(SAMPLE_RATE / 10)
             val utterance = ArrayList<Float>(SAMPLE_RATE * 4)
+            val acousticAnalyzer = AcousticAnalyzer()
             var speechActive = false
             var silenceSamples = 0
+            var snrSumDb = 0f
+            var snrFrames = 0
+            var lastAcousticLogMs = 0L
             while (running.get()) {
                 val count = recorder?.read(chunk, 0, chunk.size) ?: -1
                 if (count <= 0) {
@@ -111,15 +116,33 @@ class VoiceActivationService : Service() {
                     continue
                 }
                 val samples = FloatArray(count) { chunk[it] / 32768.0f }
-                val energy = kotlin.math.sqrt(
-                    samples.sumOf { (it * it).toDouble() } / samples.size
-                ).toFloat()
+                val acoustic = acousticAnalyzer.analyze(samples)
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastAcousticLogMs >= ACOUSTIC_LOG_INTERVAL_MS) {
+                    Log.i(
+                        TAG,
+                        "Acoustic: rms=%.1f dBFS noise=%.1f dBFS SNR=%.1f dB state=%s".format(
+                            java.util.Locale.ROOT,
+                            acoustic.rmsDbfs,
+                            acoustic.noiseFloorDbfs,
+                            acoustic.snrDb,
+                            acoustic.quality.name,
+                        )
+                    )
+                    lastAcousticLogMs = now
+                }
 
-                if (energy >= SPEECH_RMS_THRESHOLD) {
-                    if (!speechActive) utterance.clear()
+                if (acoustic.speechDetected) {
+                    if (!speechActive) {
+                        utterance.clear()
+                        snrSumDb = 0f
+                        snrFrames = 0
+                    }
                     speechActive = true
                     silenceSamples = 0
                     utterance.addAll(samples.asList())
+                    snrSumDb += acoustic.snrDb
+                    snrFrames++
                 } else if (speechActive) {
                     utterance.addAll(samples.asList())
                     silenceSamples += count
@@ -131,30 +154,44 @@ class VoiceActivationService : Service() {
                 if (detected != null) {
                     Log.i(TAG, "Wake phrase detected")
                     val candidate = utterance.toFloatArray()
-                    if (candidate.size >= MIN_VERIFICATION_SAMPLES) {
+                    val averageSnrDb = if (snrFrames > 0) snrSumDb / snrFrames else Float.NEGATIVE_INFINITY
+                    if (candidate.size >= MIN_VERIFICATION_SAMPLES && averageSnrDb >= MIN_ACCEPTABLE_SNR_DB) {
                         val result = speakerEngine?.verifyOwner(candidate)
                         if (result?.accepted == true) {
-                            Log.i(TAG, "Owner voice verified")
+                            Log.i(TAG, "Owner voice verified; average SNR=%.1f dB".format(java.util.Locale.ROOT, averageSnrDb))
                             launchTarget(targetPackage)
                         } else {
-                            Log.i(TAG, "Speaker rejected")
+                            Log.i(TAG, "Speaker rejected; average SNR=%.1f dB".format(java.util.Locale.ROOT, averageSnrDb))
                         }
                     } else {
-                        Log.i(TAG, "Wake phrase audio too short for speaker verification")
+                        Log.i(
+                            TAG,
+                            "Audio rejected before speaker check: samples=%d average SNR=%.1f dB".format(
+                                java.util.Locale.ROOT,
+                                candidate.size,
+                                averageSnrDb,
+                            )
+                        )
                     }
                     utterance.clear()
                     speechActive = false
                     silenceSamples = 0
+                    snrSumDb = 0f
+                    snrFrames = 0
                 } else if (speechActive && silenceSamples >= SILENCE_RESET_SAMPLES) {
                     utterance.clear()
                     speechActive = false
                     silenceSamples = 0
+                    snrSumDb = 0f
+                    snrFrames = 0
                 }
 
                 if (utterance.size > MAX_UTTERANCE_SAMPLES) {
                     utterance.clear()
                     speechActive = false
                     silenceSamples = 0
+                    snrSumDb = 0f
+                    snrFrames = 0
                 }
             }
         } catch (e: Exception) {
@@ -259,7 +296,8 @@ class VoiceActivationService : Service() {
         private const val CHANNEL_ID = "voice_activation_mic"
         private const val NOTIFICATION_ID = 4102
         private const val SAMPLE_RATE = 16_000
-        private const val SPEECH_RMS_THRESHOLD = 0.008f
+        private const val MIN_ACCEPTABLE_SNR_DB = 6f
+        private const val ACOUSTIC_LOG_INTERVAL_MS = 5_000L
         private const val SILENCE_RESET_SAMPLES = SAMPLE_RATE * 12 / 10
         private const val MAX_UTTERANCE_SAMPLES = SAMPLE_RATE * 8
         private const val MIN_VERIFICATION_SAMPLES = SAMPLE_RATE * 3 / 2

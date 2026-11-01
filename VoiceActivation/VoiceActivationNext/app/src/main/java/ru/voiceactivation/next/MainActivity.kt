@@ -235,13 +235,14 @@ class MainActivity : Activity() {
             }
         } catch (_: Exception) { }
         runOnUiThread {
+            val stoppedInBattleMode = battleMode
             testButton.text = "Проверить голосовую команду"
             testButton.isEnabled = true
             battleButton.text = "Боевой режим — начать"
-            battleMode = false
             val elapsed = (SystemClock.elapsedRealtime() - testStartedAt).coerceAtLeast(0L)
             elapsedText.text = "Прошло: " + clock(elapsed)
-            remainingText.text = if (battleMode) "Без ограничения времени" else "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceIn(0L, TEST_DURATION_MS))
+            remainingText.text = if (stoppedInBattleMode) "Без ограничения времени" else "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceIn(0L, TEST_DURATION_MS))
+            battleMode = false
             appendResult(stopMessage)
         }
     }

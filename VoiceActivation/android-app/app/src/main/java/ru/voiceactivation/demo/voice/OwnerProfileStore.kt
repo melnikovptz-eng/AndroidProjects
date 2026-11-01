@@ -18,12 +18,15 @@ class OwnerProfileStore(context: Context) {
         "voice_activation_secure_profile", Context.MODE_PRIVATE
     )
 
-    fun save(embeddings: Array<FloatArray>) {
-        require(embeddings.isNotEmpty())
+    fun save(modelFingerprint: String, embeddings: Array<FloatArray>) {
+        require(modelFingerprint.isNotBlank() && embeddings.isNotEmpty())
         val dim = embeddings.first().size
         require(dim > 0 && embeddings.all { it.size == dim })
-        val plain = ByteBuffer.allocate(8 + embeddings.size * dim * 4)
+        val modelBytes = modelFingerprint.toByteArray(Charsets.UTF_8)
+        val plain = ByteBuffer.allocate(12 + modelBytes.size + embeddings.size * dim * 4)
             .order(ByteOrder.LITTLE_ENDIAN)
+            .putInt(modelBytes.size)
+            .put(modelBytes)
             .putInt(embeddings.size)
             .putInt(dim)
         embeddings.forEach { vector -> vector.forEach(plain::putFloat) }
@@ -38,7 +41,7 @@ class OwnerProfileStore(context: Context) {
         check(prefs.edit().putString(KEY_PROFILE, Base64.encodeToString(stored, Base64.NO_WRAP)).commit())
     }
 
-    fun load(): Array<FloatArray>? {
+    fun load(expectedModelFingerprint: String): Array<FloatArray>? {
         val encoded = prefs.getString(KEY_PROFILE, null) ?: return null
         return try {
             val stored = ByteBuffer.wrap(Base64.decode(encoded, Base64.NO_WRAP))
@@ -49,6 +52,10 @@ class OwnerProfileStore(context: Context) {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
             val plain = ByteBuffer.wrap(cipher.doFinal(encrypted)).order(ByteOrder.LITTLE_ENDIAN)
+            val fingerprintSize = plain.int
+            require(fingerprintSize in 1..256 && plain.remaining() >= fingerprintSize + 8)
+            val fingerprint = ByteArray(fingerprintSize).also(plain::get).toString(Charsets.UTF_8)
+            if (fingerprint != expectedModelFingerprint) return null
             val count = plain.int
             val dim = plain.int
             require(count in 1..20 && dim in 1..4096 && plain.remaining() == count * dim * 4)
@@ -58,6 +65,8 @@ class OwnerProfileStore(context: Context) {
             null
         }
     }
+
+    fun hasProfile(): Boolean = prefs.contains(KEY_PROFILE)
 
     fun clear() {
         prefs.edit().remove(KEY_PROFILE).commit()

@@ -99,7 +99,7 @@ class SpeakerEngine(
     companion object {
         const val SAMPLE_RATE = 16_000
         const val MIN_ENROLLMENT_UTTERANCES = 3
-        private const val MIN_SAMPLES = SAMPLE_RATE * 2
+        private const val MIN_SAMPLES = SAMPLE_RATE * 3 / 2
         private const val OWNER_ID = "owner"
     }
 }

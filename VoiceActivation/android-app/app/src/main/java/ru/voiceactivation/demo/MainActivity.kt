@@ -158,7 +158,7 @@ class MainActivity : Activity() {
     private fun pickSpeakerModel() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/octet-stream"
+            type = "*/*"
         }
         startActivityForResult(intent, REQUEST_SPEAKER_MODEL)
     }

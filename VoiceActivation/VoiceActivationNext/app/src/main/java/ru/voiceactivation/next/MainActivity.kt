@@ -23,6 +23,8 @@ class MainActivity : Activity() {
     private lateinit var command: EditText
     private lateinit var matcher: AcousticMatcher
     private lateinit var testButton: Button
+    private lateinit var battleButton: Button
+    @Volatile private var battleMode = false
     private lateinit var elapsedText: TextView
     private lateinit var remainingText: TextView
 
@@ -33,10 +35,11 @@ class MainActivity : Activity() {
     @Volatile private var testDeadline = 0L
     @Volatile private var stopMessage = "Проверка завершена."
     private var pendingTestPermission = false
+    private var pendingBattleMode = false
 
     private val timerTick = object : Runnable {
         override fun run() {
-            if (!testActive.get()) return
+            if (!testActive.get() || battleMode) return
             val now = SystemClock.elapsedRealtime()
             val elapsed = (now - testStartedAt).coerceAtLeast(0L)
             val remaining = (testDeadline - now).coerceAtLeast(0L)
@@ -56,6 +59,9 @@ class MainActivity : Activity() {
     }
 
     private fun appendResult(s: String) {
+        getSharedPreferences("battle_journal", MODE_PRIVATE).edit()
+            .putString("entries", (getSharedPreferences("battle_journal", MODE_PRIVATE).getString("entries", "") + "\\n" + s).takeLast(24000))
+            .apply()
         runOnUiThread {
             val old = status.text.toString()
             val combined = if (old.length > 6500) old.takeLast(4500) else old
@@ -119,7 +125,16 @@ class MainActivity : Activity() {
                 stopMessage = "Проверка отменена пользователем."
                 stopTest(true)
             } else {
-                requestTestPermissionAndStart()
+                requestTestPermissionAndStart(false)
+            }
+        }
+
+        battleButton = button("Боевой режим — начать") {
+            if (testActive.get() && battleMode) {
+                stopMessage = "Боевой режим остановлен пользователем."
+                stopTest(true)
+            } else if (!testActive.get()) {
+                requestTestPermissionAndStart(true)
             }
         }
 
@@ -137,12 +152,17 @@ class MainActivity : Activity() {
         timerRow.addView(remainingText, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(timerRow)
 
+        button("Показать журнал боевого режима") {
+            val saved = getSharedPreferences("battle_journal", MODE_PRIVATE).getString("entries", "")
+            ui(if (saved.isNullOrBlank()) "Журнал пока пуст." else saved)
+        }
+
         button("Показать команды") {
             ui("Команды: " + matcher.commands().ifEmpty { listOf("нет") }.joinToString())
         }
 
         status = TextView(this).apply {
-            text = "Готово. Запишите профиль владельца и образцы команд."
+            text = "Готово. Запишите профиль владельца и образцы команд. Пороги: DTW < ${matcher.dtwThreshold()}, owner cosine > ${matcher.ownerThreshold()}."
             textSize = 15f
             setPadding(0, 18, 0, 0)
         }
@@ -154,14 +174,15 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun requestTestPermissionAndStart() {
+    private fun requestTestPermissionAndStart(isBattle: Boolean) {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             pendingTestPermission = true
+            pendingBattleMode = isBattle
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
             ui("Разрешите доступ к микрофону для проверки.")
             return
         }
-        startTest()
+        startTest(isBattle)
     }
 
     @Deprecated("Platform permission callback")
@@ -175,27 +196,30 @@ class MainActivity : Activity() {
         val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
         if (pendingTestPermission) {
             pendingTestPermission = false
-            if (granted) startTest() else ui("Доступ к микрофону не предоставлен.")
+            if (granted) startTest(pendingBattleMode) else ui("Доступ к микрофону не предоставлен.")
         }
     }
 
-    private fun startTest() {
+    private fun startTest(isBattle: Boolean) {
         if (matcher.commands().isEmpty()) {
             ui("Сначала запишите хотя бы один образец команды.")
             return
         }
         if (testActive.get()) return
 
+        battleMode = isBattle
         testStartedAt = SystemClock.elapsedRealtime()
-        testDeadline = testStartedAt + TEST_DURATION_MS
-        stopMessage = "Проверка завершена."
+        testDeadline = if (isBattle) Long.MAX_VALUE else testStartedAt + TEST_DURATION_MS
+        stopMessage = if (isBattle) "Боевой режим остановлен." else "Проверка завершена."
         testActive.set(true)
-        testButton.text = "Отменить проверку голосовой команды"
+        testButton.text = if (isBattle) "Проверка голосовой команды недоступна во время боевого режима" else "Отменить проверку голосовой команды"
+        battleButton.text = if (isBattle) "Остановить боевой режим" else "Боевой режим — начать"
+        testButton.isEnabled = !isBattle
         elapsedText.text = "Прошло: 00:00"
         remainingText.text = "Осталось: 00:15"
-        status.text = "Проверка запущена на 15 секунд. Произносите команды с любыми паузами."
+        status.text = if (isBattle) "БОЕВОЙ РЕЖИМ АКТИВЕН. Произносите любые фразы подряд. После каждой паузы будет показан результат. Пороги не изменяются." else "Проверка запущена на 15 секунд. Произносите команды с любыми паузами."
         mainHandler.removeCallbacks(timerTick)
-        mainHandler.post(timerTick)
+        if (!isBattle) mainHandler.post(timerTick)
 
         thread(name = "VoiceCommandContinuousTest") {
             runContinuousTest()
@@ -212,6 +236,9 @@ class MainActivity : Activity() {
         } catch (_: Exception) { }
         runOnUiThread {
             testButton.text = "Проверить голосовую команду"
+            testButton.isEnabled = true
+            battleButton.text = "Боевой режим — начать"
+            battleMode = false
             val elapsed = (SystemClock.elapsedRealtime() - testStartedAt).coerceIn(0L, TEST_DURATION_MS)
             elapsedText.text = "Прошло: " + clock(elapsed)
             remainingText.text = "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceAtLeast(0L))
@@ -245,29 +272,29 @@ class MainActivity : Activity() {
                 } else {
                     val match = try { matcher.match(samples) } catch (_: Exception) { null }
                     val ownerScore = try { matcher.ownerSimilarity(samples) } catch (_: Exception) { null }
-                    val ownerAccepted = ownerScore != null && ownerScore > OWNER_THRESHOLD
+                    val ownerAccepted = ownerScore != null && ownerScore > matcher.ownerThreshold()
                     if (ownerScore != null) {
                         if (ownerAccepted) ownerAcceptedCount++ else ownerRejectedCount++
                     }
 
                     val message = if (match == null) {
                         unmatchedCount++
-                        "Фраза #" + processedCount + ": совпадение с образцами не найдено." +
+                        "ФРАЗА #" + processedCount + ": НЕ ПРОШЛА — совпадение с образцами не найдено." +
                             " | DTW: нет результата" +
                             " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
                     } else if (match.accepted) {
                         matchedCount++
-                        "СОВПАДЕНИЕ #" + processedCount + ": «" + match.command + "»" +
+                        "ФРАЗА #" + processedCount + ": ПРОШЛА ✓ — «" + match.command + "»" +
                             " | DTW = " + fmt(match.bestDistance) +
-                            " | порог < " + fmt(DTW_THRESHOLD) +
+                            " | порог DTW < " + fmt(matcher.dtwThreshold()) +
                             " | второе = " + fmt(match.secondDistance) +
                             " | отрыв: " + (if (match.secondDistance.isInfinite()) "единственный кандидат" else
                                 if (match.bestDistance < match.secondDistance * 0.88) "пройден (< 0,88)" else "не пройден") +
                             " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
                     } else {
                         unmatchedCount++
-                        "Фраза #" + processedCount + ": ближайшая команда «" + match.command +
-                            "», но совпадение НЕ принято" +
+                        "ФРАЗА #" + processedCount + ": НЕ ПРОШЛА — ближайшая команда «" + match.command +
+                            "», порог не пройден" +
                             " | DTW = " + fmt(match.bestDistance) +
                             " | порог < " + fmt(DTW_THRESHOLD) +
                             " | второе = " + fmt(match.secondDistance) +
@@ -300,7 +327,7 @@ class MainActivity : Activity() {
             recorder.startRecording()
 
             val frame = ShortArray(FRAME_SAMPLES)
-            while (testActive.get() && SystemClock.elapsedRealtime() < testDeadline) {
+            while (testActive.get() && (battleMode || SystemClock.elapsedRealtime() < testDeadline)) {
                 val count = recorder.read(frame, 0, frame.size)
                 if (count <= 0) {
                     if (!testActive.get()) break
@@ -344,6 +371,9 @@ class MainActivity : Activity() {
                 mainHandler.removeCallbacks(timerTick)
                 runOnUiThread {
                     testButton.text = "Проверить голосовую команду"
+                    testButton.isEnabled = true
+                    battleButton.text = "Боевой режим — начать"
+                    battleMode = false
                     val elapsed = (SystemClock.elapsedRealtime() - testStartedAt).coerceIn(0L, TEST_DURATION_MS)
                     elapsedText.text = "Прошло: " + clock(elapsed)
                     remainingText.text = "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceAtLeast(0L))
@@ -362,8 +392,8 @@ class MainActivity : Activity() {
 
     private fun ownerLabel(score: Double?, accepted: Boolean): String {
         if (score == null) return "профиль не найден"
-        return (if (accepted) "подтверждён" else "не подтверждён") +
-            " (MFCC cosine = " + fmt(score) + ", порог > " + fmt(OWNER_THRESHOLD) + ")"
+        return (if (accepted) "ПРОЙДЕНА" else "НЕ ПРОЙДЕНА") +
+            " (MFCC cosine = " + fmt(score) + ", порог > " + fmt(matcher.ownerThreshold()) + ")"
     }
 
     private fun fmt(value: Double): String =
@@ -441,6 +471,9 @@ class MainActivity : Activity() {
 
 private class AcousticMatcher(ctx: Context) {
     private val p = ctx.getSharedPreferences("templates", Context.MODE_PRIVATE)
+    fun dtwThreshold(): Double = p.getFloat("dtw_threshold", 7.0f).toDouble()
+    fun ownerThreshold(): Double = p.getFloat("owner_threshold", 0.88f).toDouble()
+    fun marginThreshold(): Double = p.getFloat("margin_threshold", 0.88f).toDouble()
 
     fun commands(): List<String> = p.getStringSet("names", emptySet())!!.toList().sorted()
 
@@ -484,8 +517,8 @@ private class AcousticMatcher(ctx: Context) {
         val sorted = perCommand.entries.sortedBy { it.value }
         val best = sorted[0]
         val second = sorted.getOrNull(1)?.value ?: Double.POSITIVE_INFINITY
-        val accepted = best.value < DTW_THRESHOLD &&
-            (second.isInfinite() || best.value < second * 0.88)
+        val accepted = best.value < dtwThreshold() &&
+            (second.isInfinite() || best.value < second * marginThreshold())
         return MatchResult(best.key, best.value, second, accepted)
     }
 

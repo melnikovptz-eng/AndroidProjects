@@ -342,7 +342,7 @@ class MainActivity : Activity() {
         val russianReady = russianDir.resolve("model.onnx").isFile && russianDir.resolve("tokens.txt").isFile
         russianModelStatus.text = if (russianReady) "Русская модель: установлена" else "Русская модель: не установлена"
         speakerModelStatus.text = if (models.speakerModelFile().isFile) "Модель голоса: установлена" else "Модель голоса: не установлена"
-        ownerStatus.text = if (OwnerProfileStore(this).load().isNullOrEmpty()) {
+        ownerStatus.text = if (!OwnerProfileStore(this).hasProfile()) {
             "Профиль владельца: не зарегистрирован"
         } else {
             "Профиль владельца: сохранён (AES-GCM / Android Keystore)"

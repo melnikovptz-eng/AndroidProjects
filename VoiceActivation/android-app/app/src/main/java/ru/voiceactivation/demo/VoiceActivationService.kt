@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -37,7 +37,16 @@ class VoiceActivationService : Service() {
         }
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification("Голосовая активация включена"))
+        val initialNotification = buildNotification("Голосовая активация включена")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                initialNotification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, initialNotification)
+        }
         if (running.compareAndSet(false, true)) {
             worker = Thread({ listenLoop(targetPackage, wakePhrase) }, "VoiceActivationAudio").also {
                 it.start()

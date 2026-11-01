@@ -419,9 +419,6 @@ class MainActivity : Activity() {
             ui("Сначала запишите образцы команд.")
             return
         }
-        if (matcher.ownerSimilarity(DoubleArray(0)) == null) {
-            // Проверка наличия профиля без использования аудиоданных выполняется ниже через флаг.
-        }
         capture { audio ->
             val measured = matcher.match(audio)
             val ownerScore = matcher.ownerSimilarity(audio)

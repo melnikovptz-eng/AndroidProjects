@@ -36,6 +36,8 @@ The model's language coverage and verification threshold must be validated with 
 
 ## Build
 
+Termux build script: `VoiceActivation/tools/build_termux.sh` (one debug build, APK package/signature/hash checks, stable output `~/storage/downloads/VoiceActivation.apk`).
+
 - Android Gradle Plugin 8.6.1
 - Kotlin Android plugin 2.0.20
 - compileSdk / targetSdk 35, minSdk 28

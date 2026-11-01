@@ -7,7 +7,7 @@
 Каталог приложения: `VoiceActivation/VoiceActivationNext/`  
 Тестовый Android applicationId: `ru.voiceactivation.next.test`  
 Базовый установленный applicationId: `ru.voiceactivation.next` (не заменяется этой тестовой сборкой)  
-Версия: `1.2.0` (versionCode 3)  
+Версия: `1.3.0` (versionCode 4)  
 Устройство целевого тестирования: TECNO KJ6, Android 13, ARM64.
 
 ## 1. Назначение и этапы работы

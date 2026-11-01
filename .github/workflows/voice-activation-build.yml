@@ -5,6 +5,7 @@ on:
     branches:
       - voice-activation
       - voice-activation-rebuild
+      - voice-activation-capture-thread-fix
     paths:
       - "VoiceActivation/android-app/**"
       - "VoiceActivation/VoiceActivationNext/**"

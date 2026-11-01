@@ -1,5 +1,7 @@
 package ru.voiceactivation.demo.voice
 
+import com.k2fsa.sherpa.onnx.EndpointConfig
+import com.k2fsa.sherpa.onnx.EndpointRule
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.OnlineModelConfig
 import com.k2fsa.sherpa.onnx.OnlineRecognizer
@@ -34,6 +36,11 @@ class RussianWakePhraseDetector(
                 numThreads = numThreads,
                 debug = false,
                 provider = "cpu",
+            ),
+            endpointConfig = EndpointConfig(
+                rule1 = EndpointRule(false, 0.8f, 0.0f),
+                rule2 = EndpointRule(true, 0.5f, 0.0f),
+                rule3 = EndpointRule(false, 0.0f, 10.0f),
             ),
             enableEndpoint = true,
             decodingMethod = "greedy_search",

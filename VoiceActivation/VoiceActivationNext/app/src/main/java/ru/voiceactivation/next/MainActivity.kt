@@ -60,7 +60,7 @@ class MainActivity : Activity() {
 
     private fun appendResult(s: String) {
         getSharedPreferences("battle_journal", MODE_PRIVATE).edit()
-            .putString("entries", (getSharedPreferences("battle_journal", MODE_PRIVATE).getString("entries", "") + "\\n" + s).takeLast(24000))
+            .putString("entries", (getSharedPreferences("battle_journal", MODE_PRIVATE).getString("entries", "") + "\n" + s).takeLast(24000))
             .apply()
         runOnUiThread {
             val old = status.text.toString()

@@ -81,7 +81,7 @@ class MainActivity : Activity() {
         wakePhraseInput = EditText(this).apply {
             setSingleLine(true)
             hint = "Например: окей помощник"
-            setText(prefs.getString(KEY_WAKE_PHRASE, "окей помощник"))
+            setText(prefs.getString(KEY_WAKE_PHRASE, "окей голосовой помощник"))
         }
         root.addView(wakePhraseInput, matchWrap())
         root.addView(actionButton("Импортировать русскую модель") { pickRussianModel() }, matchWrap())

@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "ru.voiceactivation.demo"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
@@ -29,5 +29,5 @@ android {
 
 dependencies {
     // sherpa-onnx v2.0.1: JVM API plus bundled Android ARM64 native runtime.
-    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1")
+    implementation("com.github.k2-fsa.sherpa-onnx:sherpa-onnx:v2.0.1")
 }

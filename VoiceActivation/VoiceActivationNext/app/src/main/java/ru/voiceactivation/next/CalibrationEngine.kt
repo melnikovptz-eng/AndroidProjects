@@ -129,8 +129,8 @@ internal object CalibrationEngine {
         var bestMargin = 0.88
         var bestScore = -1.0
         for (d in dtwCandidates) for (m in marginCandidates) {
-            val tpr = trainPos.count { accepted(it, d, m) }.toDouble() / trainPos.size
-            val tnr = trainNeg.count { !accepted(it, d, m) }.toDouble() / trainNeg.size
+            val tpr = trainPos.count { correctlyAccepted(it, d, m) }.toDouble() / trainPos.size
+            val tnr = trainNeg.count { !wouldAccept(it, d, m) }.toDouble() / trainNeg.size
             val score = (tpr + tnr) / 2.0
             if (score > bestScore) {
                 bestScore = score
@@ -160,8 +160,8 @@ internal object CalibrationEngine {
             return Result(false, "Проверочная выборка не содержит все четыре класса. Запишите дополнительные примеры.")
         }
         val commandAccuracy = (
-            valPos.count { accepted(it, bestDtw, bestMargin) }.toDouble() / valPos.size +
-            valNeg.count { !accepted(it, bestDtw, bestMargin) }.toDouble() / valNeg.size
+            valPos.count { correctlyAccepted(it, bestDtw, bestMargin) }.toDouble() / valPos.size +
+            valNeg.count { !wouldAccept(it, bestDtw, bestMargin) }.toDouble() / valNeg.size
         ) / 2.0
         val ownerAccuracy = (
             valOwners.count { it.ownerCosine > bestOwner }.toDouble() / valOwners.size +
@@ -180,9 +180,12 @@ internal object CalibrationEngine {
         )
     }
 
-    private fun accepted(s: Sample, dtw: Double, margin: Double): Boolean =
-        s.bestDistance < dtw && s.marginRatio < margin &&
-            s.expectedCommand != null && s.predictedCommand == s.expectedCommand
+    private fun wouldAccept(s: Sample, dtw: Double, margin: Double): Boolean =
+        s.bestDistance < dtw && s.marginRatio < margin
+
+    private fun correctlyAccepted(s: Sample, dtw: Double, margin: Double): Boolean =
+        wouldAccept(s, dtw, margin) && s.expectedCommand != null &&
+            s.predictedCommand == s.expectedCommand
 
     private fun candidates(values: List<Double>): List<Double> {
         if (values.isEmpty()) return listOf(0.0)

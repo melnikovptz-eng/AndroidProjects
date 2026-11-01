@@ -480,7 +480,6 @@ private class AcousticMatcher(ctx: Context) {
     fun dtwThreshold(): Double = p.getFloat("dtw_threshold", 7.0f).toDouble()
     fun ownerThreshold(): Double = p.getFloat("owner_threshold", 0.88f).toDouble()
     fun marginThreshold(): Double = p.getFloat("margin_threshold", 0.88f).toDouble()
-    fun marginThreshold(): Double = p.getFloat("margin_threshold", 0.88f).toDouble()
 
     fun commands(): List<String> = p.getStringSet("names", emptySet())!!.toList().sorted()
 

@@ -239,9 +239,9 @@ class MainActivity : Activity() {
             testButton.isEnabled = true
             battleButton.text = "Боевой режим — начать"
             battleMode = false
-            val elapsed = (SystemClock.elapsedRealtime() - testStartedAt).coerceIn(0L, TEST_DURATION_MS)
+            val elapsed = (SystemClock.elapsedRealtime() - testStartedAt).coerceAtLeast(0L)
             elapsedText.text = "Прошло: " + clock(elapsed)
-            remainingText.text = "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceAtLeast(0L))
+            remainingText.text = if (battleMode) "Без ограничения времени" else "Осталось: " + clock((TEST_DURATION_MS - elapsed).coerceIn(0L, TEST_DURATION_MS))
             appendResult(stopMessage)
         }
     }
@@ -471,6 +471,11 @@ class MainActivity : Activity() {
 
 private class AcousticMatcher(ctx: Context) {
     private val p = ctx.getSharedPreferences("templates", Context.MODE_PRIVATE)
+    init {
+        if (!p.contains("dtw_threshold")) p.edit().putFloat("dtw_threshold", 7.0f).apply()
+        if (!p.contains("owner_threshold")) p.edit().putFloat("owner_threshold", 0.88f).apply()
+        if (!p.contains("margin_threshold")) p.edit().putFloat("margin_threshold", 0.88f).apply()
+    }
     fun dtwThreshold(): Double = p.getFloat("dtw_threshold", 7.0f).toDouble()
     fun ownerThreshold(): Double = p.getFloat("owner_threshold", 0.88f).toDouble()
     fun marginThreshold(): Double = p.getFloat("margin_threshold", 0.88f).toDouble()

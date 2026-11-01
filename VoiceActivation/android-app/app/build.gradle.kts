@@ -13,6 +13,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     compileOptions {
@@ -22,4 +25,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+dependencies {
+    // sherpa-onnx v2.0.1: JVM API plus bundled Android ARM64 native runtime.
+    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1")
 }

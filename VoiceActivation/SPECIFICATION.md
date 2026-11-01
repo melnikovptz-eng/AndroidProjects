@@ -90,6 +90,31 @@ Existing pieces:
 - Test microphone lifecycle, screen-off behavior and background launch policy.
 - Verify license/provenance of all selected models before redistribution.
 
+## Model storage on the Android device
+
+The canonical source location for model files is the shared Android Download directory. Keep this layout and filenames stable:
+
+```text
+/storage/emulated/0/Download/vosk model/
+├── speaker-model/
+│   └── 3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx
+└── russian-asr-model/
+    ├── model.onnx
+    └── tokens.txt
+```
+
+Equivalent Termux path: `$HOME/storage/downloads/vosk model/`.
+
+Verified files currently expected at these paths:
+
+- Speaker model: `speaker-model/3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx`, 26,485,263 bytes, SHA-256 `c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5`.
+- Russian ASR model: `russian-asr-model/model.onnx`, 144,193,702 bytes, SHA-256 `5ded080e2a6c86ecc11bcb0902d77524eb3e8b0844cb0c0754347f5aafb4dabc`.
+- Russian tokens: `russian-asr-model/tokens.txt`, 202 bytes, SHA-256 `27f7b3ba2096c572375fba1a6b29af1f80d86e08a329940612908112695f97e0`.
+
+### Automatic import requirement
+
+The current prototype does **not** automatically scan this Download folder: it opens the Android document picker and copies selected files into app-private storage. The next import implementation must ask the user to grant access to the `Download/vosk model` directory once using Android's Storage Access Framework directory picker, persist the read permission, and then discover/import the three known filenames from their subfolders automatically on later launches. Validate file presence, size and SHA-256 before accepting a model. Copy verified files into app-private storage for inference; keep Download as the canonical user-managed source. If the directory permission is revoked or a file is missing/changed, show a clear repair status and request folder access again. Do not silently claim automatic import until this flow is implemented and device-tested.
+
 ## Planned public API (not frozen)
 
 - `VoiceActivation.initialize(context, config)`

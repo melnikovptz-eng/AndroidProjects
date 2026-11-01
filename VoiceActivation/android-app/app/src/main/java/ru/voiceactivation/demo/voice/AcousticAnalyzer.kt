@@ -17,6 +17,7 @@ class AcousticAnalyzer(
 ) {
     private var noiseFloorRms = 0.0025f
     private var speechActive = false
+    private var calibrationFramesRemaining = CALIBRATION_FRAMES
 
     @Synchronized
     fun analyze(samples: FloatArray): Frame {
@@ -30,6 +31,25 @@ class AcousticAnalyzer(
             peak = maxOf(peak, kotlin.math.abs(value))
         }
         val rms = sqrt(squareSum / samples.size).toFloat()
+        // Learn the room's initial acoustic floor before opening the VAD gate.
+        // At the standard 100 ms audio chunk this is about 1.5 seconds.
+        if (calibrationFramesRemaining > 0) {
+            noiseFloorRms = (noiseFloorRms + CALIBRATION_ALPHA * (rms - noiseFloorRms))
+                .coerceIn(MIN_NOISE_RMS, MAX_NOISE_RMS)
+            calibrationFramesRemaining--
+            speechActive = false
+            val calibratedNoise = noiseFloorRms.coerceAtLeast(MIN_NOISE_RMS)
+            return Frame(
+                rms = rms,
+                peak = peak,
+                rmsDbfs = toDbfs(rms),
+                noiseFloorDbfs = toDbfs(calibratedNoise),
+                snrDb = 20f * log10((rms / calibratedNoise).coerceAtLeast(1e-6f)),
+                speechDetected = false,
+                quality = Quality.NO_SPEECH,
+            )
+        }
+
         val noiseBefore = noiseFloorRms.coerceAtLeast(MIN_NOISE_RMS)
 
         val speechOnThreshold = maxOf(minimumSpeechRms, noiseBefore * speechToNoiseRatio)
@@ -72,6 +92,7 @@ class AcousticAnalyzer(
     fun reset() {
         noiseFloorRms = 0.0025f
         speechActive = false
+        calibrationFramesRemaining = CALIBRATION_FRAMES
     }
 
     data class Frame(
@@ -94,5 +115,7 @@ class AcousticAnalyzer(
         const val USABLE_SNR_DB = 6f
         private const val MIN_NOISE_RMS = 0.0005f
         private const val MAX_NOISE_RMS = 0.15f
+        private const val CALIBRATION_FRAMES = 15
+        private const val CALIBRATION_ALPHA = 0.35f
     }
 }

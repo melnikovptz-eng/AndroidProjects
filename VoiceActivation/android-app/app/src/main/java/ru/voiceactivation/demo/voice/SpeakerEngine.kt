@@ -5,6 +5,9 @@ import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractor
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingManager
 import java.io.Closeable
+import java.io.File
+import java.io.FileInputStream
+import java.security.MessageDigest
 
 /** Local speaker enrollment and verification. Audio is mono PCM float [-1,1] at 16 kHz. */
 class SpeakerEngine(
@@ -13,6 +16,7 @@ class SpeakerEngine(
     numThreads: Int = 2,
     private val profileStore: OwnerProfileStore? = null,
 ) : Closeable {
+    private val modelFingerprint = fingerprint(File(modelPath))
     private val extractor = SpeakerEmbeddingExtractor(
         config = SpeakerEmbeddingExtractorConfig(
             model = modelPath,
@@ -24,7 +28,7 @@ class SpeakerEngine(
     private val manager = SpeakerEmbeddingManager(extractor.dim())
 
     init {
-        profileStore?.load()?.let { saved ->
+        profileStore?.load(modelFingerprint)?.let { saved ->
             check(manager.add(OWNER_ID, saved)) { "Unable to restore owner voice profile" }
         }
     }
@@ -34,8 +38,9 @@ class SpeakerEngine(
             "At least $MIN_ENROLLMENT_UTTERANCES enrollment utterances are required"
         }
         val embeddings = utterances.map { extract(it, sampleRate) }.toTypedArray()
+        if (manager.contains(OWNER_ID)) manager.remove(OWNER_ID)
         val added = manager.add(OWNER_ID, embeddings)
-        if (added) profileStore?.save(embeddings)
+        if (added) profileStore?.save(modelFingerprint, embeddings)
         return added
     }
 
@@ -76,6 +81,20 @@ class SpeakerEngine(
         val accepted: Boolean,
         val threshold: Float,
     )
+
+    private fun fingerprint(file: File): String {
+        require(file.isFile) { "Speaker model file is missing" }
+        val digest = MessageDigest.getInstance("SHA-256")
+        FileInputStream(file).use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     companion object {
         const val SAMPLE_RATE = 16_000

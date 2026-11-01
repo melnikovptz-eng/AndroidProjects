@@ -226,31 +226,55 @@ class MainActivity : Activity() {
         var speechActive = false
         var silenceSamples = 0
         var processedCount = 0
+        var matchedCount = 0
+        var unmatchedCount = 0
+        var ownerAcceptedCount = 0
+        var ownerRejectedCount = 0
 
         fun processUtterance() {
-            if (utterance.size >= MIN_UTTERANCE_SAMPLES) {
-                val samples = utterance.toDoubleArray()
+            if (speechActive && utterance.isNotEmpty()) {
                 processedCount++
-                val match = try { matcher.match(samples) } catch (_: Exception) { null }
-                val ownerScore = try { matcher.ownerSimilarity(samples) } catch (_: Exception) { null }
-                val ownerAccepted = ownerScore != null && ownerScore > OWNER_THRESHOLD
-
-                val message = if (match == null) {
-                    "Фраза #" + processedCount + ": образец команды не найден. Владелец: " +
-                        ownerLabel(ownerScore, ownerAccepted)
-                } else if (match.accepted) {
-                    "НАЙДЕНО СОВПАДЕНИЕ #" + processedCount + ": «" + match.command + "»" +
-                        " | DTW distance = " + fmt(match.bestDistance) +
-                        " | порог < " + fmt(DTW_THRESHOLD) +
-                        " | следующее = " + fmt(match.secondDistance) +
-                        " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                val samples = utterance.toDoubleArray()
+                if (samples.size < MIN_ANALYSIS_SAMPLES) {
+                    unmatchedCount++
+                    appendResult(
+                        "Фраза #" + processedCount +
+                            ": обнаружена, но слишком короткая для надёжного сравнения (" +
+                            samples.size + " отсчётов). DTW: не оценён; владелец: не оценён."
+                    )
                 } else {
-                    "Фраза #" + processedCount + ": близкий вариант «" + match.command + "», но порог/отрыв не пройден" +
-                        " | DTW = " + fmt(match.bestDistance) +
-                        " | второе = " + fmt(match.secondDistance) +
-                        " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                    val match = try { matcher.match(samples) } catch (_: Exception) { null }
+                    val ownerScore = try { matcher.ownerSimilarity(samples) } catch (_: Exception) { null }
+                    val ownerAccepted = ownerScore != null && ownerScore > OWNER_THRESHOLD
+                    if (ownerScore != null) {
+                        if (ownerAccepted) ownerAcceptedCount++ else ownerRejectedCount++
+                    }
+
+                    val message = if (match == null) {
+                        unmatchedCount++
+                        "Фраза #" + processedCount + ": совпадение с образцами не найдено." +
+                            " | DTW: нет результата" +
+                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                    } else if (match.accepted) {
+                        matchedCount++
+                        "СОВПАДЕНИЕ #" + processedCount + ": «" + match.command + "»" +
+                            " | DTW = " + fmt(match.bestDistance) +
+                            " | порог < " + fmt(DTW_THRESHOLD) +
+                            " | второе = " + fmt(match.secondDistance) +
+                            " | отрыв: " + if (match.secondDistance.isInfinite()) "единственный кандидат" else
+                                if (match.bestDistance < match.secondDistance * 0.88) "пройден (< 0,88)" else "не пройден" +
+                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                    } else {
+                        unmatchedCount++
+                        "Фраза #" + processedCount + ": ближайшая команда «" + match.command +
+                            "», но совпадение НЕ принято" +
+                            " | DTW = " + fmt(match.bestDistance) +
+                            " | порог < " + fmt(DTW_THRESHOLD) +
+                            " | второе = " + fmt(match.secondDistance) +
+                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                    }
+                    appendResult(message)
                 }
-                appendResult(message)
             }
             utterance.clear()
             speechActive = false
@@ -305,7 +329,7 @@ class MainActivity : Activity() {
 
                 if (utterance.size >= MAX_UTTERANCE_SAMPLES) processUtterance()
             }
-            if (utterance.size >= MIN_UTTERANCE_SAMPLES) processUtterance()
+            if (speechActive && utterance.isNotEmpty()) processUtterance()
         } catch (e: Exception) {
             if (testActive.get()) appendResult("Ошибка проверки: " + (e.message ?: e.javaClass.simpleName))
         } finally {
@@ -326,6 +350,13 @@ class MainActivity : Activity() {
                     appendResult(stopMessage)
                 }
             }
+            appendResult(
+                "ИТОГ ТЕСТА: обнаружено фраз = " + processedCount +
+                    " | совпало с командами = " + matchedCount +
+                    " | не совпало / не принято = " + unmatchedCount +
+                    " | владелец подтверждён = " + ownerAcceptedCount +
+                    " | владелец не подтверждён = " + ownerRejectedCount
+            )
         }
     }
 
@@ -398,8 +429,9 @@ class MainActivity : Activity() {
         private const val ENROLLMENT_DURATION_MS = 2_500
         private const val FRAME_SAMPLES = 320
         private const val MIN_UTTERANCE_SAMPLES = SAMPLE_RATE / 2
+        private const val MIN_ANALYSIS_SAMPLES = SAMPLE_RATE / 5
         private const val MAX_UTTERANCE_SAMPLES = SAMPLE_RATE * 5
-        private const val END_SILENCE_SAMPLES = SAMPLE_RATE * 3 / 10
+        private const val END_SILENCE_SAMPLES = SAMPLE_RATE / 4
         private const val VAD_RMS_THRESHOLD = 0.006
         private const val VAD_PEAK_THRESHOLD = 0.018
         private const val DTW_THRESHOLD = 7.0

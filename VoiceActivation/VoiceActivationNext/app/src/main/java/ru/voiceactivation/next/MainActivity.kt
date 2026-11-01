@@ -75,7 +75,7 @@ private class AcousticMatcher(ctx:Context) {
     }
     fun enrollCommand(name:String,x:DoubleArray) {
         val key="cmd_"+name; val items=p.getString(key,null)?.split("|")?.toMutableList() ?: mutableListOf()
-        items.add(enc(Mfcc.extract(x).flatten().toDoubleArray()))
+        items.add(enc(Mfcc.extract(x).flatMap { it.toList() }.toDoubleArray()))
         p.edit().putString(key,items.takeLast(6).joinToString("|")).putStringSet("names",(commands()+name).toSet()).apply()
     }
     fun match(x:DoubleArray):String? {

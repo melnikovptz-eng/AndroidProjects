@@ -15,6 +15,7 @@ internal object CalibrationEngine {
     private const val PREFS = "voice_calibration"
     private const val KEY = "samples"
     private const val MIN_PER_CLASS = 10
+    private const val MIN_PER_COMMAND = 5
 
     data class Sample(
         val expectedCommand: String?,
@@ -98,8 +99,10 @@ internal object CalibrationEngine {
             "записей владельца" to owners.size,
             "записей других голосов" to others.size
         )
+        val commandGroups = positives.groupBy { it.expectedCommand ?: "" }
+        val weakCommands = commandGroups.filterValues { it.size < MIN_PER_COMMAND }
         val missing = counts.filter { it.second < MIN_PER_CLASS }
-        if (missing.isNotEmpty()) {
+        if (missing.isNotEmpty() || weakCommands.isNotEmpty()) {
             return Result(false,
                 "Недостаточно размеченных примеров. Нужно не менее $MIN_PER_CLASS для каждой группы:\n" +
                 missing.joinToString("\n") { it.first + ": " + it.second + " / $MIN_PER_CLASS" } +
@@ -109,7 +112,10 @@ internal object CalibrationEngine {
         // Keep a deterministic hold-out subset from every class; no sample used for fitting
         // is reused for validation in its corresponding class.
         val validationSet = linkedSetOf<Sample>()
-        listOf(positives, unknown, owners, others).forEach { group ->
+        commandGroups.values.forEach { group ->
+            validationSet.addAll(group.takeLast(max(1, ceil(group.size * 0.2).toInt())))
+        }
+        listOf(unknown, owners, others).forEach { group ->
             val holdoutCount = max(2, ceil(group.size * 0.2).toInt())
             validationSet.addAll(group.takeLast(holdoutCount))
         }
@@ -197,6 +203,7 @@ internal object CalibrationEngine {
             val index = if (count == 1) 0 else (i.toDouble() * (sorted.size - 1) / (count - 1)).toInt()
             result.add(sorted[index] + 0.000001)
         }
+        result.add(sorted.first() - 0.000001)
         result.add(sorted.last() + 0.000001)
         return result.toList()
     }

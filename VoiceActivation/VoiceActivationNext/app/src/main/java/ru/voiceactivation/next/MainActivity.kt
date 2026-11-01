@@ -512,6 +512,7 @@ private class AcousticMatcher(ctx: Context) {
     companion object {
         private const val MFCC_COEFFICIENTS = 13
         private const val DTW_BAND = 12
+        private const val DTW_THRESHOLD = 7.0
     }
 }
 

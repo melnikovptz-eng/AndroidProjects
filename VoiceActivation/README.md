@@ -1,25 +1,32 @@
 # VoiceActivation
 
-Android voice activation prototype. The selected application is opened only after:
+Android voice activation prototype. The target design continuously analyzes speech without a mandatory wake phrase, matches it against user-recorded command templates, optionally verifies the owner, and executes the mapped action.
 
-1. A configured Russian wake phrase is detected.
-2. The detected utterance is verified against the enrolled owner voice profile.
-
-All recognition is local. The Android app imports model files into private storage; the core manifest does not request Internet access.
+All processing is intended to remain local. Microphone access is user-started through an Android foreground service.
 
 ## Current implementation
 
 The Android prototype is in [android-app](android-app/README.md).
 
-- Installed-app picker; selected package name is persisted.
-- Russian streaming phrase detector using sherpa-onnx T-one CTC ASR (8 kHz model input).
-- Speaker embedding enrollment and verification using sherpa-onnx Kotlin APIs.
-- Three 4-second enrollment utterances.
-- Encrypted owner embeddings (AES-GCM / Android Keystore), bound to the speaker model SHA-256.
-- User-started microphone foreground service.
-- Verification uses the same captured utterance that triggered the wake phrase.
-- Target app launch attempt after both checks; notification action fallback for Android background-activity restrictions.
-- Termux scripts download the Russian wake model and a speaker-model candidate into Android Downloads.
+- Installed-app picker and persisted target package.
+- 16 kHz mono microphone capture in a foreground service.
+- Adaptive acoustic analyzer: RMS/peak, background-noise estimate, VAD hysteresis and approximate SNR.
+- Provisional 6 dB average-SNR gate before speaker verification.
+- Speaker embedding enrollment and verification using sherpa-onnx.
+- Three 4-second owner enrollment utterances.
+- Encrypted owner embeddings (AES-GCM / Android Keystore).
+- Existing prototype still uses the earlier Russian wake-phrase detector; this is not yet the target no-wake-phrase command-template architecture.
+
+## Next implementation stage
+
+Replace the legacy wake-phrase UI/detector with:
+- recording and naming command examples;
+- storing command-content representations linked to actions;
+- matching incoming utterances to the saved command templates;
+- rejecting ambiguous or low-quality matches;
+- optional owner verification before executing an action.
+
+Speaker embeddings and command-content representations are different data and must use separate models.
 
 ## Target device
 
@@ -28,10 +35,10 @@ The Android prototype is in [android-app](android-app/README.md).
 
 ## Validation still required
 
-- Build and install the APK on the target phone.
-- Validate Russian wake phrase recognition in real environments.
-- Validate speaker false-accept / false-reject rates using Russian owner and non-owner recordings.
-- Calibrate the speaker threshold and measure CPU, memory, latency and battery.
-- Test background microphone operation and target-app launch behavior on the device.
+- Install and run on the target phone.
+- Validate acoustic level/SNR estimates across quiet speech, distance and background noise.
+- Validate Russian command matching and owner verification.
+- Calibrate thresholds and measure CPU, RAM, latency, heat and battery.
+- Test foreground microphone and target-app launch behavior.
 
-The public AAR API is not frozen yet. Do not treat this prototype as a high-security identity system: replay and voice imitation remain possible.
+Voice verification is probabilistic and does not prevent replay or voice imitation. Do not use voice-only verification as the sole protection for sensitive actions.

@@ -242,11 +242,11 @@ class VoiceActivationService : Service() {
         )
         try {
             startActivity(launchIntent)
-            updateNotification("Команда «\${transcript.take(48)}» · голос подтверждён", targetPendingIntent)
+            updateNotification("Команда «${transcript.take(48)}» · голос подтверждён", targetPendingIntent)
         } catch (e: Exception) {
             // Android may block activity starts from a foreground service.
             Log.w(TAG, "Background activity launch blocked; notification action required", e)
-            updateNotification("Команда «\${transcript.take(48)}» · нажмите, чтобы открыть", targetPendingIntent)
+            updateNotification("Команда «${transcript.take(48)}» · нажмите, чтобы открыть", targetPendingIntent)
         }
     }
 

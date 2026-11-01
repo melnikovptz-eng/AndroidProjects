@@ -2,75 +2,82 @@
 
 ## Product behavior
 
-The application continuously monitors audio only while the user has explicitly enabled the listening service and Android permits microphone foreground operation.
+The user selects an installed Android application and a Russian wake phrase. VoiceActivation listens only while the user has explicitly started the microphone foreground service and Android permits microphone use.
 
-After successful wake-phrase detection and owner verification, the application launches the Android app selected by the user in VoiceActivation settings.
+Activation requires two sequential checks:
+
+1. Russian wake phrase detection from the microphone stream.
+2. Speaker verification of the same captured utterance against the enrolled owner profile.
+
+Only after both checks pass does VoiceActivation attempt to open the selected application. If Android blocks background activity launch, the persistent notification provides a user-tap action for that target.
 
 ## User configuration
 
-- Wake phrase: configurable by the user, subject to the keyword model's supported phrases/language.
-- Owner voice profile: created through guided enrollment.
-- Target application: selected from installed applications that expose a launchable activity.
-- The user can change the target app or disable automatic launching at any time.
-- Show the selected app name and icon in settings.
+- Wake phrase: editable Russian phrase, recognized using a Russian streaming ASR model as a phrase detector.
+- Owner voice profile: guided enrollment from at least three clean utterances.
+- Speaker model: imported ONNX model, validated against the exact model fingerprint stored with the encrypted profile.
+- Target application: selected from installed applications exposing a launcher activity.
+- User can change the target, change the wake phrase, stop listening, or delete the voice profile.
 
-## Recognition and launch pipeline
+## Implemented prototype pipeline
 
-1. Capture microphone frames.
-2. Run keyword spotting for the configured wake phrase.
-3. On a wake phrase, collect a bounded speech segment.
-4. Compute speaker representation and compare it with the enrolled owner profile.
-5. If the similarity exceeds the validated threshold, emit OWNER_VERIFIED.
-6. Resolve the selected target package and launch its main/launcher activity using Android package/intent APIs.
-7. Report LAUNCH_SUCCEEDED or LAUNCH_FAILED, then return to wake-word monitoring.
-8. If the speaker is not verified, do not launch anything; report REJECTED and return to monitoring.
+1. Capture mono 16 kHz PCM from AudioRecord.
+2. Downsample to 8 kHz for the Russian T-one streaming CTC model.
+3. Match the configured phrase in the recognized endpoint transcript.
+4. Use the corresponding captured speech utterance for speaker embedding extraction at 16 kHz.
+5. Verify the embedding with SpeakerEmbeddingManager and the enrolled owner profile.
+6. If verified, resolve the selected package and attempt to launch its launcher activity.
+7. If rejected, do not launch anything; resume wake phrase monitoring.
+
+## Model choices
+
+- Russian phrase detection: sherpa-onnx streaming T-one CTC model, `sherpa-onnx-streaming-t-one-russian-2025-09-08`. This is ASR-based phrase detection, not a dedicated Russian KWS model. The upstream T-one project declares Apache-2.0.
+- Speaker verification: imported sherpa-onnx speaker embedding ONNX model. The supplied downloader retrieves a 3D-Speaker ERes2Net VoxCeleb English model candidate. Its performance on Russian utterances must be measured before acceptance.
+- Threshold 0.6 is provisional, not a calibrated production threshold.
 
 ## Target-app picker
 
-- Query installed apps that have a launcher activity.
-- Display app icon and human-readable label.
-- Persist the selected package name, not a fragile list position.
-- Revalidate that the package remains installed and launchable before opening.
-- If it has been uninstalled or disabled, notify the user and request a new selection.
-- Respect Android package visibility rules and declare only the necessary package visibility configuration for the target SDK. Avoid requesting broad package visibility unless justified.
+- Query installed applications with a launcher activity.
+- Display human-readable app labels.
+- Persist package name, not list position.
+- Revalidate package availability before launch.
+- Use narrow package visibility through the launcher intent query; do not request QUERY_ALL_PACKAGES.
 
-## Initial acceptance criteria
+## Privacy and security
 
-- No network permission or audio upload required for core recognition.
-- Owner enrollment requires multiple clean utterances and confirmation.
-- Wake-word and speaker thresholds are configurable internally and calibrated with real device recordings.
-- No app launch or activation callback for an unknown speaker.
-- A user-selected installed app launches after successful owner verification.
-- Clear foreground notification while microphone is active.
-- Service stops cleanly and exposes microphone/service state.
-- Audio buffers are not persisted by default.
-- Voice profile stored locally; provide reset/delete control.
-- Test logs contain timestamps, state transitions and scores, but never raw audio or voice embeddings.
-- Launch failure is visible and does not crash the listening service.
+- No Internet permission in the app manifest.
+- Audio processing is local.
+- Raw audio is held in memory only and is not written to storage.
+- Owner embeddings are encrypted with AES-GCM using an AndroidKeyStore key.
+- Encrypted profiles are bound to the SHA-256 fingerprint of the selected speaker model.
+- Provide an explicit profile deletion control.
+- Do not log raw audio or embeddings.
+- Voice verification is probabilistic; replay and voice imitation can succeed. Sensitive actions require a second factor.
 
 ## Android constraints
 
-Android background microphone access is restricted. Use a user-started microphone foreground service with the required foreground-service type and permissions for the target SDK. Do not promise automatic always-on behavior after reboot or while another app owns the microphone until verified on the target device and Android build. Starting another activity from the background is also subject to Android background-activity-launch restrictions; test the exact foreground-service/notification flow on TECNO KJ6 and use an allowed user-visible flow if direct launch is blocked.
+- Microphone monitoring is user-started through a foreground service with microphone service type and visible notification.
+- Android 13+ notification permission is requested before starting listening.
+- Android background activity launch restrictions may block direct target-app opening from a service. A notification action is provided as fallback.
+- Automatic start after reboot, unrestricted screen-off operation and battery-optimization exemptions are not claimed until tested on TECNO KJ6.
 
-## Model validation gate
+## Acceptance tests still required
 
-Do not assume every sherpa-onnx feature has a ready-made Android wrapper. First validate the exact Android KWS API/model and speaker embedding API/model available in the selected upstream release. Benchmark ARM64 CPU load, RAM, latency and battery on TECNO KJ6.
+- Build, install and run on TECNO KJ6 / Android 13 / ARM64.
+- Validate configured Russian phrases, accent variation, noise and distance.
+- Test false acceptance and false rejection with owner and non-owner recordings.
+- Calibrate threshold on device recordings.
+- Benchmark CPU, RAM, latency, thermal behavior and battery.
+- Test microphone service lifecycle, screen-off behavior and background launch policy.
+- Verify license/provenance of the selected speaker model before redistribution.
 
-## Planned public API (draft)
+## Planned public API (not frozen)
 
-- VoiceActivation.initialize(context, config)
-- VoiceActivation.enrollOwner(guidedEnrollmentSession)
-- VoiceActivation.selectTargetApp(packageName)
-- VoiceActivation.startListening()
-- VoiceActivation.stopListening()
-- VoiceActivation.setListener(listener)
+- `VoiceActivation.initialize(context, config)`
+- `VoiceActivation.enrollOwner(guidedEnrollmentSession)`
+- `VoiceActivation.selectTargetApp(packageName)`
+- `VoiceActivation.startListening()`
+- `VoiceActivation.stopListening()`
+- `VoiceActivation.setListener(listener)`
 
-Callbacks:
-- onWakeWordDetected()
-- onOwnerVerified(confidence)
-- onTargetAppLaunchSucceeded(packageName)
-- onTargetAppLaunchFailed(packageName, reason)
-- onSpeakerRejected(confidence)
-- onError(code, message)
-
-The public API is provisional until the prototype proves the underlying pipeline.
+A stable AAR API is deferred until the standalone prototype passes device validation.

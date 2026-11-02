@@ -14,12 +14,13 @@ internal class AdaptiveVad(context: Context) {
     @Volatile private var minRms = prefs.getFloat("min_rms", 0.006f).toDouble()
     @Volatile private var minPeak = prefs.getFloat("min_peak", 0.018f).toDouble()
     @Volatile private var multiplier = prefs.getFloat("noise_multiplier", 3.0f).toDouble()
+    @Volatile private var peakMultiplier = prefs.getFloat("peak_multiplier", 6.0f).toDouble()
     @Volatile private var silenceMs = prefs.getInt("silence_ms", 250)
     @Volatile private var minSpeechMs = prefs.getInt("min_speech_ms", 200)
     @Volatile private var maxSpeechMs = prefs.getInt("max_speech_ms", 5000)
 
     val startRms: Double get() = max(minRms, noiseRms * multiplier)
-    val peakThreshold: Double get() = max(minPeak, noiseRms * multiplier * 2.0)
+    val peakThreshold: Double get() = max(minPeak, noiseRms * peakMultiplier)
     val endSilenceSamples: Int get() = 16 * silenceMs
     val minSpeechSamples: Int get() = 16 * minSpeechMs
     val maxSpeechSamples: Int get() = 16 * maxSpeechMs
@@ -41,12 +42,25 @@ internal class AdaptiveVad(context: Context) {
         return true
     }
 
+    /** Apply RMS/PEAK boundaries fitted from separately labelled noise and speech recordings. */
+    fun applyFittedThresholds(measuredNoiseRms: Double, rmsThreshold: Double, fittedPeakThreshold: Double) {
+        noiseRms = measuredNoiseRms.coerceIn(0.00005, 0.25)
+        val rms = rmsThreshold.coerceIn(0.00005, 0.5)
+        val peak = fittedPeakThreshold.coerceIn(0.00005, 1.0)
+        minRms = (rms * 0.5).coerceAtLeast(0.00005)
+        minPeak = (peak * 0.5).coerceAtLeast(0.00005)
+        multiplier = (rms / noiseRms).coerceIn(0.1, 40.0)
+        peakMultiplier = (peak / noiseRms).coerceIn(0.1, 80.0)
+        save()
+    }
+
     fun save() {
         prefs.edit()
             .putFloat("noise_rms", noiseRms.toFloat())
             .putFloat("min_rms", minRms.toFloat())
             .putFloat("min_peak", minPeak.toFloat())
             .putFloat("noise_multiplier", multiplier.toFloat())
+            .putFloat("peak_multiplier", peakMultiplier.toFloat())
             .putInt("silence_ms", silenceMs)
             .putInt("min_speech_ms", minSpeechMs)
             .putInt("max_speech_ms", maxSpeechMs)
@@ -58,6 +72,7 @@ internal class AdaptiveVad(context: Context) {
         "Фоновый RMS: ${"%.6f".format(java.util.Locale.US, noiseRms)}\n" +
         "Порог старта RMS: ${"%.6f".format(java.util.Locale.US, startRms)}\n" +
         "Порог PEAK: ${"%.6f".format(java.util.Locale.US, peakThreshold)}\n" +
-        "Множитель шума: ${"%.2f".format(java.util.Locale.US, multiplier)}\n" +
+        "Множитель RMS: ${"%.2f".format(java.util.Locale.US, multiplier)}\n" +
+        "Множитель PEAK: ${"%.2f".format(java.util.Locale.US, peakMultiplier)}\n" +
         "Пауза завершения: ${silenceMs} мс; минимальная речь: ${minSpeechMs} мс; максимум фразы: ${maxSpeechMs} мс"
 }

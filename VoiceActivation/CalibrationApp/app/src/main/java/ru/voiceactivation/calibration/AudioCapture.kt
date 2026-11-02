@@ -103,6 +103,7 @@ class AudioCapture(
                 if (event.started) {
                     segmentFrames.clear()
                     preRoll.forEach { segmentFrames.add(it) }
+                    if (segmentFrames.isEmpty()) segmentFrames.add(frameCopy)
                     segmentActive = true
                 } else if (segmentActive) {
                     segmentFrames.add(frameCopy)

@@ -18,6 +18,7 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
     private static final long UI_UPDATE_INTERVAL_MS = 500L;
 
     private TextView status;
+    private TextView recognizedCommand;
     private AudioCapture capture;
     private long totalSamples;
     private long lastUiUpdateMs;
@@ -25,15 +26,39 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(28, 36, 28, 28);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
 
+        TextView title = new TextView(this);
+        title.setText("VoiceActivation-Next");
+        title.setTextSize(24);
+        root.addView(title);
+
         status = new TextView(this);
-        status.setText("VoiceActivation-Next\nМодуль 01 — AudioCapture\nГотов к проверке микрофона");
-        status.setTextSize(18);
+        status.setText("Модуль 01 — AudioCapture\nГотов к проверке микрофона");
+        status.setTextSize(16);
         root.addView(status);
+
+        TextView recognizedTitle = new TextView(this);
+        recognizedTitle.setText("Последняя распознанная фраза");
+        recognizedTitle.setTextSize(18);
+        recognizedTitle.setPadding(0, 32, 0, 8);
+        root.addView(recognizedTitle);
+
+        recognizedCommand = new TextView(this);
+        recognizedCommand.setText("Пока ничего не распознано");
+        recognizedCommand.setTextSize(22);
+        recognizedCommand.setPadding(16, 20, 16, 20);
+        recognizedCommand.setMinHeight(100);
+        recognizedCommand.setGravity(Gravity.CENTER_VERTICAL);
+        recognizedCommand.setBackgroundColor(0xFFEAEAEA);
+        root.addView(recognizedCommand,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT));
 
         Button start = new Button(this);
         start.setText("Начать захват");
@@ -90,6 +115,21 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
 
     @Override public void onError(String message, Throwable cause) {
         showStatus(message + "\n" + (cause == null ? "Неизвестная ошибка" : cause.getMessage()));
+    }
+
+    /**
+     * Вызывается распознавателем после обработки очередного речевого сегмента.
+     * Передаётся именно распознанный текст, а не идентификатор говорящего.
+     */
+    public void showRecognizedCommand(String text) {
+        String value = text == null || text.trim().isEmpty()
+                ? "Речь не распознана"
+                : text.trim();
+        runOnUiThread(() -> {
+            if (!activityDestroyed && recognizedCommand != null) {
+                recognizedCommand.setText(value);
+            }
+        });
     }
 
     private void showStatus(String text) {

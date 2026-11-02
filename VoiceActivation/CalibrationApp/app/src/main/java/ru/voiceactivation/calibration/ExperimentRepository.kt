@@ -98,7 +98,7 @@ class ExperimentRepository(context: Context) {
                 var fp = 0
                 var fn = 0
                 data.forEach { sample ->
-                    val predicted = sample.peakSnrDb >= relative && sample.maxRmsDbfs >= floor
+                    val predicted = sample.peakSnrDb >= relative.toFloat() && sample.maxRmsDbfs >= floor.toFloat()
                     when {
                         predicted && sample.speechExpected -> tp++
                         predicted && !sample.speechExpected -> fp++

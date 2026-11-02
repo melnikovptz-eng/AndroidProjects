@@ -100,7 +100,6 @@ internal object CalibrationEngine {
     fun fit(samples: List<Sample>): Result {
         val positives = samples.filter { it.expectedCommand != null }
         val unknown = samples.filter { it.expectedCommand == null && it.owner }
-        val negatives = samples.filter { it.expectedCommand == null }
         val owners = samples.filter { it.owner }
         val others = samples.filter { !it.owner }
         val counts = listOf(

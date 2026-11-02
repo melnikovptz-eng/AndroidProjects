@@ -10,6 +10,9 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import ru.voiceactivation.next.audio.AudioCapture;
 import ru.voiceactivation.next.audio.AudioCaptureConfig;
 import ru.voiceactivation.next.analysis.AcousticAnalyzer;
@@ -25,6 +28,8 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
     private final AcousticAnalyzer analyzer = new AcousticAnalyzer();
     private final SpeechDetector speechDetector = new SpeechDetector();
     private static final int SAMPLE_RATE_HZ = 16000;
+    private final List<short[]> capturedSegment = new ArrayList<>();
+    private int capturedSamples;
     private long totalSamples;
     private long lastUiUpdateMs;
     private boolean activityDestroyed;
@@ -111,9 +116,21 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
         AcousticAnalyzer.Metrics metrics = analyzer.analyze(samples, length, SAMPLE_RATE_HZ);
         SpeechDetector.Event event = speechDetector.accept(metrics);
         if (event == SpeechDetector.Event.SPEECH_STARTED) {
-            showRecognizedCommand("ГОЛОС ОБНАРУЖЕН — захватываю речевой фрагмент...");
-        } else if (event == SpeechDetector.Event.SPEECH_ENDED) {
-            showRecognizedCommand("РЕЧЕВОЙ ФРАГМЕНТ ЗАХВАЧЕН. Текст пока не распознан: Vosk ещё не подключён.");
+            capturedSegment.clear();
+            capturedSamples = 0;
+            showRecognizedCommand("ГОЛОС ОБНАРУЖЕН — идёт захват команды...");
+        }
+        if (speechDetector.isSpeaking()) {
+            short[] copy = new short[length];
+            System.arraycopy(samples, 0, copy, 0, length);
+            capturedSegment.add(copy);
+            capturedSamples += length;
+        }
+        if (event == SpeechDetector.Event.SPEECH_ENDED) {
+            double durationMs = capturedSamples * 1000.0 / SAMPLE_RATE_HZ;
+            showRecognizedCommand("ГОЛОСОВОЙ ФРАГМЕНТ ЗАХВАЧЕН: "
+                    + String.format(java.util.Locale.US, "%.0f мс", durationMs)
+                    + ". Распознанный текст появится после подключения Vosk.");
         }
         long now = SystemClock.elapsedRealtime();
         if (now - lastUiUpdateMs >= UI_UPDATE_INTERVAL_MS) {

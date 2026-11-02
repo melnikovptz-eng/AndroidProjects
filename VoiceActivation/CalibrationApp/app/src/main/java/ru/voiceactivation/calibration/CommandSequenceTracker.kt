@@ -20,6 +20,7 @@ data class CommandSequenceResult(
 class CommandSequenceTracker(private val matcher: CommandMatcher) {
     private var pendingWakeEndMs: Long? = null
     private var secondSegmentStartMs: Long? = null
+    private var latestSegmentStartMs: Long = 0L
 
     @Synchronized
     fun accept(
@@ -42,6 +43,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
         }
         if (full.wakeFound && full.actionFound) {
             pendingWakeEndMs = null
+            secondSegmentStartMs = null
             return CommandSequenceResult(
                 CommandSequenceState.INVALID_ORDER,
                 "Слова найдены, но порядок неверный",
@@ -51,7 +53,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
         }
         if (full.wakeFound) {
             pendingWakeEndMs = segmentEndMs
-            secondSegmentStartMs = null
+            secondSegmentStartMs = latestSegmentStartMs.takeIf { it > segmentEndMs }
             return CommandSequenceResult(
                 CommandSequenceState.WAKE_DETECTED_WAITING_ACTION,
                 "ЯША — ОК. ОЖИДАЮ «ПОЕХАЛИ»",
@@ -66,6 +68,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
             val elapsed = (segmentEndMs - pending).coerceAtLeast(0L)
             if (elapsed > c.secondWordTimeoutMs || gap > c.maxInterWordPauseMs) {
                 pendingWakeEndMs = null
+                secondSegmentStartMs = null
                 return CommandSequenceResult(
                     CommandSequenceState.SECOND_WORD_TIMEOUT,
                     "ВРЕМЯ ОЖИДАНИЯ ВТОРОГО СЛОВА ИСТЕКЛО"
@@ -74,6 +77,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
             val actionFound = matcher.matchAction(text, "поехали", c.actionSimilarityThreshold)
             if (actionFound) {
                 pendingWakeEndMs = null
+                secondSegmentStartMs = null
                 return CommandSequenceResult(
                     CommandSequenceState.COMPLETE_TWO_SEGMENTS,
                     "ЯША → ПОЕХАЛИ — ОК"
@@ -111,6 +115,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
 
     @Synchronized
     fun onSegmentStarted(startTimeMs: Long) {
+        latestSegmentStartMs = startTimeMs
         if (pendingWakeEndMs != null && secondSegmentStartMs == null) secondSegmentStartMs = startTimeMs
     }
 
@@ -118,5 +123,6 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
     fun reset() {
         pendingWakeEndMs = null
         secondSegmentStartMs = null
+        latestSegmentStartMs = 0L
     }
 }

@@ -12,6 +12,8 @@ import android.widget.TextView;
 
 import ru.voiceactivation.next.audio.AudioCapture;
 import ru.voiceactivation.next.audio.AudioCaptureConfig;
+import ru.voiceactivation.next.analysis.AcousticAnalyzer;
+import ru.voiceactivation.next.analysis.SpeechDetector;
 
 public final class MainActivity extends Activity implements AudioCapture.Listener {
     private static final int REQUEST_MIC = 101;
@@ -20,6 +22,9 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
     private TextView status;
     private TextView recognizedCommand;
     private AudioCapture capture;
+    private final AcousticAnalyzer analyzer = new AcousticAnalyzer();
+    private final SpeechDetector speechDetector = new SpeechDetector();
+    private static final int SAMPLE_RATE_HZ = 16000;
     private long totalSamples;
     private long lastUiUpdateMs;
     private boolean activityDestroyed;
@@ -85,6 +90,8 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
             capture = new AudioCapture(AudioCaptureConfig.defaults(), this);
         }
         totalSamples = 0L;
+        speechDetector.reset();
+        if (recognizedCommand != null) recognizedCommand.setText("Слушаю микрофон. Ожидаю голос...");
         capture.start();
     }
 
@@ -101,10 +108,22 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
 
     @Override public void onPcm(short[] samples, int length, long timestampNanos) {
         totalSamples += length;
+        AcousticAnalyzer.Metrics metrics = analyzer.analyze(samples, length, SAMPLE_RATE_HZ);
+        SpeechDetector.Event event = speechDetector.accept(metrics);
+        if (event == SpeechDetector.Event.SPEECH_STARTED) {
+            showRecognizedCommand("ГОЛОС ОБНАРУЖЕН — захватываю речевой фрагмент...");
+        } else if (event == SpeechDetector.Event.SPEECH_ENDED) {
+            showRecognizedCommand("РЕЧЕВОЙ ФРАГМЕНТ ЗАХВАЧЕН. Текст пока не распознан: Vosk ещё не подключён.");
+        }
         long now = SystemClock.elapsedRealtime();
         if (now - lastUiUpdateMs >= UI_UPDATE_INTERVAL_MS) {
             lastUiUpdateMs = now;
-            showStatus("Модуль 01 — AudioCapture\nСостояние: RECORDING"
+            showStatus("Непрерывное прослушивание: RECORDING"
+                    + "\nУровень RMS: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getRmsDbfs())
+                    + "\nПик: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getPeakDbfs())
+                    + "\nФоновый шум: " + String.format(java.util.Locale.US, "%.1f dBFS", speechDetector.getNoiseDbfs())
+                    + "\nПорог голоса: " + String.format(java.util.Locale.US, "%.1f dBFS", speechDetector.getStartThresholdDbfs())
+                    + "\nСостояние: " + (speechDetector.isSpeaking() ? "ГОЛОСОВОЙ ФРАГМЕНТ" : "ОЖИДАНИЕ РЕЧИ")
                     + "\nПолучено PCM-сэмплов: " + totalSamples);
         }
     }

@@ -20,7 +20,8 @@ class CalibrationRepository(context: Context) {
         wakeSimilarityThreshold = prefs.getFloat("wakeSimilarityThreshold", 0.72f),
         actionSimilarityThreshold = prefs.getFloat("actionSimilarityThreshold", 0.78f),
         secondWordTimeoutMs = prefs.getInt("secondWordTimeoutMs", 2500),
-        maxInterWordPauseMs = prefs.getInt("maxInterWordPauseMs", 1200)
+        maxInterWordPauseMs = prefs.getInt("maxInterWordPauseMs", 1200),
+        usePeakForTrigger = prefs.getBoolean("usePeakForTrigger", false)
     )
 
     fun save(c: CalibrationConfig) {
@@ -40,6 +41,7 @@ class CalibrationRepository(context: Context) {
             .putFloat("actionSimilarityThreshold", c.actionSimilarityThreshold)
             .putInt("secondWordTimeoutMs", c.secondWordTimeoutMs)
             .putInt("maxInterWordPauseMs", c.maxInterWordPauseMs)
+            .putBoolean("usePeakForTrigger", c.usePeakForTrigger)
             .apply()
     }
 }

@@ -244,12 +244,16 @@ class CalibrationActivity : Activity() {
                             runOnUiThread { transcriptView.text = "СЕГМЕНТ ОТБРОШЕН: длительность ${pcm.size / 16} ms меньше ${config.minSpeechMs} ms" }
                             return@Thread
                         }
-                        val recognized = vosk.recognizeSegment(pcm)?.text.orEmpty()
+                        val recognitionStartedAt = android.os.SystemClock.elapsedRealtime()
+                        val recognized = vosk.recognizeSegment(pcm) { partial ->
+                            runOnUiThread { transcriptView.text = "РАСПОЗНАЁТСЯ: ${partial.text}" }
+                        }?.text.orEmpty()
+                        val latencyMs = android.os.SystemClock.elapsedRealtime() - recognitionStartedAt
                         val sequence = commandSequence.accept(recognized, segment.startTimeMs, segment.endTimeMs, config)
                         runOnUiThread {
                             transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
                                 "КОМАНДА: ${sequence.message}\\n" +
-                                "СТАТУС: ${sequence.state}"
+                                "СТАТУС: ${sequence.state} · Vosk: ${latencyMs} ms"
                         }
                     }, "Vosk-Segment-Recognition").start()
                 }

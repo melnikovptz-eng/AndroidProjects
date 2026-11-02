@@ -34,6 +34,7 @@ class MainActivity : Activity() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val testActive = AtomicBoolean(false)
+    private val microphoneBusy = AtomicBoolean(false)
     @Volatile private var testRecorder: AudioRecord? = null
     @Volatile private var testStartedAt = 0L
     @Volatile private var testDeadline = 0L
@@ -465,6 +466,10 @@ class MainActivity : Activity() {
             ui("Остановите тест или боевой режим перед записью калибровки VAD.")
             return
         }
+        if (!microphoneBusy.compareAndSet(false, true)) {
+            ui("Микрофон уже занят другой записью.")
+            return
+        }
         ui(if (speech) "Запись речи для VAD: произнесите несколько коротких фраз с обычными паузами между ними за 4 секунды."
             else "Запись фонового шума для VAD: 4 секунды молчите.")
         thread(name = "VoiceActivationVadCalibration") {
@@ -516,6 +521,7 @@ class MainActivity : Activity() {
                         it.release()
                     }
                 } catch (_: Exception) { }
+                microphoneBusy.set(false)
             }
         }
     }
@@ -608,6 +614,14 @@ class MainActivity : Activity() {
             ui("Разрешите доступ к микрофону.")
             return
         }
+        if (testActive.get()) {
+            ui("Остановите проверку или боевой режим перед записью образца.")
+            return
+        }
+        if (!microphoneBusy.compareAndSet(false, true)) {
+            ui("Микрофон уже занят другой записью.")
+            return
+        }
         ui("Слушаю 2,5 секунды…")
         thread(name = "VoiceActivationCapture") {
             try {
@@ -646,6 +660,8 @@ class MainActivity : Activity() {
                 done(audio)
             } catch (e: Exception) {
                 ui("Ошибка микрофона: " + (e.message ?: e.javaClass.simpleName))
+            } finally {
+                microphoneBusy.set(false)
             }
         }
     }

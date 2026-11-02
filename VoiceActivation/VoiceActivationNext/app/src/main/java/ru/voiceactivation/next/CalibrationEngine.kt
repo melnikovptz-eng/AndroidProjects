@@ -76,21 +76,31 @@ internal object CalibrationEngine {
 
     fun summary(samples: List<Sample>): String {
         val positives = samples.count { it.expectedCommand != null }
-        val unknown = samples.size - positives
+        // Unknown phrases must be spoken by the owner; samples from another speaker
+        // are counted separately and must not satisfy this requirement.
+        val unknown = samples.count { it.expectedCommand == null && it.owner }
         val owners = samples.count { it.owner }
-        val others = samples.size - owners
-        return "КАЛИБРОВОЧНЫЕ ДАННЫЕ\n" +
-            "Правильные команды: $positives / минимум $MIN_PER_CLASS\n" +
-            "Посторонняя речь: $unknown / минимум $MIN_PER_CLASS\n" +
-            "Голос владельца: $owners / минимум $MIN_PER_CLASS\n" +
-            "Другие голоса: $others / минимум $MIN_PER_CLASS\n" +
-            "Всего сохранено: ${samples.size}\n" +
+        val others = samples.count { !it.owner }
+        val perCommand = samples.filter { it.expectedCommand != null }
+            .groupBy { it.expectedCommand!! }
+            .toSortedMap()
+            .entries.joinToString("\\n") { (name, rows) ->
+                "  $name: ${rows.size} / минимум $MIN_PER_COMMAND"
+            }
+        return "КАЛИБРОВОЧНЫЕ ДАННЫЕ\\n" +
+            "Правильные команды: $positives / минимум $MIN_PER_CLASS\\n" +
+            "По командам:\\n" + (perCommand.ifBlank { "  пока нет образцов" }) + "\\n" +
+            "Посторонняя речь владельца: $unknown / минимум $MIN_PER_CLASS\\n" +
+            "Голос владельца: $owners / минимум $MIN_PER_CLASS\\n" +
+            "Другие голоса: $others / минимум $MIN_PER_CLASS\\n" +
+            "Всего сохранено: ${samples.size}\\n" +
             "Сырые аудиозаписи не сохраняются."
     }
 
     fun fit(samples: List<Sample>): Result {
         val positives = samples.filter { it.expectedCommand != null }
-        val unknown = samples.filter { it.expectedCommand == null }
+        val unknown = samples.filter { it.expectedCommand == null && it.owner }
+        val negatives = samples.filter { it.expectedCommand == null }
         val owners = samples.filter { it.owner }
         val others = samples.filter { !it.owner }
         val counts = listOf(

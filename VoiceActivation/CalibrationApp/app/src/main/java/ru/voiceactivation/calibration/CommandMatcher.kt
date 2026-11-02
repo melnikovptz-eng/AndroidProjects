@@ -25,40 +25,62 @@ class CommandMatcher(
         .trim()
         .replace(Regex("\\s+"), " ")
 
-    fun match(text: String, action: String? = "поехали", wakeLimit: Float = wakeThreshold, actionLimit: Float = actionThreshold): CommandMatch {
+    fun match(
+        text: String,
+        action: String? = "поехали",
+        wakeLimit: Float = wakeThreshold,
+        actionLimit: Float = actionThreshold
+    ): CommandMatch {
         val normalized = normalize(text)
         val tokens = normalized.split(' ').filter { it.isNotBlank() }
-        var bestWake: Pair<String, Float>? = null
-        var bestAction: Pair<String, Float>? = null
+        var bestWakeToken: String? = null
+        var bestWakeIndex = -1
+        var wakeScore = 0f
+        var bestActionToken: String? = null
+        var bestActionIndex = -1
+        var actionScore = 0f
 
-        for (token in tokens) {
-            val wake = wakeVariants.map { it to similarity(token, it) }.maxByOrNull { it.second }
-            if (wake != null && (bestWake == null || wake.second > bestWake!!.second)) bestWake = token to wake.second
+        tokens.forEachIndexed { index, token ->
+            val wakeCandidate = wakeVariants.maxOfOrNull { similarity(token, it) } ?: 0f
+            if (wakeCandidate > wakeScore) {
+                wakeScore = wakeCandidate
+                bestWakeToken = token
+                bestWakeIndex = index
+            }
             if (action != null) {
                 val candidate = similarity(token, normalize(action))
-                if (bestAction == null || candidate > bestAction!!.second) bestAction = token to candidate
+                if (candidate > actionScore) {
+                    actionScore = candidate
+                    bestActionToken = token
+                    bestActionIndex = index
+                }
             }
         }
-        val wakeScore = bestWake?.second ?: 0f
-        val actionScore = bestAction?.second ?: 0f
-        val wakeOk = bestWake != null && wakeScore >= wakeLimit
-        val actionOk = action == null || (bestAction != null && actionScore >= actionLimit)
+
+        val wakeOk = bestWakeToken != null && wakeScore >= wakeLimit
+        val actionOk = action == null || (bestActionToken != null && actionScore >= actionLimit)
+        val correctOrder = action == null || bestWakeIndex < bestActionIndex
         return CommandMatch(
             wakeFound = wakeOk,
-            actionFound = actionOk && action != null,
-            complete = wakeOk && actionOk,
-            wakeToken = if (wakeOk) bestWake?.first else null,
-            actionToken = if (actionOk && action != null) bestAction?.first else null,
+            actionFound = action != null && actionOk,
+            complete = wakeOk && actionOk && correctOrder,
+            wakeToken = if (wakeOk) bestWakeToken else null,
+            actionToken = if (action != null && actionOk) bestActionToken else null,
             wakeSimilarity = wakeScore,
             actionSimilarity = actionScore,
             normalizedText = normalized
         )
     }
 
+    fun matchAction(text: String, action: String = "поехали", threshold: Float = actionThreshold): Boolean {
+        val target = normalize(action)
+        return normalize(text).split(' ').any { it.isNotBlank() && similarity(it, target) >= threshold }
+    }
+
     private fun similarity(a: String, b: String): Float {
         if (a == b) return 1f
         if (a.isEmpty() || b.isEmpty()) return 0f
-        val previous = IntArray(b.length + 1) { it }
+        var previous = IntArray(b.length + 1) { it }
         var current = IntArray(b.length + 1)
         for (i in a.indices) {
             current[0] = i + 1
@@ -70,9 +92,9 @@ class CommandMatcher(
                     previous[j] + cost
                 )
             }
-            val tmp = previous.copyOf()
-            for (j in current.indices) previous[j] = current[j]
-            current = tmp
+            val temp = previous
+            previous = current
+            current = temp
         }
         val distance = previous[b.length]
         return (1f - distance.toFloat() / max(a.length, b.length)).coerceIn(0f, 1f)

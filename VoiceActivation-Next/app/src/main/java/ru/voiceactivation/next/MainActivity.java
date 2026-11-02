@@ -3,6 +3,8 @@ package ru.voiceactivation.next;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -17,14 +19,22 @@ import ru.voiceactivation.next.audio.AudioCapture;
 import ru.voiceactivation.next.audio.AudioCaptureConfig;
 import ru.voiceactivation.next.analysis.AcousticAnalyzer;
 import ru.voiceactivation.next.analysis.SpeechDetector;
+import ru.voiceactivation.next.asr.VoskEngine;
+import ru.voiceactivation.next.asr.VoskModelImporter;
+import ru.voiceactivation.next.asr.WakeWordDetector;
 
 public final class MainActivity extends Activity implements AudioCapture.Listener {
     private static final int REQUEST_MIC = 101;
+    private static final int REQUEST_VOSK_MODEL = 102;
     private static final long UI_UPDATE_INTERVAL_MS = 500L;
 
     private TextView status;
     private TextView recognizedCommand;
     private AudioCapture capture;
+    private Button startButton;
+    private final VoskEngine voskEngine = new VoskEngine(SAMPLE_RATE_HZ);
+    private final WakeWordDetector wakeWordDetector = new WakeWordDetector();
+    private volatile boolean modelLoading;
     private final AcousticAnalyzer analyzer = new AcousticAnalyzer();
     private final SpeechDetector speechDetector = new SpeechDetector();
     private static final int SAMPLE_RATE_HZ = 16000;
@@ -128,9 +138,25 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
         }
         if (event == SpeechDetector.Event.SPEECH_ENDED) {
             double durationMs = capturedSamples * 1000.0 / SAMPLE_RATE_HZ;
-            showRecognizedCommand("ГОЛОСОВОЙ ФРАГМЕНТ ЗАХВАЧЕН: "
+            short[] utterance = flattenCapturedSegment();
+            showRecognizedCommand("Фрагмент захвачен (" 
                     + String.format(java.util.Locale.US, "%.0f мс", durationMs)
-                    + ". Распознанный текст появится после подключения Vosk.");
+                    + "). Распознаю...");
+            try {
+                String recognized = voskEngine.recognize(utterance);
+                if (recognized.isEmpty()) {
+                    showRecognizedCommand("Vosk: речь не распознана.");
+                } else {
+                    showRecognizedCommand(recognized);
+                    if (wakeWordDetector.matches(recognized)) {
+                        showStatus("КОМАНДА «ЯША» ОБНАРУЖЕНА. Распознано: " + recognized);
+                    } else {
+                        showStatus("Речь распознана, команда «Яша» не обнаружена.");
+                    }
+                }
+            } catch (Exception error) {
+                showRecognizedCommand("Ошибка Vosk: " + error.getMessage());
+            }
         }
         long now = SystemClock.elapsedRealtime();
         if (now - lastUiUpdateMs >= UI_UPDATE_INTERVAL_MS) {
@@ -143,6 +169,18 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
                     + "\nСостояние: " + (speechDetector.isSpeaking() ? "ГОЛОСОВОЙ ФРАГМЕНТ" : "ОЖИДАНИЕ РЕЧИ")
                     + "\nПолучено PCM-сэмплов: " + totalSamples);
         }
+    }
+
+    private short[] flattenCapturedSegment() {
+        short[] result = new short[capturedSamples];
+        int offset = 0;
+        for (short[] part : capturedSegment) {
+            int count = Math.min(part.length, result.length - offset);
+            if (count <= 0) break;
+            System.arraycopy(part, 0, result, offset, count);
+            offset += count;
+        }
+        return result;
     }
 
     @Override public void onStateChanged(AudioCapture.State state) {

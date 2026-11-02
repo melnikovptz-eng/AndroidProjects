@@ -2,6 +2,7 @@ package ru.voiceactivation.calibration
 
 import android.Manifest
 import android.app.Activity
+import android.app.Dialog
 import android.content.pm.PackageManager
 import android.content.Intent
 import androidx.documentfile.provider.DocumentFile
@@ -54,6 +55,9 @@ class CalibrationActivity : Activity() {
     private var ends = 0
     private var acceptedSegments = 0
     private var lastFrameAt = 0L
+    private var monitorDialog: Dialog? = null
+    private var monitorContent: TextView? = null
+    private var lastSequenceState = CommandSequenceState.NO_MATCH
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +121,10 @@ class CalibrationActivity : Activity() {
         transcriptView = label("РАСПОЗНАННЫЙ ТЕКСТ: —\\nКОМАНДА: —", 16f, true)
         transcriptView.setPadding(0, dp(8), 0, dp(8))
         content.addView(transcriptView)
+        content.addView(Button(this).apply {
+            text = "ОТКРЫТЬ ОКНО МОНИТОРИНГА КОМАНД"
+            setOnClickListener { showCommandMonitor() }
+        })
 
         content.addView(label("ПАРАМЕТРЫ ТРИГГЕРА", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
         addSlider(content, "Превышение шума для старта", 0f, 30f, config.relativeThresholdDb, " %.1f dB", "На сколько dB сигнал должен быть громче фонового шума. Выше — меньше ложных запусков, но тихую речь легче пропустить. Ниже — выше чувствительность, но больше реакций на шум.") { config = config.copy(relativeThresholdDb = it) }
@@ -220,6 +228,75 @@ class CalibrationActivity : Activity() {
         parent.addView(seek)
     }
 
+    private fun showCommandMonitor() {
+        val dialog = Dialog(this)
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+            setBackgroundColor(0xfff5f7fa.toInt())
+        }
+        panel.addView(label("МОНИТОРИНГ ГОЛОСОВЫХ КОМАНД", 21f, true))
+        monitorContent = label("", 17f, false).apply {
+            setPadding(0, dp(14), 0, dp(14))
+            panel.addView(this, LinearLayout.LayoutParams(-1, 0, 1f))
+        }
+        panel.addView(Button(this).apply {
+            text = "ЗАКРЫТЬ МОНИТОР"
+            setOnClickListener { dialog.dismiss() }
+        })
+        dialog.setContentView(panel)
+        dialog.show()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setLayout(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            android.view.WindowManager.LayoutParams.MATCH_PARENT
+        )
+        monitorDialog = dialog
+        refreshCommandMonitor()
+        dialog.setOnDismissListener {
+            monitorDialog = null
+            monitorContent = null
+        }
+    }
+
+    private fun refreshCommandMonitor() {
+        val output = monitorContent ?: return
+        val state = when (lastSequenceState) {
+            CommandSequenceState.COMPLETE_SAME_SEGMENT,
+            CommandSequenceState.COMPLETE_TWO_SEGMENTS -> "ОК — ОБРАЩЕНИЕ И ДЕЙСТВИЕ НАЙДЕНЫ"
+            CommandSequenceState.WAKE_DETECTED_WAITING_ACTION -> "НЕ ОК — ОБРАЩЕНИЕ НАЙДЕНО, ОЖИДАЕТСЯ ДЕЙСТВИЕ"
+            CommandSequenceState.ACTION_WITHOUT_WAKE -> "НЕ ОК — ДЕЙСТВИЕ ЕСТЬ, ОБРАЩЕНИЕ НЕ НАЙДЕНО"
+            CommandSequenceState.INVALID_ORDER -> "НЕ ОК — НЕВЕРНЫЙ ПОРЯДОК СЛОВ"
+            CommandSequenceState.SECOND_WORD_TIMEOUT -> "НЕ ОК — ИСТЁК ТАЙМ-АУТ ВТОРОГО СЛОВА"
+            CommandSequenceState.NO_MATCH -> "НЕ ОК — КОМАНДА НЕ ОБНАРУЖЕНА"
+        }
+        val wake = when (lastSequenceState) {
+            CommandSequenceState.COMPLETE_SAME_SEGMENT,
+            CommandSequenceState.COMPLETE_TWO_SEGMENTS,
+            CommandSequenceState.WAKE_DETECTED_WAITING_ACTION,
+            CommandSequenceState.INVALID_ORDER,
+            CommandSequenceState.SECOND_WORD_TIMEOUT -> "НАЙДЕНО"
+            else -> "НЕ НАЙДЕНО"
+        }
+        val action = when (lastSequenceState) {
+            CommandSequenceState.COMPLETE_SAME_SEGMENT,
+            CommandSequenceState.COMPLETE_TWO_SEGMENTS,
+            CommandSequenceState.INVALID_ORDER -> "НАЙДЕНО"
+            CommandSequenceState.WAKE_DETECTED_WAITING_ACTION -> "ОЖИДАЕТСЯ"
+            CommandSequenceState.ACTION_WITHOUT_WAKE -> "НАЙДЕНО, НО НЕТ ОБРАЩЕНИЯ"
+            CommandSequenceState.SECOND_WORD_TIMEOUT,
+            CommandSequenceState.NO_MATCH -> "НЕ НАЙДЕНО"
+        }
+        val segment = if (status.text.contains("СЕГМЕНТ НАЧАЛСЯ")) "ЗАПИСЫВАЕТСЯ" else "НЕТ АКТИВНОГО СЕГМЕНТА"
+        output.text = "МИКРОФОН: ${if (capture?.isRunning() == true) "СЛУШАЕТ" else "ОСТАНОВЛЕН"}\\n\\n" +
+            "УРОВЕНЬ ЗВУКА\\n${values.text}\\n\\n" +
+            "РЕЧЕВОЙ СЕГМЕНТ: $segment\\n\\n" +
+            "РАСПОЗНАННЫЙ ТЕКСТ\\n${transcriptView.text}\\n\\n" +
+            "ОБРАЩЕНИЕ «ЯША»: $wake\\n" +
+            "ДЕЙСТВИЕ «ПОЕХАЛИ»: $action\\n\\n" +
+            "ИТОГ: $state"
+    }
+
     private fun toggleCapture() {
         if (capture?.isRunning() == true) {
             capture?.stop()
@@ -254,15 +331,20 @@ class CalibrationActivity : Activity() {
                         }
                         val recognitionStartedAt = android.os.SystemClock.elapsedRealtime()
                         val recognized = vosk.recognizeSegment(pcm) { partial ->
-                            runOnUiThread { transcriptView.text = "РАСПОЗНАЁТСЯ: ${partial.text}" }
+                            runOnUiThread {
+                                transcriptView.text = "РАСПОЗНАЁТСЯ: ${partial.text}"
+                                refreshCommandMonitor()
+                            }
                         }?.text.orEmpty()
                         val latencyMs = android.os.SystemClock.elapsedRealtime() - recognitionStartedAt
                         experiments.addLatency(latencyMs)
                         val sequence = commandSequence.accept(recognized, segment.startTimeMs, segment.endTimeMs, config)
                         runOnUiThread {
+                            lastSequenceState = sequence.state
                             transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
                                 "КОМАНДА: ${sequence.message}\\n" +
                                 "СТАТУС: ${sequence.state} · Vosk: ${latencyMs} ms"
+                            refreshCommandMonitor()
                         }
                     }, "Vosk-Segment-Recognition").start()
                 }
@@ -280,6 +362,7 @@ class CalibrationActivity : Activity() {
         if (capture?.isRunning() != true) return
         if (commandSequence.expire(android.os.SystemClock.elapsedRealtime(), config)) {
             transcriptView.text = "КОМАНДА НЕ ЗАВЕРШЕНА: истекло время ожидания второго слова"
+            lastSequenceState = CommandSequenceState.SECOND_WORD_TIMEOUT
         }
         values.text = String.format(
             Locale.US,
@@ -323,6 +406,7 @@ class CalibrationActivity : Activity() {
             }
         }
         lastFrameAt = System.currentTimeMillis()
+        refreshCommandMonitor()
     }
 
     private fun markSample(speech: Boolean) {

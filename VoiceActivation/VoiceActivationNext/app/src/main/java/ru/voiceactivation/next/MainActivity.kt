@@ -62,6 +62,7 @@ class MainActivity : Activity() {
         runOnUiThread { status.text = s }
     }
 
+    @Synchronized
     private fun appendResult(s: String) {
         getSharedPreferences("battle_journal", MODE_PRIVATE).edit()
             .putString("entries", (getSharedPreferences("battle_journal", MODE_PRIVATE).getString("entries", "") + "\n" + s).takeLast(24000))

@@ -13,7 +13,8 @@ data class CalibrationSample(
     val capturedRelativeThresholdDb: Float,
     val capturedAbsoluteFloorDbfs: Float,
     val capturedHysteresisDb: Float,
-    val capturedMinTriggerMs: Int
+    val capturedMinTriggerMs: Int,
+    val capturedUsePeakForTrigger: Boolean
 )
 
 data class ThresholdRecommendation(
@@ -48,7 +49,8 @@ class ExperimentRepository(context: Context) {
                         capturedRelativeThresholdDb = o.optDouble("capturedRelativeThresholdDb", 10.0).toFloat(),
                         capturedAbsoluteFloorDbfs = o.optDouble("capturedAbsoluteFloorDbfs", -48.0).toFloat(),
                         capturedHysteresisDb = o.optDouble("capturedHysteresisDb", 4.0).toFloat(),
-                        capturedMinTriggerMs = o.optInt("capturedMinTriggerMs", 120)
+                        capturedMinTriggerMs = o.optInt("capturedMinTriggerMs", 120),
+                        capturedUsePeakForTrigger = o.optBoolean("capturedUsePeakForTrigger", false)
                     )
                 )
             }
@@ -59,7 +61,7 @@ class ExperimentRepository(context: Context) {
         val all = samples().toMutableList()
         all += CalibrationSample(
             System.currentTimeMillis(), snr, maxRms, speechExpected, durationMs.coerceAtLeast(1L),
-            config.relativeThresholdDb, config.absoluteFloorDbfs, config.hysteresisDb, config.minTriggerMs
+            config.relativeThresholdDb, config.absoluteFloorDbfs, config.hysteresisDb, config.minTriggerMs, config.usePeakForTrigger
         )
         val array = JSONArray()
         all.takeLast(2000).forEach { s ->
@@ -72,7 +74,8 @@ class ExperimentRepository(context: Context) {
                 .put("capturedRelativeThresholdDb", s.capturedRelativeThresholdDb.toDouble())
                 .put("capturedAbsoluteFloorDbfs", s.capturedAbsoluteFloorDbfs.toDouble())
                 .put("capturedHysteresisDb", s.capturedHysteresisDb.toDouble())
-                .put("capturedMinTriggerMs", s.capturedMinTriggerMs))
+                .put("capturedMinTriggerMs", s.capturedMinTriggerMs)
+                .put("capturedUsePeakForTrigger", s.capturedUsePeakForTrigger))
         }
         prefs.edit().putString("samples", array.toString()).apply()
     }
@@ -132,7 +135,8 @@ class ExperimentRepository(context: Context) {
                 .put("capturedRelativeThresholdDb", s.capturedRelativeThresholdDb.toDouble())
                 .put("capturedAbsoluteFloorDbfs", s.capturedAbsoluteFloorDbfs.toDouble())
                 .put("capturedHysteresisDb", s.capturedHysteresisDb.toDouble())
-                .put("capturedMinTriggerMs", s.capturedMinTriggerMs))
+                .put("capturedMinTriggerMs", s.capturedMinTriggerMs)
+                .put("capturedUsePeakForTrigger", s.capturedUsePeakForTrigger))
         }
         return JSONObject().put("schemaVersion", 1).put("samples", array).toString(2)
     }
@@ -153,7 +157,8 @@ class ExperimentRepository(context: Context) {
                 .put("capturedRelativeThresholdDb", item.optDouble("capturedRelativeThresholdDb", 10.0))
                 .put("capturedAbsoluteFloorDbfs", item.optDouble("capturedAbsoluteFloorDbfs", -48.0))
                 .put("capturedHysteresisDb", item.optDouble("capturedHysteresisDb", 4.0))
-                .put("capturedMinTriggerMs", item.optInt("capturedMinTriggerMs", 120)))
+                .put("capturedMinTriggerMs", item.optInt("capturedMinTriggerMs", 120))
+                .put("capturedUsePeakForTrigger", item.optBoolean("capturedUsePeakForTrigger", false)))
         }
         prefs.edit().putString("samples", output.toString()).apply()
     }

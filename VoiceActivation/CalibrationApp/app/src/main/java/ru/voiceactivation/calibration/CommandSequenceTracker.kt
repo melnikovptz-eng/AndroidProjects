@@ -82,6 +82,9 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
             )
         }
 
+        if (matcher.matchAction(text, "поехали", c.actionSimilarityThreshold)) {
+            return CommandSequenceResult(CommandSequenceState.ACTION_WITHOUT_WAKE, "ДЕЙСТВИЕ ЕСТЬ, ОБРАЩЕНИЕ «ЯША» НЕ НАЙДЕНО")
+        }
         return CommandSequenceResult(CommandSequenceState.NO_MATCH, "КОМАНДА НЕ ОБНАРУЖЕНА")
     }
 

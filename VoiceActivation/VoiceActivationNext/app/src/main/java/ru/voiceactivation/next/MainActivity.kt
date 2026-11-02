@@ -145,7 +145,15 @@ class MainActivity : Activity() {
             runCalibration()
         }
 
-        button("Измерить фоновый шум (4 секунды)") { calibrateNoise() }
+        button("VAD: записать фоновый шум (4 секунды)") { recordVadSample(false) }
+
+        button("VAD: записать речь (4 секунды)") { recordVadSample(true) }
+
+        button("VAD: подобрать пороги по записям") { runVadCalibration() }
+
+        button("Показать данные калибровки VAD") {
+            ui(VadCalibrationEngine.summary(VadCalibrationEngine.load(this)))
+        }
 
         button("Показать параметры обнаружения речи") { ui(adaptiveVad.summary()) }
 
@@ -447,18 +455,19 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun calibrateNoise() {
+    private fun recordVadSample(speech: Boolean) {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
             ui("Разрешите доступ к микрофону.")
             return
         }
         if (testActive.get()) {
-            ui("Остановите тест или боевой режим перед измерением шума.")
+            ui("Остановите тест или боевой режим перед записью калибровки VAD.")
             return
         }
-        ui("Измерение фонового шума: 4 секунды. Не говорите и не трогайте телефон.")
-        thread(name = "VoiceActivationNoiseCalibration") {
+        ui(if (speech) "Запись речи для VAD: говорите непрерывно 4 секунды."
+            else "Запись фонового шума для VAD: 4 секунды молчите.")
+        thread(name = "VoiceActivationVadCalibration") {
             var recorder: AudioRecord? = null
             try {
                 val rate = SAMPLE_RATE
@@ -472,26 +481,34 @@ class MainActivity : Activity() {
                 check(recorder.state == AudioRecord.STATE_INITIALIZED) { "Не удалось открыть микрофон." }
                 recorder.startRecording()
                 val frame = ShortArray(FRAME_SAMPLES)
-                val values = ArrayList<Double>(200)
+                val values = ArrayList<VadCalibrationEngine.Frame>(200)
                 val until = SystemClock.elapsedRealtime() + 4000L
                 while (SystemClock.elapsedRealtime() < until) {
                     val n = recorder.read(frame, 0, frame.size)
                     if (n <= 0) continue
                     var sum = 0.0
+                    var peak = 0.0
                     for (i in 0 until n) {
-                        val v = frame[i] / 32768.0
-                        sum += v * v
+                        val value = frame[i] / 32768.0
+                        sum += value * value
+                        peak = maxOf(peak, abs(value))
                     }
-                    values.add(sqrt(sum / n))
+                    values.add(VadCalibrationEngine.Frame(sqrt(sum / n), peak))
                 }
-                check(values.size >= 20) { "Недостаточно аудиоданных для измерения шума." }
-                val sorted = values.sorted()
-                val measured = sorted[(sorted.size * 0.8).toInt().coerceAtMost(sorted.lastIndex)]
-                check(adaptiveVad.calibrateNoise(measured)) { "Некорректное измерение фонового шума." }
-                adaptiveVad.save()
-                ui("Фоновый шум измерен и сохранён.\\n" + adaptiveVad.summary())
+                check(values.size >= 100) { "Недостаточно аудиоданных для калибровочной сессии." }
+                if (!speech) {
+                    val sorted = values.map { it.rms }.sorted()
+                    val measured = sorted[(sorted.size * 0.8).toInt().coerceAtMost(sorted.lastIndex)]
+                    check(adaptiveVad.calibrateNoise(measured)) { "Некорректное измерение шума." }
+                    adaptiveVad.save()
+                }
+                VadCalibrationEngine.append(this, speech, values)
+                ui(
+                    (if (speech) "Запись речи сохранена. " else "Запись шума сохранена. ") +
+                        VadCalibrationEngine.summary(VadCalibrationEngine.load(this))
+                )
             } catch (e: Exception) {
-                ui("Ошибка калибровки шума: " + (e.message ?: e.javaClass.simpleName))
+                ui("Ошибка калибровки VAD: " + (e.message ?: e.javaClass.simpleName))
             } finally {
                 try {
                     recorder?.let {
@@ -501,6 +518,23 @@ class MainActivity : Activity() {
                 } catch (_: Exception) { }
             }
         }
+    }
+
+    private fun runVadCalibration() {
+        val result = VadCalibrationEngine.fit(VadCalibrationEngine.load(this))
+        if (!result.success) {
+            ui("КАЛИБРОВКА VAD НЕ ВЫПОЛНЕНА\\n" + result.message)
+            return
+        }
+        adaptiveVad.applyFittedThresholds(result.noiseRms, result.rmsThreshold, result.peakThreshold)
+        ui(
+            "КАЛИБРОВКА VAD ЗАВЕРШЕНА\\n" +
+                "Фоновый RMS: " + fmt(result.noiseRms) + "\\n" +
+                "Порог RMS: " + fmt(result.rmsThreshold) + "\\n" +
+                "Порог PEAK: " + fmt(result.peakThreshold) + "\\n" +
+                "Точность на независимых записях: " + fmt(result.validationAccuracy * 100) + "%\\n" +
+                "Сессии: шум " + result.noiseSessions + ", речь " + result.speechSessions + ". Пороги сохранены."
+        )
     }
 
     private fun recordCalibrationSample(expectedCommand: String?, owner: Boolean) {

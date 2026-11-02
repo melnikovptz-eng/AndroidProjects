@@ -121,18 +121,24 @@ internal object CalibrationEngine {
                 "\nЗаписывайте правильные команды своим голосом, посторонние фразы своим голосом и образцы другого говорящего.")
         }
 
-        // Keep a deterministic hold-out subset from every class; no sample used for fitting
-        // is reused for validation in its corresponding class.
-        val validationSet = linkedSetOf<Sample>()
-        commandGroups.values.forEach { group ->
-            validationSet.addAll(group.takeLast(max(1, ceil(group.size * 0.2).toInt())))
+        // Select validation rows by their original index, not data-class equality:
+        // two independently recorded examples can legitimately have identical metrics.
+        val indexed = samples.withIndex().toList()
+        val validationIndices = linkedSetOf<Int>()
+        val indexedCommandGroups = indexed.filter { it.value.expectedCommand != null }
+            .groupBy { it.value.expectedCommand ?: "" }
+        indexedCommandGroups.values.forEach { group ->
+            validationIndices.addAll(group.takeLast(max(1, ceil(group.size * 0.2).toInt())).map { it.index })
         }
-        listOf(unknown, owners, others).forEach { group ->
+        val indexedUnknown = indexed.filter { it.value.expectedCommand == null && it.value.owner }
+        val indexedOwners = indexed.filter { it.value.owner }
+        val indexedOthers = indexed.filter { !it.value.owner }
+        listOf(indexedUnknown, indexedOwners, indexedOthers).forEach { group ->
             val holdoutCount = max(2, ceil(group.size * 0.2).toInt())
-            validationSet.addAll(group.takeLast(holdoutCount))
+            validationIndices.addAll(group.takeLast(holdoutCount).map { it.index })
         }
-        val validation = samples.filter { it in validationSet }
-        val training = samples.filter { it !in validationSet }
+        val validation = indexed.filter { it.index in validationIndices }.map { it.value }
+        val training = indexed.filter { it.index !in validationIndices }.map { it.value }
         val trainPos = training.filter { it.expectedCommand != null }
         val trainNeg = training.filter { it.expectedCommand == null }
         val trainOwners = training.filter { it.owner }

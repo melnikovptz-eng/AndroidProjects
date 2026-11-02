@@ -80,7 +80,19 @@ class ExperimentRepository(context: Context) {
         prefs.edit().putString("samples", array.toString()).apply()
     }
 
-    fun clear() { prefs.edit().remove("samples").apply() }
+    fun latencies(): List<Long> {
+        val array = JSONArray(prefs.getString("latencies", "[]") ?: "[]")
+        return buildList { for (i in 0 until array.length()) add(array.optLong(i)) }
+    }
+
+    fun addLatency(valueMs: Long) {
+        val all = (latencies() + valueMs.coerceAtLeast(0L)).takeLast(2000)
+        val array = JSONArray()
+        all.forEach { array.put(it) }
+        prefs.edit().putString("latencies", array.toString()).apply()
+    }
+
+    fun clear() { prefs.edit().remove("samples").remove("latencies").apply() }
 
     fun evaluate(config: CalibrationConfig): ExperimentMetrics {
         val c = config.normalized()
@@ -96,7 +108,7 @@ class ExperimentRepository(context: Context) {
             }
         }
         val backgroundMinutes = data.filterNot { it.speechExpected }.sumOf { it.durationMs } / 60_000.0
-        return ExperimentMetrics(tp, fp, fn, tn, backgroundMinutes, emptyList())
+        return ExperimentMetrics(tp, fp, fn, tn, backgroundMinutes, latencies())
     }
 
     fun recommend(usePeakForTrigger: Boolean): ThresholdRecommendation {
@@ -155,7 +167,7 @@ class ExperimentRepository(context: Context) {
                 .put("capturedMinTriggerMs", s.capturedMinTriggerMs)
                 .put("capturedUsePeakForTrigger", s.capturedUsePeakForTrigger))
         }
-        return JSONObject().put("schemaVersion", 1).put("samples", array).toString(2)
+        return JSONObject().put("schemaVersion", 1).put("samples", array).put("latencies", JSONArray(latencies())).toString(2)
     }
 
     fun importJson(json: String) {
@@ -177,6 +189,9 @@ class ExperimentRepository(context: Context) {
                 .put("capturedMinTriggerMs", item.optInt("capturedMinTriggerMs", 120))
                 .put("capturedUsePeakForTrigger", item.optBoolean("capturedUsePeakForTrigger", false)))
         }
-        prefs.edit().putString("samples", output.toString()).apply()
+        val latencyInput = root.optJSONArray("latencies") ?: JSONArray()
+        val latencyOutput = JSONArray()
+        for (i in 0 until latencyInput.length()) latencyOutput.put(latencyInput.optLong(i))
+        prefs.edit().putString("samples", output.toString()).putString("latencies", latencyOutput.toString()).apply()
     }
 }

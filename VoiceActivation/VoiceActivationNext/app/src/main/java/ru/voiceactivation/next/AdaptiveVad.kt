@@ -54,10 +54,10 @@ internal class AdaptiveVad(context: Context) {
     }
 
     fun summary(): String =
-        "АДАПТИВНЫЙ VAD\\n" +
-        "Фоновый RMS: ${"%.6f".format(java.util.Locale.US, noiseRms)}\\n" +
-        "Порог старта RMS: ${"%.6f".format(java.util.Locale.US, startRms)}\\n" +
-        "Порог PEAK: ${"%.6f".format(java.util.Locale.US, peakThreshold)}\\n" +
-        "Множитель шума: ${"%.2f".format(java.util.Locale.US, multiplier)}\\n" +
+        "АДАПТИВНЫЙ VAD\n" +
+        "Фоновый RMS: ${"%.6f".format(java.util.Locale.US, noiseRms)}\n" +
+        "Порог старта RMS: ${"%.6f".format(java.util.Locale.US, startRms)}\n" +
+        "Порог PEAK: ${"%.6f".format(java.util.Locale.US, peakThreshold)}\n" +
+        "Множитель шума: ${"%.2f".format(java.util.Locale.US, multiplier)}\n" +
         "Пауза завершения: ${silenceMs} мс; минимальная речь: ${minSpeechMs} мс; максимум фразы: ${maxSpeechMs} мс"
 }

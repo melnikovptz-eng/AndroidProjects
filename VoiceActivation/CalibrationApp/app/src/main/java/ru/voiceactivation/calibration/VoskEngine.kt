@@ -11,7 +11,7 @@ data class VoskResult(val text: String, val isFinal: Boolean, val rawJson: Strin
 
 class VoskEngine : Closeable {
     private var model: Model? = null
-    private var recognizer: Recognizer? = null
+    @Volatile private var recognizer: Recognizer? = null
 
     @Synchronized
     fun load(modelDirectory: String, sampleRate: Int = 16_000) {
@@ -51,7 +51,7 @@ class VoskEngine : Closeable {
     }
 
     @Synchronized
-    fun recognizeSegment(samples: ShortArray): VoskResult? {
+    fun recognizeSegment(samples: ShortArray, onPartial: (VoskResult) -> Unit = {}): VoskResult? {
         val rec = recognizer ?: return null
         var latestText = ""
         var finalText = ""
@@ -64,6 +64,7 @@ class VoskEngine : Closeable {
             if (result != null) {
                 latestText = result.text
                 if (result.isFinal && result.text.isNotBlank()) finalText = result.text
+                if (!result.isFinal && result.text.isNotBlank()) onPartial(result)
             }
             offset += count
         }

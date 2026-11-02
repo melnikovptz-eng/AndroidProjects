@@ -33,6 +33,10 @@ jobs:
         working-directory: VoiceActivation-Next
         run: gradle testDebugUnitTest --no-daemon --stacktrace
 
+      - name: Compile on-device instrumentation tests
+        working-directory: VoiceActivation-Next
+        run: gradle compileDebugAndroidTestSources --no-daemon --stacktrace
+
       - name: Build debug APK
         working-directory: VoiceActivation-Next
         run: gradle assembleDebug --no-daemon --stacktrace

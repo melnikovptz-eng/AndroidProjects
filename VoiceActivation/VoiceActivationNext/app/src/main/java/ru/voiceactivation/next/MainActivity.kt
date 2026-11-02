@@ -280,6 +280,7 @@ class MainActivity : Activity() {
         val rate = SAMPLE_RATE
         var recorder: AudioRecord? = null
         val utterance = ArrayList<Double>(rate * 3)
+        val preRoll = ArrayDeque<Double>()
         var speechActive = false
         var silenceSamples = 0
         var processedCount = 0
@@ -375,7 +376,11 @@ class MainActivity : Activity() {
                 if (!voiced) adaptiveVad.observeSilence(rms)
 
                 if (voiced) {
-                    if (!speechActive) utterance.clear()
+                    if (!speechActive) {
+                        utterance.clear()
+                        utterance.addAll(preRoll)
+                        preRoll.clear()
+                    }
                     speechActive = true
                     silenceSamples = 0
                     for (i in 0 until count) utterance.add(frame[i] / 32768.0)
@@ -383,6 +388,11 @@ class MainActivity : Activity() {
                     for (i in 0 until count) utterance.add(frame[i] / 32768.0)
                     silenceSamples += count
                     if (silenceSamples >= adaptiveVad.endSilenceSamples) processUtterance()
+                } else {
+                    for (i in 0 until count) {
+                        preRoll.addLast(frame[i] / 32768.0)
+                        if (preRoll.size > SAMPLE_RATE / 5) preRoll.removeFirst()
+                    }
                 }
 
                 if (utterance.size >= adaptiveVad.maxSpeechSamples) processUtterance()

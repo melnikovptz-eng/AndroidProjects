@@ -82,6 +82,7 @@ class CalibrationActivity : Activity() {
         addSlider(content, "Тишина до завершения фразы", 100f, 2500f, config.silenceEndMs.toFloat(), " %.0f ms") { config = config.copy(silenceEndMs = it.toInt()) }
         addSlider(content, "Максимальная длина сегмента", 1000f, 15000f, config.maxSegmentMs.toFloat(), " %.0f ms") { config = config.copy(maxSegmentMs = it.toInt()) }
         addSlider(content, "Окно оценки фонового шума", 500f, 10000f, config.noiseWindowMs.toFloat(), " %.0f ms") { config = config.copy(noiseWindowMs = it.toInt()) }
+        addSlider(content, "Предзапись до начала сегмента", 0f, 1000f, config.preRollMs.toFloat(), " %.0f ms") { config = config.copy(preRollMs = it.toInt()) }
         addSlider(content, "Скорость адаптации шума", 0.005f, 0.5f, config.noiseAdaptation, " %.3f") { config = config.copy(noiseAdaptation = it) }
         addSlider(content, "Пауза до повторного триггера", 0f, 5000f, config.cooldownMs.toFloat(), " %.0f ms") { config = config.copy(cooldownMs = it.toInt()) }
 

@@ -31,6 +31,7 @@ class CalibrationActivity : Activity() {
     private var recommendation: ThresholdRecommendation? = null
     private var windowPeakSnr = -100f
     private var windowPeakDbfs = -140f
+    private var windowStartedAtMs = 0L
     private var config = CalibrationConfig()
     private var capture: AudioCapture? = null
     private lateinit var status: TextView
@@ -251,6 +252,7 @@ class CalibrationActivity : Activity() {
             frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.thresholdDbfs
         )
         chart.addFrame(frame.rmsDbfs, frame.noiseDbfs, frame.thresholdDbfs)
+        if (windowStartedAtMs == 0L) windowStartedAtMs = System.currentTimeMillis()
         windowPeakSnr = maxOf(windowPeakSnr, frame.snrDb)
         windowPeakDbfs = maxOf(windowPeakDbfs, frame.rmsDbfs)
         if (frame.segment.started) {
@@ -283,9 +285,11 @@ class CalibrationActivity : Activity() {
 
     private fun markSample(speech: Boolean) {
         if (capture?.isRunning() != true) { Toast.makeText(this, "Сначала включите микрофон", Toast.LENGTH_SHORT).show(); return }
-        experiments.addSample(windowPeakSnr, windowPeakDbfs, speech)
+        val duration = if (windowStartedAtMs == 0L) 5000L else System.currentTimeMillis() - windowStartedAtMs
+        experiments.addSample(windowPeakSnr, windowPeakDbfs, speech, duration, config)
         windowPeakSnr = -100f
         windowPeakDbfs = -140f
+        windowStartedAtMs = System.currentTimeMillis()
         val count = experiments.samples().size
         optimizerStatus.text = "Размечено окон: $count · последнее: ${if (speech) "РЕЧЬ" else "ФОН"}"
     }
@@ -296,6 +300,7 @@ class CalibrationActivity : Activity() {
         optimizerStatus.text = if (r.ready) {
             "Рекомендация: +${r.relativeThresholdDb.toInt()} dB к шуму; пол: ${r.absoluteFloorDbfs.toInt()} dBFS\\n" +
                 "Precision ${"%.2f".format(Locale.US, r.precision)} · Recall ${"%.2f".format(Locale.US, r.recall)} · F1 ${"%.2f".format(Locale.US, r.f1)}\\n" +
+                "Ложных запусков/мин: ${"%.2f".format(Locale.US, r.falseTriggersPerMinute)}\\n" +
                 "Выборка: речь ${r.positiveSamples}, фон ${r.negativeSamples}. Повторно проверьте профиль."
         } else r.explanation + " Размечено: ${r.positiveSamples} речевых / ${r.negativeSamples} фоновых окон."
     }

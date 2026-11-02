@@ -16,6 +16,9 @@ import android.graphics.Typeface
 import kotlin.concurrent.thread
 import kotlin.math.*
 import java.util.Locale
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : Activity() {
@@ -283,55 +286,62 @@ class MainActivity : Activity() {
         val preRoll = ArrayDeque<Double>()
         var speechActive = false
         var silenceSamples = 0
-        var processedCount = 0
-        var matchedCount = 0
-        var unmatchedCount = 0
-        var ownerAcceptedCount = 0
-        var ownerRejectedCount = 0
+        val processedCount = AtomicInteger(0)
+        val matchedCount = AtomicInteger(0)
+        val unmatchedCount = AtomicInteger(0)
+        val ownerAcceptedCount = AtomicInteger(0)
+        val ownerRejectedCount = AtomicInteger(0)
+        // Capture keeps reading the microphone while a separate worker calculates MFCC/DTW.
+        val analysisExecutor = Executors.newSingleThreadExecutor { task ->
+            Thread(task, "VoiceActivationPhraseAnalysis").apply { isDaemon = true }
+        }
 
         fun processUtterance() {
             if (speechActive && utterance.isNotEmpty()) {
-                processedCount++
+                val phraseNumber = processedCount.incrementAndGet()
                 val samples = utterance.toDoubleArray()
-                if (samples.size < adaptiveVad.minSpeechSamples) {
-                    unmatchedCount++
-                    appendResult(
-                        "Фраза #" + processedCount +
-                            ": обнаружена, но слишком короткая для надёжного сравнения (" +
-                            samples.size + " отсчётов). DTW: не оценён; владелец: не оценён."
-                    )
-                } else {
-                    val match = try { matcher.match(samples) } catch (_: Exception) { null }
-                    val ownerScore = try { matcher.ownerSimilarity(samples) } catch (_: Exception) { null }
-                    val ownerAccepted = ownerScore != null && ownerScore > matcher.ownerThreshold()
-                    if (ownerScore != null) {
-                        if (ownerAccepted) ownerAcceptedCount++ else ownerRejectedCount++
-                    }
-
-                    val message = if (match == null) {
-                        unmatchedCount++
-                        "ФРАЗА #" + processedCount + ": НЕ ПРОШЛА — совпадение с образцами не найдено." +
-                            " | DTW: нет результата" +
-                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
-                    } else if (match.accepted) {
-                        matchedCount++
-                        "ФРАЗА #" + processedCount + ": ПРОШЛА ✓ — «" + match.command + "»" +
-                            " | DTW = " + fmt(match.bestDistance) +
-                            " | порог DTW < " + fmt(matcher.dtwThreshold()) +
-                            " | второе = " + fmt(match.secondDistance) +
-                            " | отрыв: " + (if (match.secondDistance.isInfinite()) "единственный кандидат" else
-                                if (match.bestDistance < match.secondDistance * matcher.marginThreshold()) "пройден (< " + fmt(matcher.marginThreshold()) + ")" else "не пройден") +
-                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                analysisExecutor.execute {
+                    if (samples.size < adaptiveVad.minSpeechSamples) {
+                        unmatchedCount.incrementAndGet()
+                        appendResult(
+                            "Фраза #" + phraseNumber +
+                                ": обнаружена, но слишком короткая для надёжного сравнения (" +
+                                samples.size + " отсчётов). DTW: не оценён; владелец: не оценён."
+                        )
                     } else {
-                        unmatchedCount++
-                        "ФРАЗА #" + processedCount + ": НЕ ПРОШЛА — ближайшая команда «" + match.command +
-                            "», порог не пройден" +
-                            " | DTW = " + fmt(match.bestDistance) +
-                            " | порог DTW < " + fmt(matcher.dtwThreshold()) +
-                            " | второе = " + fmt(match.secondDistance) +
-                            " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                        val match = try { matcher.match(samples) } catch (_: Exception) { null }
+                        val ownerScore = try { matcher.ownerSimilarity(samples) } catch (_: Exception) { null }
+                        val ownerAccepted = ownerScore != null && ownerScore > matcher.ownerThreshold()
+                        if (ownerScore != null) {
+                            if (ownerAccepted) ownerAcceptedCount.incrementAndGet()
+                            else ownerRejectedCount.incrementAndGet()
+                        }
+
+                        val message = if (match == null) {
+                            unmatchedCount.incrementAndGet()
+                            "ФРАЗА #" + phraseNumber + ": НЕ ПРОШЛА — совпадение с образцами не найдено." +
+                                " | DTW: нет результата" +
+                                " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                        } else if (match.accepted) {
+                            matchedCount.incrementAndGet()
+                            "ФРАЗА #" + phraseNumber + ": ПРОШЛА ✓ — «" + match.command + "»" +
+                                " | DTW = " + fmt(match.bestDistance) +
+                                " | порог DTW < " + fmt(matcher.dtwThreshold()) +
+                                " | второе = " + fmt(match.secondDistance) +
+                                " | отрыв: " + (if (match.secondDistance.isInfinite()) "единственный кандидат" else
+                                    if (match.bestDistance < match.secondDistance * matcher.marginThreshold()) "пройден (< " + fmt(matcher.marginThreshold()) + ")" else "не пройден") +
+                                " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                        } else {
+                            unmatchedCount.incrementAndGet()
+                            "ФРАЗА #" + phraseNumber + ": НЕ ПРОШЛА — ближайшая команда «" + match.command +
+                                "», порог не пройден" +
+                                " | DTW = " + fmt(match.bestDistance) +
+                                " | порог DTW < " + fmt(matcher.dtwThreshold()) +
+                                " | второе = " + fmt(match.secondDistance) +
+                                " | владелец: " + ownerLabel(ownerScore, ownerAccepted)
+                        }
+                        appendResult(message)
                     }
-                    appendResult(message)
                 }
             }
             utterance.clear()
@@ -401,6 +411,10 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             if (testActive.get()) appendResult("Ошибка проверки: " + (e.message ?: e.javaClass.simpleName))
         } finally {
+            analysisExecutor.shutdown()
+            try { analysisExecutor.awaitTermination(30, TimeUnit.SECONDS) } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
             testRecorder = null
             try {
                 recorder?.let {
@@ -422,11 +436,11 @@ class MainActivity : Activity() {
                 }
             }
             appendResult(
-                "ИТОГ ТЕСТА: обнаружено фраз = " + processedCount +
-                    " | совпало с командами = " + matchedCount +
-                    " | не совпало / не принято = " + unmatchedCount +
-                    " | владелец подтверждён = " + ownerAcceptedCount +
-                    " | владелец не подтверждён = " + ownerRejectedCount
+                "ИТОГ ТЕСТА: обнаружено фраз = " + processedCount.get() +
+                    " | совпало с командами = " + matchedCount.get() +
+                    " | не совпало / не принято = " + unmatchedCount.get() +
+                    " | владелец подтверждён = " + ownerAcceptedCount.get() +
+                    " | владелец не подтверждён = " + ownerRejectedCount.get()
             )
         }
     }

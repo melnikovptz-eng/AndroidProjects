@@ -84,16 +84,16 @@ internal object CalibrationEngine {
         val perCommand = samples.filter { it.expectedCommand != null }
             .groupBy { it.expectedCommand!! }
             .toSortedMap()
-            .entries.joinToString("\\n") { (name, rows) ->
+            .entries.joinToString("\n") { (name, rows) ->
                 "  $name: ${rows.size} / минимум $MIN_PER_COMMAND"
             }
-        return "КАЛИБРОВОЧНЫЕ ДАННЫЕ\\n" +
-            "Правильные команды: $positives / минимум $MIN_PER_CLASS\\n" +
-            "По командам:\\n" + (perCommand.ifBlank { "  пока нет образцов" }) + "\\n" +
-            "Посторонняя речь владельца: $unknown / минимум $MIN_PER_CLASS\\n" +
-            "Голос владельца: $owners / минимум $MIN_PER_CLASS\\n" +
-            "Другие голоса: $others / минимум $MIN_PER_CLASS\\n" +
-            "Всего сохранено: ${samples.size}\\n" +
+        return "КАЛИБРОВОЧНЫЕ ДАННЫЕ\n" +
+            "Правильные команды: $positives / минимум $MIN_PER_CLASS\n" +
+            "По командам:\n" + (perCommand.ifBlank { "  пока нет образцов" }) + "\n" +
+            "Посторонняя речь владельца: $unknown / минимум $MIN_PER_CLASS\n" +
+            "Голос владельца: $owners / минимум $MIN_PER_CLASS\n" +
+            "Другие голоса: $others / минимум $MIN_PER_CLASS\n" +
+            "Всего сохранено: ${samples.size}\n" +
             "Сырые аудиозаписи не сохраняются."
     }
 

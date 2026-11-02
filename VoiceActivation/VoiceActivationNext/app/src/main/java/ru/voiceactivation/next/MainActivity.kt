@@ -22,6 +22,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var command: EditText
     private lateinit var matcher: AcousticMatcher
+    private lateinit var adaptiveVad: AdaptiveVad
     private lateinit var testButton: Button
     private lateinit var battleButton: Button
     @Volatile private var battleMode = false
@@ -72,6 +73,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         matcher = AcousticMatcher(this)
+        adaptiveVad = AdaptiveVad(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -138,6 +140,10 @@ class MainActivity : Activity() {
         button("Рассчитать и проверить пороги") {
             runCalibration()
         }
+
+        button("Измерить фоновый шум (4 секунды)") { calibrateNoise() }
+
+        button("Показать параметры обнаружения речи") { ui(adaptiveVad.summary()) }
 
         button("Показать данные калибровки") {
             ui(CalibrationEngine.summary(CalibrationEngine.load(this)))
@@ -286,7 +292,7 @@ class MainActivity : Activity() {
             if (speechActive && utterance.isNotEmpty()) {
                 processedCount++
                 val samples = utterance.toDoubleArray()
-                if (samples.size < MIN_ANALYSIS_SAMPLES) {
+                if (samples.size < adaptiveVad.minSpeechSamples) {
                     unmatchedCount++
                     appendResult(
                         "Фраза #" + processedCount +
@@ -365,7 +371,8 @@ class MainActivity : Activity() {
                     peak = maxOf(peak, abs(v))
                 }
                 val rms = sqrt(squareSum / count)
-                val voiced = rms >= VAD_RMS_THRESHOLD || peak >= VAD_PEAK_THRESHOLD
+                val voiced = adaptiveVad.classify(rms, peak)
+                if (!voiced) adaptiveVad.observeSilence(rms)
 
                 if (voiced) {
                     if (!speechActive) utterance.clear()
@@ -375,10 +382,10 @@ class MainActivity : Activity() {
                 } else if (speechActive) {
                     for (i in 0 until count) utterance.add(frame[i] / 32768.0)
                     silenceSamples += count
-                    if (silenceSamples >= END_SILENCE_SAMPLES) processUtterance()
+                    if (silenceSamples >= adaptiveVad.endSilenceSamples) processUtterance()
                 }
 
-                if (utterance.size >= MAX_UTTERANCE_SAMPLES) processUtterance()
+                if (utterance.size >= adaptiveVad.maxSpeechSamples) processUtterance()
             }
             if (speechActive && utterance.isNotEmpty()) processUtterance()
         } catch (e: Exception) {
@@ -411,6 +418,62 @@ class MainActivity : Activity() {
                     " | владелец подтверждён = " + ownerAcceptedCount +
                     " | владелец не подтверждён = " + ownerRejectedCount
             )
+        }
+    }
+
+    private fun calibrateNoise() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
+            ui("Разрешите доступ к микрофону.")
+            return
+        }
+        if (testActive.get()) {
+            ui("Остановите тест или боевой режим перед измерением шума.")
+            return
+        }
+        ui("Измерение фонового шума: 4 секунды. Не говорите и не трогайте телефон.")
+        thread(name = "VoiceActivationNoiseCalibration") {
+            var recorder: AudioRecord? = null
+            try {
+                val rate = SAMPLE_RATE
+                val min = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+                check(min > 0) { "AudioRecord buffer error: " + min }
+                recorder = AudioRecord(
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION, rate,
+                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                    maxOf(min * 2, rate)
+                )
+                check(recorder.state == AudioRecord.STATE_INITIALIZED) { "Не удалось открыть микрофон." }
+                recorder.startRecording()
+                val frame = ShortArray(FRAME_SAMPLES)
+                val values = ArrayList<Double>(200)
+                val until = SystemClock.elapsedRealtime() + 4000L
+                while (SystemClock.elapsedRealtime() < until) {
+                    val n = recorder.read(frame, 0, frame.size)
+                    if (n <= 0) continue
+                    var sum = 0.0
+                    for (i in 0 until n) {
+                        val v = frame[i] / 32768.0
+                        sum += v * v
+                    }
+                    values.add(sqrt(sum / n))
+                }
+                check(values.size >= 20) { "Недостаточно аудиоданных для измерения шума." }
+                val sorted = values.sorted()
+                val measured = sorted[(sorted.size * 0.8).toInt().coerceAtMost(sorted.lastIndex)]
+                check(adaptiveVad.calibrateNoise(measured)) { "Некорректное измерение фонового шума." }
+                adaptiveVad.save()
+                ui("Фоновый шум измерен и сохранён.\\n" + adaptiveVad.summary())
+            } catch (e: Exception) {
+                ui("Ошибка калибровки шума: " + (e.message ?: e.javaClass.simpleName))
+            } finally {
+                try {
+                    recorder?.let {
+                        if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop()
+                        it.release()
+                    }
+                } catch (_: Exception) { }
+            }
         }
     }
 
@@ -519,7 +582,7 @@ class MainActivity : Activity() {
                     return@thread
                 }
                 val audio = DoubleArray(pcm.size) { pcm[it] / 32768.0 }
-                runOnUiThread { done(audio) }
+                done(audio)
             } catch (e: Exception) {
                 ui("Ошибка микрофона: " + (e.message ?: e.javaClass.simpleName))
             }

@@ -103,6 +103,11 @@ class CalibrationActivity : Activity() {
         addSlider(content, "Предзапись до начала сегмента", 0f, 1000f, config.preRollMs.toFloat(), " %.0f ms") { config = config.copy(preRollMs = it.toInt()) }
         addSlider(content, "Скорость адаптации шума", 0.005f, 0.5f, config.noiseAdaptation, " %.3f") { config = config.copy(noiseAdaptation = it) }
         addSlider(content, "Пауза до повторного триггера", 0f, 5000f, config.cooldownMs.toFloat(), " %.0f ms") { config = config.copy(cooldownMs = it.toInt()) }
+        content.addView(label("РАСПОЗНАВАНИЕ КОМАНД", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
+        addSlider(content, "Минимальное сходство слова «Яша»", 0.3f, 1f, config.wakeSimilarityThreshold, " %.2f") { config = config.copy(wakeSimilarityThreshold = it) }
+        addSlider(content, "Минимальное сходство действия", 0.3f, 1f, config.actionSimilarityThreshold, " %.2f") { config = config.copy(actionSimilarityThreshold = it) }
+        addSlider(content, "Тайм-аут ожидания второго слова", 500f, 10000f, config.secondWordTimeoutMs.toFloat(), " %.0f ms") { config = config.copy(secondWordTimeoutMs = it.toInt()) }
+        addSlider(content, "Максимальная пауза между словами", 100f, 5000f, config.maxInterWordPauseMs.toFloat(), " %.0f ms") { config = config.copy(maxInterWordPauseMs = it.toInt()) }
 
         content.addView(label("РЕЗУЛЬТАТЫ ИЗМЕРЕНИЯ", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
         result = label("Сегменты: 0 · Завершено: 0 · Достаточная длительность: 0", 14f, true)
@@ -187,7 +192,7 @@ class CalibrationActivity : Activity() {
                 } else {
                     Thread({
                         val recognized = vosk.recognizeSegment(pcm)?.text.orEmpty()
-                        val match = commandMatcher.match(recognized, "поехали")
+                        val match = commandMatcher.match(recognized, "поехали", config.wakeSimilarityThreshold, config.actionSimilarityThreshold)
                         runOnUiThread {
                             transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
                                 "ЯША: ${if (match.wakeFound) "ДА" else "НЕТ"} · ПОЕХАЛИ: ${if (match.actionFound) "ДА" else "НЕТ"}\\n" +

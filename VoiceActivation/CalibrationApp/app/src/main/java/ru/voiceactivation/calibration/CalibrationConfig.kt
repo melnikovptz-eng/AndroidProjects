@@ -11,7 +11,11 @@ data class CalibrationConfig(
     val noiseWindowMs: Int = 2500,
     val preRollMs: Int = 250,
     val noiseAdaptation: Float = 0.08f,
-    val cooldownMs: Int = 450
+    val cooldownMs: Int = 450,
+    val wakeSimilarityThreshold: Float = 0.72f,
+    val actionSimilarityThreshold: Float = 0.78f,
+    val secondWordTimeoutMs: Int = 2500,
+    val maxInterWordPauseMs: Int = 1200
 ) {
     fun normalized() = copy(
         relativeThresholdDb = relativeThresholdDb.coerceIn(0f, 30f),
@@ -24,6 +28,10 @@ data class CalibrationConfig(
         noiseWindowMs = noiseWindowMs.coerceIn(500, 10000),
         preRollMs = preRollMs.coerceIn(0, 1000),
         noiseAdaptation = noiseAdaptation.coerceIn(0.005f, 0.5f),
-        cooldownMs = cooldownMs.coerceIn(0, 5000)
+        cooldownMs = cooldownMs.coerceIn(0, 5000),
+        wakeSimilarityThreshold = wakeSimilarityThreshold.coerceIn(0.3f, 1f),
+        actionSimilarityThreshold = actionSimilarityThreshold.coerceIn(0.3f, 1f),
+        secondWordTimeoutMs = secondWordTimeoutMs.coerceIn(500, 10000),
+        maxInterWordPauseMs = maxInterWordPauseMs.coerceIn(100, 5000)
     )
 }

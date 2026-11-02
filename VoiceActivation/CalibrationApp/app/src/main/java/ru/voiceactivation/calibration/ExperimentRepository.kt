@@ -43,7 +43,7 @@ class ExperimentRepository(context: Context) {
                     CalibrationSample(
                         timestampMs = o.optLong("timestampMs"),
                         peakSnrDb = o.optDouble("peakSnrDb").toFloat(),
-                        maxRmsDbfs = o.optDouble("maxRmsDbfs", o.optDouble("peakDbfs")).toFloat(),
+                        maxTriggerLevelDbfs = o.optDouble("maxTriggerLevelDbfs", o.optDouble("maxRmsDbfs", o.optDouble("peakDbfs"))).toFloat(),
                         speechExpected = o.optBoolean("speechExpected"),
                         durationMs = o.optLong("durationMs", 5000L),
                         capturedRelativeThresholdDb = o.optDouble("capturedRelativeThresholdDb", 10.0).toFloat(),
@@ -68,7 +68,8 @@ class ExperimentRepository(context: Context) {
             array.put(JSONObject()
                 .put("timestampMs", s.timestampMs)
                 .put("peakSnrDb", s.peakSnrDb.toDouble())
-                .put("maxRmsDbfs", s.maxRmsDbfs.toDouble())
+                .put("maxTriggerLevelDbfs", s.maxTriggerLevelDbfs.toDouble())
+                .put("maxRmsDbfs", s.maxTriggerLevelDbfs.toDouble())
                 .put("speechExpected", s.speechExpected)
                 .put("durationMs", s.durationMs)
                 .put("capturedRelativeThresholdDb", s.capturedRelativeThresholdDb.toDouble())
@@ -130,7 +131,7 @@ class ExperimentRepository(context: Context) {
                 var fp = 0
                 var fn = 0
                 data.forEach { sample ->
-                    val predicted = sample.peakSnrDb >= relative.toFloat() && sample.maxRmsDbfs >= floor.toFloat()
+                    val predicted = sample.peakSnrDb >= relative.toFloat() && sample.maxTriggerLevelDbfs >= floor.toFloat()
                     when {
                         predicted && sample.speechExpected -> tp++
                         predicted && !sample.speechExpected -> fp++
@@ -158,7 +159,7 @@ class ExperimentRepository(context: Context) {
             array.put(JSONObject()
                 .put("timestampMs", s.timestampMs)
                 .put("peakSnrDb", s.peakSnrDb.toDouble())
-                .put("maxRmsDbfs", s.maxRmsDbfs.toDouble())
+                .put("maxRmsDbfs", s.maxTriggerLevelDbfs.toDouble())
                 .put("speechExpected", s.speechExpected)
                 .put("durationMs", s.durationMs)
                 .put("capturedRelativeThresholdDb", s.capturedRelativeThresholdDb.toDouble())

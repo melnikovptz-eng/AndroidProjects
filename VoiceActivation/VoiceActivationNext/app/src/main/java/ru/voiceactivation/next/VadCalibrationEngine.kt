@@ -99,11 +99,24 @@ internal object VadCalibrationEngine {
         // Hold out the newest complete recording of each class, not random frames
         // from the same recording used to fit the thresholds.
         val trainNoise = noiseSessions.dropLast(1).flatMap { it.frames }
-        val trainSpeech = speechSessions.dropLast(1).flatMap { it.frames }
+        val trainSpeechAll = speechSessions.dropLast(1).flatMap { it.frames }
         val testNoise = noiseSessions.last().frames
-        val testSpeech = speechSessions.last().frames
-        if (trainNoise.isEmpty() || trainSpeech.isEmpty() || testNoise.isEmpty() || testSpeech.isEmpty()) {
+        val testSpeechAll = speechSessions.last().frames
+        if (trainNoise.isEmpty() || trainSpeechAll.isEmpty() || testNoise.isEmpty() || testSpeechAll.isEmpty()) {
             return Result(false, "Недостаточно кадров для независимой проверки.")
+        }
+        // Speech sessions intentionally contain pauses between phrases. Do not
+        // label obvious quiet gaps as positive speech frames during threshold fitting.
+        val noiseRmsCutoff = percentile(trainNoise.map { it.rms }, 0.95)
+        val noisePeakCutoff = percentile(trainNoise.map { it.peak }, 0.95)
+        val trainSpeech = trainSpeechAll.filter {
+            it.rms > noiseRmsCutoff || it.peak > noisePeakCutoff
+        }
+        val testSpeech = testSpeechAll.filter {
+            it.rms > noiseRmsCutoff || it.peak > noisePeakCutoff
+        }
+        if (trainSpeech.size < 10 || testSpeech.size < 10) {
+            return Result(false, "В речевых сессиях слишком мало кадров выше измеренного фона. Повторите запись, произнося фразы громче и чётче.")
         }
 
         val rmsCandidates = candidates(trainNoise.map { it.rms } + trainSpeech.map { it.rms })

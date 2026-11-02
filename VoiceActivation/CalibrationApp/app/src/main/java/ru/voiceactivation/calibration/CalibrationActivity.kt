@@ -493,6 +493,8 @@ class CalibrationActivity : Activity() {
     override fun onPause() {
         capture?.stop()
         capture = null
+        if (::startButton.isInitialized) startButton.text = "НАЧАТЬ ИЗМЕРЕНИЕ"
+        if (::noiseButton.isInitialized) noiseButton.isEnabled = false
         super.onPause()
     }
 

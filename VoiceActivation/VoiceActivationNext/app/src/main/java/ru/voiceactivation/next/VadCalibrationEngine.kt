@@ -24,6 +24,9 @@ internal object VadCalibrationEngine {
         val noiseRms: Double = 0.002,
         val rmsThreshold: Double = 0.006,
         val peakThreshold: Double = 0.018,
+        val silenceMs: Int = 250,
+        val minSpeechMs: Int = 200,
+        val maxSpeechMs: Int = 5000,
         val validationAccuracy: Double = 0.0,
         val noiseSessions: Int = 0,
         val speechSessions: Int = 0
@@ -136,16 +139,79 @@ internal object VadCalibrationEngine {
 
         val noiseRms = percentile(trainNoise.map { it.rms }, 0.80)
             .coerceIn(0.00005, 0.25)
+        val timing = inferTiming(speechSessions.dropLast(1), bestRms, bestPeak)
         return Result(
             success = true,
-            message = "Порог RMS/PEAK подобран по размеченным кадрам и проверен на двух новых записях.",
+            message = "Пороги RMS/PEAK подобраны по размеченным кадрам; пауза и длительности оценены по речевым сессиям.",
             noiseRms = noiseRms,
             rmsThreshold = bestRms,
             peakThreshold = bestPeak,
+            silenceMs = timing.first,
+            minSpeechMs = timing.second,
+            maxSpeechMs = timing.third,
             validationAccuracy = validationAccuracy,
             noiseSessions = noiseSessions.size,
             speechSessions = speechSessions.size
         )
+    }
+
+    private fun inferTiming(
+        sessions: List<Session>,
+        rmsThreshold: Double,
+        peakThreshold: Double
+    ): Triple<Int, Int, Int> {
+        val voicedRuns = mutableListOf<Int>()
+        val internalSilenceRuns = mutableListOf<Int>()
+        sessions.forEach { session ->
+            var voiced = false
+            var run = 0
+            val runs = mutableListOf<Pair<Boolean, Int>>()
+            session.frames.forEach { frame ->
+                val nextVoiced = detects(frame, rmsThreshold, peakThreshold)
+                if (nextVoiced == voiced) run++
+                else {
+                    if (run > 0) runs.add(voiced to run)
+                    voiced = nextVoiced
+                    run = 1
+                }
+            }
+            if (run > 0) runs.add(voiced to run)
+            val firstVoice = runs.indexOfFirst { it.first }
+            val lastVoice = runs.indexOfLast { it.first }
+            if (firstVoice >= 0) {
+                runs.subList(firstVoice, lastVoice + 1).forEach { (isVoice, frames) ->
+                    if (isVoice) voicedRuns.add(frames * 20)
+                    else internalSilenceRuns.add(frames * 20)
+                }
+            }
+        }
+        val minSpeech = if (voicedRuns.isEmpty()) 200 else
+            percentileInt(voicedRuns, 0.10).coerceIn(100, 500)
+        val maxSpeech = if (voicedRuns.isEmpty()) 5000 else
+            max(3000, (percentileInt(voicedRuns, 0.95) * 1.5).toInt()).coerceIn(3000, 10000)
+        val sortedGaps = internalSilenceRuns.sorted()
+        var pause = 250
+        if (sortedGaps.size >= 2) {
+            var largestGap = 0
+            var split = -1
+            for (i in 0 until sortedGaps.lastIndex) {
+                val gap = sortedGaps[i + 1] - sortedGaps[i]
+                if (gap > largestGap) {
+                    largestGap = gap
+                    split = i
+                }
+            }
+            if (split >= 0 && largestGap >= 60) {
+                pause = ((sortedGaps[split] + sortedGaps[split + 1]) / 2).coerceIn(100, 800)
+            }
+        }
+        return Triple(pause, minSpeech, maxSpeech)
+    }
+
+    private fun percentileInt(values: List<Int>, fraction: Double): Int {
+        if (values.isEmpty()) return 200
+        val sorted = values.sorted()
+        return sorted[((sorted.size - 1) * fraction).toInt().coerceIn(0, sorted.lastIndex)]
     }
 
     private fun detects(frame: Frame, rms: Double, peak: Double): Boolean =

@@ -15,7 +15,8 @@ data class CalibrationConfig(
     val wakeSimilarityThreshold: Float = 0.72f,
     val actionSimilarityThreshold: Float = 0.78f,
     val secondWordTimeoutMs: Int = 2500,
-    val maxInterWordPauseMs: Int = 1200
+    val maxInterWordPauseMs: Int = 1200,
+    val usePeakForTrigger: Boolean = false
 ) {
     fun normalized() = copy(
         relativeThresholdDb = relativeThresholdDb.coerceIn(0f, 30f),

@@ -9,6 +9,7 @@ data class CalibrationConfig(
     val silenceEndMs: Int = 650,
     val maxSegmentMs: Int = 6000,
     val noiseWindowMs: Int = 2500,
+    val preRollMs: Int = 250,
     val noiseAdaptation: Float = 0.08f,
     val cooldownMs: Int = 450
 ) {
@@ -21,6 +22,7 @@ data class CalibrationConfig(
         silenceEndMs = silenceEndMs.coerceIn(100, 2500),
         maxSegmentMs = maxSegmentMs.coerceIn(1000, 15000),
         noiseWindowMs = noiseWindowMs.coerceIn(500, 10000),
+        preRollMs = preRollMs.coerceIn(0, 1000),
         noiseAdaptation = noiseAdaptation.coerceIn(0.005f, 0.5f),
         cooldownMs = cooldownMs.coerceIn(0, 5000)
     )

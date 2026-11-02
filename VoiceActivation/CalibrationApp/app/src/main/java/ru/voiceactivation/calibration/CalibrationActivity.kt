@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Switch
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -38,6 +39,7 @@ class CalibrationActivity : Activity() {
     private lateinit var values: TextView
     private lateinit var result: TextView
     private lateinit var chart: LevelChartView
+    private lateinit var triggerModeSwitch: Switch
     private lateinit var startButton: Button
     private lateinit var modelStatus: TextView
     private lateinit var transcriptView: TextView
@@ -83,6 +85,15 @@ class CalibrationActivity : Activity() {
         chart = LevelChartView(this).apply { layoutParams = LinearLayout.LayoutParams(-1, dp(190)) }
         content.addView(chart)
         content.addView(label("Синий — сигнал · зелёный — фон · красный — порог", 12f, false))
+        triggerModeSwitch = Switch(this).apply {
+            text = "Использовать PEAK вместо RMS для триггера"
+            isChecked = config.usePeakForTrigger
+            setOnCheckedChangeListener { _, checked ->
+                config = config.copy(usePeakForTrigger = checked)
+                repository.save(config)
+            }
+        }
+        content.addView(triggerModeSwitch)
 
         values = label("RMS: — dBFS     PEAK: — dBFS\nШум: — dBFS     SNR: — dB", 15f, true)
         values.setPadding(0, dp(10), 0, dp(10))
@@ -259,10 +270,10 @@ class CalibrationActivity : Activity() {
             "RMS: %.1f dBFS     PEAK: %.1f dBFS\nШум: %.1f dBFS     SNR: %.1f dB\nПорог: %.1f dBFS",
             frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.thresholdDbfs
         )
-        chart.addFrame(frame.rmsDbfs, frame.noiseDbfs, frame.thresholdDbfs)
+        chart.addFrame(frame.triggerLevelDbfs, frame.noiseDbfs, frame.thresholdDbfs)
         if (windowStartedAtMs == 0L) windowStartedAtMs = System.currentTimeMillis()
         windowPeakSnr = maxOf(windowPeakSnr, frame.snrDb)
-        windowPeakDbfs = maxOf(windowPeakDbfs, frame.rmsDbfs)
+        windowPeakDbfs = maxOf(windowPeakDbfs, frame.triggerLevelDbfs)
         if (frame.segment.started) {
             starts++
             status.text = "МИКРОФОН: СЕГМЕНТ НАЧАЛСЯ"

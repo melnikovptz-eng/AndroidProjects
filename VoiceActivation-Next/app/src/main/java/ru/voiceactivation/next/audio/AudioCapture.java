@@ -3,7 +3,6 @@ package ru.voiceactivation.next.audio;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.AudioFormat;
-import android.media.AudioRecord;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

@@ -16,7 +16,7 @@ data class CommandMatch(
 
 class CommandMatcher(
     private val wakeVariants: Set<String> = setOf("яша", "яжа", "яаша", "ясша"),
-    private val wakeThreshold: Float = 0.72f,
+    private val wakeThreshold: Float = 0.80f,
     private val actionThreshold: Float = 0.78f
 ) {
     fun normalize(text: String): String = text.lowercase(Locale("ru"))

@@ -42,6 +42,7 @@ class CalibrationActivity : Activity() {
     private lateinit var transcriptView: TextView
     private val vosk = VoskEngine()
     private val commandMatcher = CommandMatcher()
+    private val commandSequence = CommandSequenceTracker(commandMatcher)
     private lateinit var noiseButton: Button
     private val noiseSamples = ArrayDeque<Float>()
     private var noiseCalibrationStartedAt = 0L
@@ -217,17 +218,18 @@ class CalibrationActivity : Activity() {
                 startButton.text = "НАЧАТЬ ИЗМЕРЕНИЕ"
                 noiseButton.isEnabled = false
             } },
-            onSegment = { pcm ->
+            onSegment = { segment ->
+                val pcm = segment.pcm
                 if (!vosk.isLoaded()) {
                     runOnUiThread { transcriptView.text = "Vosk: выберите папку модели\\nСегмент: ${pcm.size / 16} ms" }
                 } else {
                     Thread({
                         val recognized = vosk.recognizeSegment(pcm)?.text.orEmpty()
-                        val match = commandMatcher.match(recognized, "поехали", config.wakeSimilarityThreshold, config.actionSimilarityThreshold)
+                        val sequence = commandSequence.accept(recognized, segment.startTimeMs, segment.endTimeMs, config)
                         runOnUiThread {
                             transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
-                                "ЯША: ${if (match.wakeFound) "ДА" else "НЕТ"} · ПОЕХАЛИ: ${if (match.actionFound) "ДА" else "НЕТ"}\\n" +
-                                "КОМАНДА: ${if (match.complete) "ОК" else "НЕ ОК"} · сходство: ${String.format(Locale.US, "%.2f / %.2f", match.wakeSimilarity, match.actionSimilarity)}"
+                                "КОМАНДА: ${sequence.message}\\n" +
+                                "СТАТУС: ${sequence.state}"
                         }
                     }, "Vosk-Segment-Recognition").start()
                 }

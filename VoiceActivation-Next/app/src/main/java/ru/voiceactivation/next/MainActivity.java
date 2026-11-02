@@ -2,8 +2,8 @@ package ru.voiceactivation.next;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.pm.PackageManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -16,13 +16,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import ru.voiceactivation.next.audio.AudioCapture;
-import ru.voiceactivation.next.audio.AudioCaptureConfig;
 import ru.voiceactivation.next.analysis.AcousticAnalyzer;
 import ru.voiceactivation.next.analysis.SpeechDetector;
 import ru.voiceactivation.next.asr.VoskEngine;
 import ru.voiceactivation.next.asr.VoskModelImporter;
 import ru.voiceactivation.next.asr.WakeWordDetector;
+import ru.voiceactivation.next.audio.AudioCapture;
+import ru.voiceactivation.next.audio.AudioCaptureConfig;
 
 public final class MainActivity extends Activity implements AudioCapture.Listener {
     private static final int SAMPLE_RATE_HZ = 16000;
@@ -32,23 +32,22 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
 
     private TextView status;
     private TextView recognizedCommand;
-    private AudioCapture capture;
     private Button startButton;
-    private final VoskEngine voskEngine = new VoskEngine(SAMPLE_RATE_HZ);
-    private final WakeWordDetector wakeWordDetector = new WakeWordDetector();
-    private volatile boolean modelLoading;
+    private AudioCapture capture;
     private final AcousticAnalyzer analyzer = new AcousticAnalyzer();
     private final SpeechDetector speechDetector = new SpeechDetector();
-    private static final int SAMPLE_RATE_HZ = 16000;
+    private final VoskEngine voskEngine = new VoskEngine(SAMPLE_RATE_HZ);
+    private final WakeWordDetector wakeWordDetector = new WakeWordDetector();
     private final List<short[]> capturedSegment = new ArrayList<>();
     private int capturedSamples;
     private long totalSamples;
     private long lastUiUpdateMs;
-    private boolean activityDestroyed;
+    private volatile boolean activityDestroyed;
+    private volatile boolean modelLoading;
+    private volatile String lastRecognitionStatus = "Модель Vosk не подключена";
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(28, 36, 28, 28);
@@ -60,32 +59,36 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
         root.addView(title);
 
         status = new TextView(this);
-        status.setText("Модуль 01 — AudioCapture\nГотов к проверке микрофона");
+        status.setText("Загрузка состояния...");
         status.setTextSize(16);
         root.addView(status);
 
         TextView recognizedTitle = new TextView(this);
-        recognizedTitle.setText("Последняя распознанная фраза");
+        recognizedTitle.setText("Распознанная речь / команда");
         recognizedTitle.setTextSize(18);
-        recognizedTitle.setPadding(0, 32, 0, 8);
+        recognizedTitle.setPadding(0, 24, 0, 8);
         root.addView(recognizedTitle);
 
         recognizedCommand = new TextView(this);
-        recognizedCommand.setText("Пока ничего не распознано");
-        recognizedCommand.setTextSize(22);
+        recognizedCommand.setText("Сначала подключите русскую модель Vosk");
+        recognizedCommand.setTextSize(21);
         recognizedCommand.setPadding(16, 20, 16, 20);
         recognizedCommand.setMinHeight(100);
         recognizedCommand.setGravity(Gravity.CENTER_VERTICAL);
         recognizedCommand.setBackgroundColor(0xFFEAEAEA);
-        root.addView(recognizedCommand,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(recognizedCommand, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        Button start = new Button(this);
-        start.setText("Начать захват");
-        start.setOnClickListener(v -> startCapture());
-        root.addView(start);
+        Button importModel = new Button(this);
+        importModel.setText("Подключить папку русской модели Vosk");
+        importModel.setOnClickListener(v -> chooseVoskModel());
+        root.addView(importModel);
+
+        startButton = new Button(this);
+        startButton.setText("Начать захват и распознавание");
+        startButton.setEnabled(false);
+        startButton.setOnClickListener(v -> startCapture());
+        root.addView(startButton);
 
         Button stop = new Button(this);
         stop.setText("Остановить");
@@ -95,9 +98,78 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
         root.addView(stop);
 
         setContentView(root);
+        loadSavedModel();
+    }
+
+    private void chooseVoskModel() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(intent, REQUEST_VOSK_MODEL);
+    }
+
+    private void loadSavedModel() {
+        File modelDirectory = new File(getFilesDir(), "vosk-model-ru");
+        if (!modelDirectory.isDirectory()) {
+            lastRecognitionStatus = "Модель Vosk не подключена";
+            showStatus("Выберите распакованную русскую модель Vosk (папка с am, conf, graph).");
+            return;
+        }
+        modelLoading = true;
+        showStatus("Загружаю сохранённую модель Vosk...");
+        new Thread(() -> {
+            try {
+                voskEngine.load(modelDirectory);
+                modelLoading = false;
+                lastRecognitionStatus = "Русская модель Vosk готова";
+                runOnUiThread(() -> {
+                    if (!activityDestroyed && startButton != null) startButton.setEnabled(true);
+                    showStatus("Модель загружена. Можно проверять команду «Яша».");
+                });
+            } catch (Exception error) {
+                modelLoading = false;
+                lastRecognitionStatus = "Ошибка загрузки модели";
+                showStatus("Не удалось загрузить модель Vosk: " + error.getMessage());
+            }
+        }, "Vosk-Model-Load").start();
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_VOSK_MODEL || resultCode != RESULT_OK || data == null) return;
+        Uri treeUri = data.getData();
+        if (treeUri == null) return;
+        try {
+            getContentResolver().takePersistableUriPermission(
+                    treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) { }
+        modelLoading = true;
+        if (startButton != null) startButton.setEnabled(false);
+        showStatus("Копирую выбранную модель в память приложения...");
+        new Thread(() -> {
+            try {
+                File destination = new File(getFilesDir(), "vosk-model-ru");
+                VoskModelImporter.importTree(this, treeUri, destination);
+                voskEngine.load(destination);
+                modelLoading = false;
+                lastRecognitionStatus = "Русская модель Vosk готова";
+                runOnUiThread(() -> {
+                    if (!activityDestroyed && startButton != null) startButton.setEnabled(true);
+                    showStatus("Русская модель Vosk подключена. Сравнение с «Яша» включено.");
+                });
+            } catch (Exception error) {
+                modelLoading = false;
+                lastRecognitionStatus = "Модель не загружена";
+                showStatus("Ошибка импорта модели: " + error.getMessage());
+            }
+        }, "Vosk-Model-Import").start();
     }
 
     private void startCapture() {
+        if (!voskEngine.isLoaded() || modelLoading) {
+            showStatus("Сначала подключите и загрузите русскую модель Vosk.");
+            return;
+        }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MIC);
             return;
@@ -107,8 +179,10 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
             capture = new AudioCapture(AudioCaptureConfig.defaults(), this);
         }
         totalSamples = 0L;
+        capturedSegment.clear();
+        capturedSamples = 0;
         speechDetector.reset();
-        if (recognizedCommand != null) recognizedCommand.setText("Слушаю микрофон. Ожидаю голос...");
+        showRecognizedCommand("Слушаю. Скажите «Яша»...");
         capture.start();
     }
 
@@ -118,7 +192,7 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
             if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
                 startCapture();
             } else {
-                showStatus("Доступ к микрофону не предоставлен");
+                showStatus("Доступ к микрофону не предоставлен.");
             }
         }
     }
@@ -127,10 +201,11 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
         totalSamples += length;
         AcousticAnalyzer.Metrics metrics = analyzer.analyze(samples, length, SAMPLE_RATE_HZ);
         SpeechDetector.Event event = speechDetector.accept(metrics);
+
         if (event == SpeechDetector.Event.SPEECH_STARTED) {
             capturedSegment.clear();
             capturedSamples = 0;
-            showRecognizedCommand("ГОЛОС ОБНАРУЖЕН — идёт захват команды...");
+            showRecognizedCommand("Голос обнаружен. Захватываю команду...");
         }
         if (speechDetector.isSpeaking()) {
             short[] copy = new short[length];
@@ -139,37 +214,39 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
             capturedSamples += length;
         }
         if (event == SpeechDetector.Event.SPEECH_ENDED) {
-            double durationMs = capturedSamples * 1000.0 / SAMPLE_RATE_HZ;
             short[] utterance = flattenCapturedSegment();
-            showRecognizedCommand("Фрагмент захвачен (" 
-                    + String.format(java.util.Locale.US, "%.0f мс", durationMs)
-                    + "). Распознаю...");
+            double durationMs = capturedSamples * 1000.0 / SAMPLE_RATE_HZ;
+            showRecognizedCommand("Фрагмент " + String.format(java.util.Locale.US, "%.0f мс", durationMs)
+                    + ". Распознаю...");
             try {
                 String recognized = voskEngine.recognize(utterance);
                 if (recognized.isEmpty()) {
-                    showRecognizedCommand("Vosk: речь не распознана.");
+                    lastRecognitionStatus = "Речь не распознана";
+                    showRecognizedCommand("Vosk не распознал речь");
                 } else {
                     showRecognizedCommand(recognized);
                     if (wakeWordDetector.matches(recognized)) {
-                        showStatus("КОМАНДА «ЯША» ОБНАРУЖЕНА. Распознано: " + recognized);
+                        lastRecognitionStatus = "КОМАНДА «ЯША» ОБНАРУЖЕНА";
                     } else {
-                        showStatus("Речь распознана, команда «Яша» не обнаружена.");
+                        lastRecognitionStatus = "Команда «Яша» не обнаружена";
                     }
                 }
             } catch (Exception error) {
+                lastRecognitionStatus = "Ошибка распознавания";
                 showRecognizedCommand("Ошибка Vosk: " + error.getMessage());
             }
         }
+
         long now = SystemClock.elapsedRealtime();
         if (now - lastUiUpdateMs >= UI_UPDATE_INTERVAL_MS) {
             lastUiUpdateMs = now;
-            showStatus("Непрерывное прослушивание: RECORDING"
-                    + "\nУровень RMS: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getRmsDbfs())
-                    + "\nПик: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getPeakDbfs())
+            showStatus("Прослушивание: RECORDING"
+                    + "\nRMS: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getRmsDbfs())
+                    + " | Peak: " + String.format(java.util.Locale.US, "%.1f dBFS", metrics.getPeakDbfs())
                     + "\nФоновый шум: " + String.format(java.util.Locale.US, "%.1f dBFS", speechDetector.getNoiseDbfs())
-                    + "\nПорог голоса: " + String.format(java.util.Locale.US, "%.1f dBFS", speechDetector.getStartThresholdDbfs())
-                    + "\nСостояние: " + (speechDetector.isSpeaking() ? "ГОЛОСОВОЙ ФРАГМЕНТ" : "ОЖИДАНИЕ РЕЧИ")
-                    + "\nПолучено PCM-сэмплов: " + totalSamples);
+                    + " | Порог: " + String.format(java.util.Locale.US, "%.1f dBFS", speechDetector.getStartThresholdDbfs())
+                    + "\n" + lastRecognitionStatus
+                    + "\nPCM-сэмплов: " + totalSamples);
         }
     }
 
@@ -186,25 +263,17 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
     }
 
     @Override public void onStateChanged(AudioCapture.State state) {
-        showStatus("Модуль 01 — AudioCapture\nСостояние: " + state);
+        showStatus("Захват микрофона: " + state + "\n" + lastRecognitionStatus);
     }
 
     @Override public void onError(String message, Throwable cause) {
         showStatus(message + "\n" + (cause == null ? "Неизвестная ошибка" : cause.getMessage()));
     }
 
-    /**
-     * Вызывается распознавателем после обработки очередного речевого сегмента.
-     * Передаётся именно распознанный текст, а не идентификатор говорящего.
-     */
     public void showRecognizedCommand(String text) {
-        String value = text == null || text.trim().isEmpty()
-                ? "Речь не распознана"
-                : text.trim();
+        String value = text == null || text.trim().isEmpty() ? "Речь не распознана" : text.trim();
         runOnUiThread(() -> {
-            if (!activityDestroyed && recognizedCommand != null) {
-                recognizedCommand.setText(value);
-            }
+            if (!activityDestroyed && recognizedCommand != null) recognizedCommand.setText(value);
         });
     }
 
@@ -218,6 +287,7 @@ public final class MainActivity extends Activity implements AudioCapture.Listene
     @Override protected void onDestroy() {
         activityDestroyed = true;
         if (capture != null) capture.stop();
+        voskEngine.close();
         super.onDestroy();
     }
 }

@@ -21,6 +21,7 @@ class AudioCapture(
     private val onError: (String) -> Unit
 ) {
     @Volatile private var running = false
+    @Volatile private var pendingNoiseBaseline: Float? = null
     private var worker: Thread? = null
     private var recorder: AudioRecord? = null
     private val noise = NoiseEstimator()
@@ -75,6 +76,7 @@ class AudioCapture(
                     if (count < 0) onError("Ошибка чтения AudioRecord: $count")
                     continue
                 }
+                pendingNoiseBaseline?.let { noise.reset(it); pendingNoiseBaseline = null }
                 val frameMs = (count * 1000L) / 16_000L
                 val rmsDb = AcousticMath.dbfs(AcousticMath.rms(samples, count))
                 val peakDb = AcousticMath.dbfs(AcousticMath.peak(samples, count))
@@ -113,6 +115,8 @@ class AudioCapture(
         recorder?.release()
         recorder = null
     }
+
+    fun setNoiseBaseline(dbfs: Float) { pendingNoiseBaseline = dbfs.coerceIn(-100f, -10f) }
 
     fun isRunning() = running
 }

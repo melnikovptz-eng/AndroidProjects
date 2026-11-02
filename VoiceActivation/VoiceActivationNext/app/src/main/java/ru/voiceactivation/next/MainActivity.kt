@@ -523,16 +523,16 @@ class MainActivity : Activity() {
     private fun runVadCalibration() {
         val result = VadCalibrationEngine.fit(VadCalibrationEngine.load(this))
         if (!result.success) {
-            ui("КАЛИБРОВКА VAD НЕ ВЫПОЛНЕНА\\n" + result.message)
+            ui("КАЛИБРОВКА VAD НЕ ВЫПОЛНЕНА\n" + result.message)
             return
         }
         adaptiveVad.applyFittedThresholds(result.noiseRms, result.rmsThreshold, result.peakThreshold)
         ui(
-            "КАЛИБРОВКА VAD ЗАВЕРШЕНА\\n" +
-                "Фоновый RMS: " + fmt(result.noiseRms) + "\\n" +
-                "Порог RMS: " + fmt(result.rmsThreshold) + "\\n" +
-                "Порог PEAK: " + fmt(result.peakThreshold) + "\\n" +
-                "Точность на независимых записях: " + fmt(result.validationAccuracy * 100) + "%\\n" +
+            "КАЛИБРОВКА VAD ЗАВЕРШЕНА\n" +
+                "Фоновый RMS: " + fmt(result.noiseRms) + "\n" +
+                "Порог RMS: " + fmt(result.rmsThreshold) + "\n" +
+                "Порог PEAK: " + fmt(result.peakThreshold) + "\n" +
+                "Точность на независимых записях: " + fmt(result.validationAccuracy * 100) + "%\n" +
                 "Сессии: шум " + result.noiseSessions + ", речь " + result.speechSessions + ". Пороги сохранены."
         )
     }

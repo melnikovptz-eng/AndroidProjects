@@ -8,7 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Module 01: explicit, foreground, mono PCM16 microphone acquisition.
- * No signal analysis, speech detection, persistence, or classification belongs here.
+ * Signal analysis, speech detection, persistence, and classification belong
+ * to later modules and are deliberately excluded here.
  */
 public final class AudioCapture {
     public enum State { IDLE, STARTING, RECORDING, STOPPING, ERROR }
@@ -35,9 +36,10 @@ public final class AudioCapture {
         this.listener = listener;
     }
 
-    /** Starts one capture worker. Returns false if a capture lifecycle is already active. */
+    /** Starts one capture worker. Returns false while a previous worker is active or cleaning up. */
     public synchronized boolean start() {
-        if (state == State.STARTING || state == State.RECORDING || state == State.STOPPING) {
+        if (worker != null || state == State.STARTING
+                || state == State.RECORDING || state == State.STOPPING) {
             return false;
         }
         stopRequested.set(false);
@@ -49,7 +51,7 @@ public final class AudioCapture {
 
     /** Requests a prompt stop; AudioRecord is released by the capture worker in all cases. */
     public synchronized void stop() {
-        if (state == State.IDLE || state == State.STOPPING) return;
+        if (state == State.IDLE || state == State.ERROR || state == State.STOPPING) return;
         stopRequested.set(true);
         changeState(State.STOPPING);
         AudioRecord active = recorder;
@@ -116,7 +118,7 @@ public final class AudioCapture {
             if (!stopRequested.get()) {
                 failed = true;
                 changeState(State.ERROR);
-                listener.onError("Microphone capture failed", error);
+                notifyError("Microphone capture failed", error);
             }
         } finally {
             recorder = null;
@@ -125,17 +127,41 @@ public final class AudioCapture {
                     if (local.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
                         local.stop();
                     }
-                } catch (IllegalStateException ignored) {
+                } catch (RuntimeException ignored) {
                     // Already stopped or invalidated by the platform.
                 }
-                local.release();
+                try {
+                    local.release();
+                } catch (RuntimeException releaseError) {
+                    if (!failed && !stopRequested.get()) {
+                        failed = true;
+                        changeState(State.ERROR);
+                        notifyError("Microphone release failed", releaseError);
+                    }
+                }
             }
             if (!failed) changeState(State.IDLE);
+            synchronized (this) {
+                if (worker == Thread.currentThread()) worker = null;
+            }
         }
     }
 
+    /** Listener state callbacks must never be allowed to break recorder cleanup. */
     private void changeState(State next) {
         state = next;
-        listener.onStateChanged(next);
+        try {
+            listener.onStateChanged(next);
+        } catch (RuntimeException ignored) {
+            // UI observers are non-critical; capture lifecycle remains authoritative.
+        }
+    }
+
+    private void notifyError(String message, Throwable cause) {
+        try {
+            listener.onError(message, cause);
+        } catch (RuntimeException ignored) {
+            // Error reporting must not prevent AudioRecord from being released.
+        }
     }
 }

@@ -11,6 +11,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -24,6 +25,8 @@ import java.util.Locale
 class CalibrationActivity : Activity() {
     private lateinit var repository: CalibrationRepository
     private lateinit var experiments: ExperimentRepository
+    private lateinit var profiles: ProfileRepository
+    private lateinit var profileName: EditText
     private lateinit var optimizerStatus: TextView
     private var recommendation: ThresholdRecommendation? = null
     private var windowPeakSnr = -100f
@@ -51,6 +54,7 @@ class CalibrationActivity : Activity() {
         super.onCreate(savedInstanceState)
         repository = CalibrationRepository(this)
         experiments = ExperimentRepository(this)
+        profiles = ProfileRepository(this)
         config = repository.load()
         buildUi()
     }
@@ -127,6 +131,18 @@ class CalibrationActivity : Activity() {
         content.addView(Button(this).apply { text = "ПРИМЕНИТЬ РЕКОМЕНДАЦИЮ"; setOnClickListener { applyRecommendation() } })
         optimizerStatus = label("Размечено окон: 0", 13f, false)
         content.addView(optimizerStatus)
+        content.addView(label("ПРОФИЛИ И ДАННЫЕ", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
+        profileName = EditText(this).apply { hint = "Название профиля" }
+        content.addView(profileName)
+        val profileButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        profileButtons.addView(Button(this).apply { text = "СОХРАНИТЬ"; setOnClickListener { saveNamedProfile() } }, LinearLayout.LayoutParams(0, -2, 1f))
+        profileButtons.addView(Button(this).apply { text = "ЗАГРУЗИТЬ"; setOnClickListener { loadNamedProfile() } }, LinearLayout.LayoutParams(0, -2, 1f))
+        content.addView(profileButtons)
+        val dataButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        dataButtons.addView(Button(this).apply { text = "ЭКСПОРТ JSON"; setOnClickListener { chooseExport() } }, LinearLayout.LayoutParams(0, -2, 1f))
+        dataButtons.addView(Button(this).apply { text = "ИМПОРТ JSON"; setOnClickListener { chooseImport() } }, LinearLayout.LayoutParams(0, -2, 1f))
+        content.addView(dataButtons)
+        content.addView(label("Сохранённых профилей: ${profiles.names().size} · размеченных окон: ${experiments.samples().size}", 12f, false))
         val reset = Button(this).apply {
             text = "СБРОСИТЬ СЧЁТЧИКИ И ПАРАМЕТРЫ"
             setOnClickListener {
@@ -298,6 +314,40 @@ class CalibrationActivity : Activity() {
         Toast.makeText(this, "5 секунд сохраняйте тишину", Toast.LENGTH_SHORT).show()
     }
 
+    private fun saveNamedProfile() {
+        try {
+            profiles.save(profileName.text.toString(), config)
+            Toast.makeText(this, "Профиль сохранён", Toast.LENGTH_SHORT).show()
+        } catch (t: Throwable) { Toast.makeText(this, t.message ?: "Ошибка профиля", Toast.LENGTH_LONG).show() }
+    }
+
+    private fun loadNamedProfile() {
+        val name = profileName.text.toString().trim()
+        val loaded = profiles.load(name)
+        if (loaded == null) { Toast.makeText(this, "Профиль не найден", Toast.LENGTH_SHORT).show(); return }
+        config = loaded
+        repository.save(config)
+        recreate()
+    }
+
+    private fun chooseExport() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/json"
+            putExtra(Intent.EXTRA_TITLE, "VoiceCalibration-profile.json")
+        }
+        startActivityForResult(intent, 43)
+    }
+
+    private fun chooseImport() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/json"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivityForResult(intent, 44)
+    }
+
     private fun chooseVoskModel() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
@@ -308,8 +358,27 @@ class CalibrationActivity : Activity() {
     @Deprecated("Using SAF tree result for Android 10+ compatibility")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != 42 || resultCode != RESULT_OK) return
+        if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
+        if (requestCode == 43) {
+            try {
+                contentResolver.openOutputStream(uri)?.use { it.write(profiles.exportJson(experiments, config).toByteArray(Charsets.UTF_8)) }
+                    ?: throw IllegalStateException("Не удалось открыть файл для записи")
+                Toast.makeText(this, "Экспорт завершён", Toast.LENGTH_LONG).show()
+            } catch (t: Throwable) { Toast.makeText(this, "Экспорт: ${t.message}", Toast.LENGTH_LONG).show() }
+            return
+        }
+        if (requestCode == 44) {
+            try {
+                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    ?: throw IllegalStateException("Не удалось прочитать файл")
+                profiles.importJson(json, experiments)?.let { config = it; repository.save(config) }
+                Toast.makeText(this, "Импорт завершён", Toast.LENGTH_LONG).show()
+                recreate()
+            } catch (t: Throwable) { Toast.makeText(this, "Импорт: ${t.message}", Toast.LENGTH_LONG).show() }
+            return
+        }
+        if (requestCode != 42) return
         try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Throwable) {}
         modelStatus.text = "Vosk: копирование модели…"
         Thread({

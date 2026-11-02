@@ -71,10 +71,10 @@ internal object VadCalibrationEngine {
     fun summary(sessions: List<Session>): String {
         val noise = sessions.count { !it.speech }
         val speech = sessions.count { it.speech }
-        return "КАЛИБРОВКА ОБНАРУЖЕНИЯ РЕЧИ\\n" +
-            "Записи шума: $noise / минимум $MIN_SESSIONS_PER_CLASS\\n" +
-            "Записи речи: $speech / минимум $MIN_SESSIONS_PER_CLASS\\n" +
-            "Кадров в сохранённых сессиях: ${sessions.sumOf { it.frames.size }}\\n" +
+        return "КАЛИБРОВКА ОБНАРУЖЕНИЯ РЕЧИ\n" +
+            "Записи шума: $noise / минимум $MIN_SESSIONS_PER_CLASS\n" +
+            "Записи речи: $speech / минимум $MIN_SESSIONS_PER_CLASS\n" +
+            "Кадров в сохранённых сессиях: ${sessions.sumOf { it.frames.size }}\n" +
             "Для подбора нужны отдельные записи в разных попытках."
     }
 
@@ -103,7 +103,7 @@ internal object VadCalibrationEngine {
             return Result(false, "Недостаточно кадров для независимой проверки.")
         }
 
-        val rmsCandidates = candidates(trainNoise.map { it.rms })
+        val rmsCandidates = candidates(trainNoise.map { it.rms } + trainSpeech.map { it.rms })
         val peakCandidates = candidates(trainNoise.map { it.peak } + trainSpeech.map { it.peak })
         var bestRms = 0.006
         var bestPeak = 0.018
@@ -134,7 +134,7 @@ internal object VadCalibrationEngine {
             )
         }
 
-        val noiseRms = percentile(noiseSessions.flatMap { it.frames }.map { it.rms }, 0.80)
+        val noiseRms = percentile(trainNoise.map { it.rms }, 0.80)
             .coerceIn(0.00005, 0.25)
         return Result(
             success = true,

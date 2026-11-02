@@ -146,6 +146,7 @@ class CalibrationActivity : Activity() {
         content.addView(labels)
         content.addView(Button(this).apply { text = "РАССЧИТАТЬ РЕКОМЕНДУЕМЫЙ ПОРОГ"; setOnClickListener { showRecommendation() } })
         content.addView(Button(this).apply { text = "ПРИМЕНИТЬ РЕКОМЕНДАЦИЮ"; setOnClickListener { applyRecommendation() } })
+        content.addView(Button(this).apply { text = "СРАВНИТЬ СОХРАНЁННЫЕ ПРОФИЛИ"; setOnClickListener { compareSavedProfiles() } })
         optimizerStatus = label("Размечено окон: 0", 13f, false)
         content.addView(optimizerStatus)
         content.addView(label("ПРОФИЛИ И ДАННЫЕ", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
@@ -336,6 +337,17 @@ class CalibrationActivity : Activity() {
                 "Ложных запусков/мин: ${"%.2f".format(Locale.US, r.falseTriggersPerMinute)}\\n" +
                 "Выборка: речь ${r.positiveSamples}, фон ${r.negativeSamples}. Повторно проверьте профиль."
         } else r.explanation + " Размечено: ${r.positiveSamples} речевых / ${r.negativeSamples} фоновых окон."
+    }
+
+    private fun compareSavedProfiles() {
+        val names = profiles.names()
+        if (names.isEmpty()) { optimizerStatus.text = "Нет сохранённых профилей"; return }
+        val report = names.mapNotNull { name ->
+            val profile = profiles.load(name) ?: return@mapNotNull null
+            val metrics = experiments.evaluate(profile)
+            "$name: P=${"%.2f".format(Locale.US, metrics.precision)} R=${"%.2f".format(Locale.US, metrics.recall)} F1=${"%.2f".format(Locale.US, metrics.f1)} FP/min=${"%.2f".format(Locale.US, metrics.falseTriggersPerMinute)}"
+        }.joinToString("\\n")
+        optimizerStatus.text = "СРАВНЕНИЕ НА ОДИНАКОВОЙ ВЫБОРКЕ\\n$report"
     }
 
     private fun applyRecommendation() {

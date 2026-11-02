@@ -243,6 +243,10 @@ class MainActivity : Activity() {
     }
 
     private fun startTest(isBattle: Boolean) {
+        if (microphoneBusy.get()) {
+            ui("Дождитесь завершения текущей записи с микрофона.")
+            return
+        }
         if (matcher.commands().isEmpty()) {
             ui("Сначала запишите хотя бы один образец команды.")
             return

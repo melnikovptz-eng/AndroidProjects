@@ -238,11 +238,11 @@ class CalibrationActivity : Activity() {
             onSegment = { segment ->
                 val pcm = segment.pcm
                 if (!vosk.isLoaded()) {
-                    runOnUiThread { transcriptView.text = "Vosk: выберите папку модели\\nСегмент: ${pcm.size / 16} ms" }
+                    runOnUiThread { transcriptView.text = "Vosk: выберите папку модели\\nСегмент: ${segment.endTimeMs - segment.startTimeMs} ms" }
                 } else {
                     Thread({
-                        if (pcm.size / 16 < config.minSpeechMs) {
-                            runOnUiThread { transcriptView.text = "СЕГМЕНТ ОТБРОШЕН: длительность ${pcm.size / 16} ms меньше ${config.minSpeechMs} ms" }
+                        if (segment.endTimeMs - segment.startTimeMs < config.minSpeechMs) {
+                            runOnUiThread { transcriptView.text = "СЕГМЕНТ ОТБРОШЕН: длительность ${segment.endTimeMs - segment.startTimeMs} ms меньше ${config.minSpeechMs} ms" }
                             return@Thread
                         }
                         val recognitionStartedAt = android.os.SystemClock.elapsedRealtime()

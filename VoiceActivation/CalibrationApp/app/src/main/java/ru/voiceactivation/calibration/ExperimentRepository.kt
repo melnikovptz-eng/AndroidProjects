@@ -82,6 +82,23 @@ class ExperimentRepository(context: Context) {
 
     fun clear() { prefs.edit().remove("samples").apply() }
 
+    fun evaluate(config: CalibrationConfig): ExperimentMetrics {
+        val c = config.normalized()
+        val data = samples().filter { it.capturedUsePeakForTrigger == c.usePeakForTrigger }
+        var tp = 0; var fp = 0; var fn = 0; var tn = 0
+        data.forEach { sample ->
+            val predicted = sample.peakSnrDb >= c.relativeThresholdDb && sample.maxTriggerLevelDbfs >= c.absoluteFloorDbfs
+            when {
+                predicted && sample.speechExpected -> tp++
+                predicted && !sample.speechExpected -> fp++
+                !predicted && sample.speechExpected -> fn++
+                else -> tn++
+            }
+        }
+        val backgroundMinutes = data.filterNot { it.speechExpected }.sumOf { it.durationMs } / 60_000.0
+        return ExperimentMetrics(tp, fp, fn, tn, backgroundMinutes, emptyList())
+    }
+
     fun recommend(usePeakForTrigger: Boolean): ThresholdRecommendation {
         val data = samples().filter { it.capturedUsePeakForTrigger == usePeakForTrigger }
         val positives = data.count { it.speechExpected }

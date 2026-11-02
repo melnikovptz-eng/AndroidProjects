@@ -14,6 +14,7 @@ class CalibrationRepository(context: Context) {
         silenceEndMs = prefs.getInt("silenceEndMs", 650),
         maxSegmentMs = prefs.getInt("maxSegmentMs", 6000),
         noiseWindowMs = prefs.getInt("noiseWindowMs", 2500),
+        preRollMs = prefs.getInt("preRollMs", 250),
         noiseAdaptation = prefs.getFloat("noiseAdaptation", 0.08f),
         cooldownMs = prefs.getInt("cooldownMs", 450)
     )
@@ -28,6 +29,7 @@ class CalibrationRepository(context: Context) {
             .putInt("silenceEndMs", c.silenceEndMs)
             .putInt("maxSegmentMs", c.maxSegmentMs)
             .putInt("noiseWindowMs", c.noiseWindowMs)
+            .putInt("preRollMs", c.preRollMs)
             .putFloat("noiseAdaptation", c.noiseAdaptation)
             .putInt("cooldownMs", c.cooldownMs)
             .apply()

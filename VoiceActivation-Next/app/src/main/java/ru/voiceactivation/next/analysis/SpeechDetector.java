@@ -17,6 +17,7 @@ public final class SpeechDetector {
     private int loudFrames;
     private int quietFrames;
     private double lastNoiseDbfs = -60.0;
+    private static final int NOISE_WARMUP_FRAMES = 30;
 
     public SpeechDetector() {
         this(new NoiseEstimator(150, 0.25), -48.0, 10.0, 5.0, 3, 12);
@@ -40,6 +41,10 @@ public final class SpeechDetector {
     public synchronized Event accept(AcousticAnalyzer.Metrics metrics) {
         if (metrics == null) throw new IllegalArgumentException("metrics is required");
         double level = metrics.getRmsDbfs();
+        if (!speaking && noise.getFrameCount() < NOISE_WARMUP_FRAMES) {
+            lastNoiseDbfs = noise.addFrame(level);
+            return Event.NONE;
+        }
         double baseline = noise.estimateDbfs();
         if (!Double.isNaN(baseline)) lastNoiseDbfs = baseline;
 

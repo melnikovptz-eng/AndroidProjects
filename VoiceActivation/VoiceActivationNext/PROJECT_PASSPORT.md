@@ -1,6 +1,6 @@
 # Паспорт проекта — Voice Activation Next
 
-Дата актуализации: 2026-11-01  
+Дата актуализации: 2026-11-02  
 Проект: Voice Activation Next  
 Репозиторий: `melnikovptz-eng/AndroidProjects`  
 Ветка: `voice-activation-rebuild`  

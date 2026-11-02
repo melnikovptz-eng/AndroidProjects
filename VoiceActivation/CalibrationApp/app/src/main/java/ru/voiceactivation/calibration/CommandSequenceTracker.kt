@@ -89,5 +89,16 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
     }
 
     @Synchronized
+    fun expire(nowMs: Long, config: CalibrationConfig): Boolean {
+        val pending = pendingWakeEndMs ?: return false
+        val c = config.normalized()
+        if (nowMs - pending > minOf(c.secondWordTimeoutMs, c.maxInterWordPauseMs)) {
+            pendingWakeEndMs = null
+            return true
+        }
+        return false
+    }
+
+    @Synchronized
     fun reset() { pendingWakeEndMs = null }
 }

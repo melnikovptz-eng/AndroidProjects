@@ -25,7 +25,7 @@ class CommandMatcher(
         .trim()
         .replace(Regex("\\s+"), " ")
 
-    fun match(text: String, action: String? = "поехали"): CommandMatch {
+    fun match(text: String, action: String? = "поехали", wakeLimit: Float = wakeThreshold, actionLimit: Float = actionThreshold): CommandMatch {
         val normalized = normalize(text)
         val tokens = normalized.split(' ').filter { it.isNotBlank() }
         var bestWake: Pair<String, Float>? = null
@@ -41,8 +41,8 @@ class CommandMatcher(
         }
         val wakeScore = bestWake?.second ?: 0f
         val actionScore = bestAction?.second ?: 0f
-        val wakeOk = bestWake != null && wakeScore >= wakeThreshold
-        val actionOk = action == null || (bestAction != null && actionScore >= actionThreshold)
+        val wakeOk = bestWake != null && wakeScore >= wakeLimit
+        val actionOk = action == null || (bestAction != null && actionScore >= actionLimit)
         return CommandMatch(
             wakeFound = wakeOk,
             actionFound = actionOk && action != null,

@@ -65,6 +65,7 @@ class ProfileRepository(context: Context) {
         .put("actionSimilarityThreshold", c.actionSimilarityThreshold.toDouble())
         .put("secondWordTimeoutMs", c.secondWordTimeoutMs)
         .put("maxInterWordPauseMs", c.maxInterWordPauseMs)
+        .put("usePeakForTrigger", c.usePeakForTrigger)
 
     private fun decodeConfig(o: JSONObject) = CalibrationConfig(
         relativeThresholdDb = o.optDouble("relativeThresholdDb", 10.0).toFloat(),
@@ -81,6 +82,7 @@ class ProfileRepository(context: Context) {
         wakeSimilarityThreshold = o.optDouble("wakeSimilarityThreshold", 0.72).toFloat(),
         actionSimilarityThreshold = o.optDouble("actionSimilarityThreshold", 0.78).toFloat(),
         secondWordTimeoutMs = o.optInt("secondWordTimeoutMs", 2500),
-        maxInterWordPauseMs = o.optInt("maxInterWordPauseMs", 1200)
+        maxInterWordPauseMs = o.optInt("maxInterWordPauseMs", 1200),
+        usePeakForTrigger = o.optBoolean("usePeakForTrigger", false)
     ).normalized()
 }

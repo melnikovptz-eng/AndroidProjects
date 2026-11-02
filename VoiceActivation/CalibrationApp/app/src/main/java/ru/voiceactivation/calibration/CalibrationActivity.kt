@@ -45,6 +45,7 @@ class CalibrationActivity : Activity() {
     private val commandMatcher = CommandMatcher()
     private val commandSequence = CommandSequenceTracker(commandMatcher)
     private lateinit var noiseButton: Button
+    private lateinit var noiseStats: TextView
     private val noiseSamples = ArrayDeque<Float>()
     private var noiseCalibrationStartedAt = 0L
     private var starts = 0
@@ -93,6 +94,8 @@ class CalibrationActivity : Activity() {
         buttons.addView(startButton, LinearLayout.LayoutParams(0, -2, 1f))
         buttons.addView(noiseButton, LinearLayout.LayoutParams(0, -2, 1f))
         content.addView(buttons)
+        noiseStats = label("ФОНОВЫЙ ШУМ: ещё не измерен", 13f, false)
+        content.addView(noiseStats)
         val modelButton = Button(this).apply {
             text = "ВЫБРАТЬ ПАПКУ РУССКОЙ VOSK-МОДЕЛИ"
             setOnClickListener { chooseVoskModel() }
@@ -226,6 +229,10 @@ class CalibrationActivity : Activity() {
                     runOnUiThread { transcriptView.text = "Vosk: выберите папку модели\\nСегмент: ${pcm.size / 16} ms" }
                 } else {
                     Thread({
+                        if (pcm.size / 16 < config.minSpeechMs) {
+                            runOnUiThread { transcriptView.text = "СЕГМЕНТ ОТБРОШЕН: длительность ${pcm.size / 16} ms меньше ${config.minSpeechMs} ms" }
+                            return@Thread
+                        }
                         val recognized = vosk.recognizeSegment(pcm)?.text.orEmpty()
                         val sequence = commandSequence.accept(recognized, segment.startTimeMs, segment.endTimeMs, config)
                         runOnUiThread {
@@ -272,6 +279,12 @@ class CalibrationActivity : Activity() {
             if (elapsed >= 5000L) {
                 val sorted = noiseSamples.sorted()
                 val median = if (sorted.isEmpty()) -65f else sorted[sorted.size / 2]
+                val mean = if (sorted.isEmpty()) median else sorted.average().toFloat()
+                val p90 = if (sorted.isEmpty()) median else sorted[(sorted.size * 0.90).toInt().coerceIn(0, sorted.lastIndex)]
+                val spread = if (sorted.size < 2) 0f else kotlin.math.sqrt(sorted.sumOf { sample ->
+                    val delta = (sample - mean).toDouble(); delta * delta
+                } / sorted.size).toFloat()
+                noiseStats.text = String.format(Locale.US, "ФОН: медиана %.1f · среднее %.1f · P90 %.1f dBFS · разброс %.1f dB", median, mean, p90, spread)
                 capture?.setNoiseBaseline(median)
                 noiseCalibrationStartedAt = 0L
                 noiseSamples.clear()

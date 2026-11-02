@@ -328,7 +328,7 @@ class CalibrationActivity : Activity() {
     }
 
     private fun showRecommendation() {
-        val r = experiments.recommend()
+        val r = experiments.recommend(config.usePeakForTrigger)
         recommendation = r
         optimizerStatus.text = if (r.ready) {
             "Рекомендация: +${r.relativeThresholdDb.toInt()} dB к шуму; пол: ${r.absoluteFloorDbfs.toInt()} dBFS\\n" +

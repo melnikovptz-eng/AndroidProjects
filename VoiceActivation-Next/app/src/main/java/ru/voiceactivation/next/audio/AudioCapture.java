@@ -58,7 +58,7 @@ public final class AudioCapture {
         if (active != null) {
             try {
                 active.stop();
-            } catch (IllegalStateException ignored) {
+            } catch (RuntimeException ignored) {
                 // The worker may be between initialization and startRecording().
             }
         }
@@ -133,11 +133,9 @@ public final class AudioCapture {
                 try {
                     local.release();
                 } catch (RuntimeException releaseError) {
-                    if (!failed && !stopRequested.get()) {
-                        failed = true;
-                        changeState(State.ERROR);
-                        notifyError("Microphone release failed", releaseError);
-                    }
+                    failed = true;
+                    changeState(State.ERROR);
+                    notifyError("Microphone release failed", releaseError);
                 }
             }
             if (!failed) changeState(State.IDLE);

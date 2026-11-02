@@ -268,7 +268,7 @@ class CalibrationActivity : Activity() {
         values.text = String.format(
             Locale.US,
             "RMS: %.1f dBFS     PEAK: %.1f dBFS\nШум: %.1f dBFS     SNR: %.1f dB\nПорог: %.1f dBFS",
-            frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.thresholdDbfs
+            frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.triggerLevelDbfs, frame.thresholdDbfs
         )
         chart.addFrame(frame.triggerLevelDbfs, frame.noiseDbfs, frame.thresholdDbfs)
         if (windowStartedAtMs == 0L) windowStartedAtMs = System.currentTimeMillis()

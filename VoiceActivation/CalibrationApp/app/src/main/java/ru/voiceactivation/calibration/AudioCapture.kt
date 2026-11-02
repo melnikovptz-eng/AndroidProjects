@@ -5,6 +5,8 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import kotlin.math.exp
 
+data class CapturedSpeechSegment(val pcm: ShortArray, val startTimeMs: Long, val endTimeMs: Long)
+
 data class AudioFrame(
     val rmsDbfs: Float,
     val peakDbfs: Float,
@@ -19,7 +21,7 @@ class AudioCapture(
     private val configProvider: () -> CalibrationConfig,
     private val onFrame: (AudioFrame) -> Unit,
     private val onError: (String) -> Unit,
-    private val onSegment: (ShortArray) -> Unit = {}
+    private val onSegment: (CapturedSpeechSegment) -> Unit = {}
 ) {
     @Volatile private var running = false
     @Volatile private var pendingNoiseBaseline: Float? = null
@@ -74,6 +76,7 @@ class AudioCapture(
         val segmentFrames = ArrayList<ShortArray>()
         var preRollSamples = 0
         var segmentActive = false
+        var segmentStartedAtMs = 0L
         try {
             while (running) {
                 val count = audio.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
@@ -101,6 +104,7 @@ class AudioCapture(
                 val newThreshold = maxOf(noise.levelDbfs + c.relativeThresholdDb, c.absoluteFloorDbfs)
                 val event = segmenter.process(rmsDb, newThreshold, c, frameMs)
                 if (event.started) {
+                    segmentStartedAtMs = android.os.SystemClock.elapsedRealtime()
                     segmentFrames.clear()
                     preRoll.forEach { segmentFrames.add(it) }
                     if (segmentFrames.isEmpty()) segmentFrames.add(frameCopy)
@@ -115,7 +119,7 @@ class AudioCapture(
                     segmentFrames.forEach { part -> part.copyInto(joined, offset); offset += part.size }
                     segmentActive = false
                     segmentFrames.clear()
-                    onSegment(joined)
+                    onSegment(CapturedSpeechSegment(joined, segmentStartedAtMs, android.os.SystemClock.elapsedRealtime()))
                 }
                 onFrame(
                     AudioFrame(

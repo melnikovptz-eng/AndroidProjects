@@ -33,7 +33,7 @@ class CalibrationActivity : Activity() {
     private var windowPeakSnr = -100f
     private var windowPeakDbfs = -140f
     private var windowStartedAtMs = 0L
-    private var config = CalibrationConfig()
+    @Volatile private var config = CalibrationConfig()
     private var capture: AudioCapture? = null
     private lateinit var status: TextView
     private lateinit var values: TextView
@@ -265,6 +265,9 @@ class CalibrationActivity : Activity() {
 
     private fun renderFrame(frame: AudioFrame) {
         if (capture?.isRunning() != true) return
+        if (commandSequence.expire(android.os.SystemClock.elapsedRealtime(), config)) {
+            transcriptView.text = "КОМАНДА НЕ ЗАВЕРШЕНА: истекло время ожидания второго слова"
+        }
         values.text = String.format(
             Locale.US,
             "RMS: %.1f dBFS     PEAK: %.1f dBFS\nШум: %.1f dBFS     SNR: %.1f dB\nПорог: %.1f dBFS",

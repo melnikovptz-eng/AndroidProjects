@@ -50,6 +50,30 @@ class VoskEngine : Closeable {
         return VoskResult(text, true, json)
     }
 
+    @Synchronized
+    fun recognizeSegment(samples: ShortArray): VoskResult? {
+        val rec = recognizer ?: return null
+        var latestText = ""
+        var finalText = ""
+        var offset = 0
+        val chunkSize = 3_200
+        while (offset < samples.size) {
+            val count = minOf(chunkSize, samples.size - offset)
+            val chunk = samples.copyOfRange(offset, offset + count)
+            val result = accept(chunk, count)
+            if (result != null) {
+                latestText = result.text
+                if (result.isFinal && result.text.isNotBlank()) finalText = result.text
+            }
+            offset += count
+        }
+        val tail = finish()
+        if (tail != null && tail.text.isNotBlank()) finalText = tail.text
+        try { rec.reset() } catch (_: Throwable) {}
+        val chosen = if (finalText.isNotBlank()) finalText else latestText
+        return VoskResult(chosen, true, """{"text":"$chosen"}""")
+    }
+
     fun isLoaded() = recognizer != null
 
     @Synchronized

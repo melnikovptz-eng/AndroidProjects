@@ -686,7 +686,7 @@ private class AcousticMatcher(ctx: Context) {
         val second = sorted.getOrNull(1)?.value ?: Double.POSITIVE_INFINITY
         val accepted = best.value < dtwThreshold() &&
             (second.isInfinite() || best.value < second * marginThreshold())
-        val marginRatio = if (second.isInfinite() || second <= 0.0) 0.0 else best.value / second
+        val marginRatio = if (second.isInfinite()) 0.0 else if (second <= 0.0) Double.MAX_VALUE else best.value / second
         return MatchResult(best.key, best.value, second, accepted, marginRatio)
     }
 

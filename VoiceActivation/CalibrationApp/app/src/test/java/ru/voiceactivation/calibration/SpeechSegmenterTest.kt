@@ -11,7 +11,7 @@ class SpeechSegmenterTest {
         assertFalse(segmenter.process(-20f, -40f, config, 20).started)
         assertFalse(segmenter.process(-20f, -40f, config, 20).started)
         assertTrue(segmenter.process(-20f, -40f, config, 20).started)
-        assertFalse(segmenter.process(-80f, -40f, config, 20).ended)
+        repeat(4) { assertFalse(segmenter.process(-80f, -40f, config, 20).ended) }
         assertTrue(segmenter.process(-80f, -40f, config, 20).ended)
     }
 

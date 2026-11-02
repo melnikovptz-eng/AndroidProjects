@@ -12,7 +12,7 @@ data class CalibrationConfig(
     val preRollMs: Int = 250,
     val noiseAdaptation: Float = 0.08f,
     val cooldownMs: Int = 450,
-    val wakeSimilarityThreshold: Float = 0.72f,
+    val wakeSimilarityThreshold: Float = 0.80f,
     val actionSimilarityThreshold: Float = 0.78f,
     val secondWordTimeoutMs: Int = 2500,
     val maxInterWordPauseMs: Int = 1200,

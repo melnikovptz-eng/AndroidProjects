@@ -119,22 +119,22 @@ class CalibrationActivity : Activity() {
         content.addView(transcriptView)
 
         content.addView(label("ПАРАМЕТРЫ ТРИГГЕРА", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
-        addSlider(content, "Превышение шума для старта", 0f, 30f, config.relativeThresholdDb, " %.1f dB") { config = config.copy(relativeThresholdDb = it) }
-        addSlider(content, "Абсолютный нижний порог", -90f, -6f, config.absoluteFloorDbfs, " %.1f dBFS") { config = config.copy(absoluteFloorDbfs = it) }
-        addSlider(content, "Гистерезис выключения", 0f, 15f, config.hysteresisDb, " %.1f dB") { config = config.copy(hysteresisDb = it) }
-        addSlider(content, "Минимальное превышение", 20f, 1000f, config.minTriggerMs.toFloat(), " %.0f ms") { config = config.copy(minTriggerMs = it.toInt()) }
-        addSlider(content, "Минимальная длительность речи", 50f, 2000f, config.minSpeechMs.toFloat(), " %.0f ms") { config = config.copy(minSpeechMs = it.toInt()) }
-        addSlider(content, "Тишина до завершения фразы", 100f, 2500f, config.silenceEndMs.toFloat(), " %.0f ms") { config = config.copy(silenceEndMs = it.toInt()) }
-        addSlider(content, "Максимальная длина сегмента", 1000f, 15000f, config.maxSegmentMs.toFloat(), " %.0f ms") { config = config.copy(maxSegmentMs = it.toInt()) }
-        addSlider(content, "Окно оценки фонового шума", 500f, 10000f, config.noiseWindowMs.toFloat(), " %.0f ms") { config = config.copy(noiseWindowMs = it.toInt()) }
-        addSlider(content, "Предзапись до начала сегмента", 0f, 1000f, config.preRollMs.toFloat(), " %.0f ms") { config = config.copy(preRollMs = it.toInt()) }
-        addSlider(content, "Скорость адаптации шума", 0.005f, 0.5f, config.noiseAdaptation, " %.3f") { config = config.copy(noiseAdaptation = it) }
-        addSlider(content, "Пауза до повторного триггера", 0f, 5000f, config.cooldownMs.toFloat(), " %.0f ms") { config = config.copy(cooldownMs = it.toInt()) }
+        addSlider(content, "Превышение шума для старта", 0f, 30f, config.relativeThresholdDb, " %.1f dB", "На сколько dB сигнал должен быть громче фонового шума. Выше — меньше ложных запусков, но тихую речь легче пропустить. Ниже — выше чувствительность, но больше реакций на шум.") { config = config.copy(relativeThresholdDb = it) }
+        addSlider(content, "Абсолютный нижний порог", -90f, -6f, config.absoluteFloorDbfs, " %.1f dBFS", "Минимальный уровень сигнала в dBFS независимо от фона. Более отрицательное значение повышает чувствительность; менее отрицательное отсекает тихие звуки.") { config = config.copy(absoluteFloorDbfs = it) }
+        addSlider(content, "Гистерезис выключения", 0f, 15f, config.hysteresisDb, " %.1f dB", "Запас между порогом старта и уровнем, при котором сегмент закрывается. Выше — меньше обрывов речи на колебаниях громкости, но сегмент может длиться дольше.") { config = config.copy(hysteresisDb = it) }
+        addSlider(content, "Минимальное превышение", 20f, 1000f, config.minTriggerMs.toFloat(), " %.0f ms", "Сколько миллисекунд сигнал должен оставаться выше порога для старта. Выше — лучше отсекаются щелчки, но можно срезать короткое слово.") { config = config.copy(minTriggerMs = it.toInt()) }
+        addSlider(content, "Минимальная длительность речи", 50f, 2000f, config.minSpeechMs.toFloat(), " %.0f ms", "Самая короткая запись, которую допускаем к распознаванию. Выше — меньше коротких шумов, но короткие слова могут быть отброшены.") { config = config.copy(minSpeechMs = it.toInt()) }
+        addSlider(content, "Тишина до завершения фразы", 100f, 2500f, config.silenceEndMs.toFloat(), " %.0f ms", "Сколько миллисекунд тишины нужно для закрытия сегмента. Выше — слова с паузами объединяются, но растёт задержка.") { config = config.copy(silenceEndMs = it.toInt()) }
+        addSlider(content, "Максимальная длина сегмента", 1000f, 15000f, config.maxSegmentMs.toFloat(), " %.0f ms", "Предельная длительность одной записи. Выше — помещаются длинные фразы, но увеличиваются память и время распознавания.") { config = config.copy(maxSegmentMs = it.toInt()) }
+        addSlider(content, "Окно оценки фонового шума", 500f, 10000f, config.noiseWindowMs.toFloat(), " %.0f ms", "Период оценки окружающего шума. Выше — стабильнее измерение, но медленнее реакция на смену обстановки.") { config = config.copy(noiseWindowMs = it.toInt()) }
+        addSlider(content, "Предзапись до начала сегмента", 0f, 1000f, config.preRollMs.toFloat(), " %.0f ms", "Сколько миллисекунд звука добавить до момента срабатывания. Выше — меньше риск обрезать начало слова, но больше звука до речи.") { config = config.copy(preRollMs = it.toInt()) }
+        addSlider(content, "Скорость адаптации шума", 0.005f, 0.5f, config.noiseAdaptation, " %.3f", "Как быстро оценка фона следует за изменением окружающего уровня. Выше — быстрее адаптация, но фон может ошибочно подстраиваться под речь.") { config = config.copy(noiseAdaptation = it) }
+        addSlider(content, "Пауза до повторного триггера", 0f, 5000f, config.cooldownMs.toFloat(), " %.0f ms", "Время блокировки нового запуска после сегмента. Выше — меньше повторных срабатываний, но можно пропустить следующую команду.") { config = config.copy(cooldownMs = it.toInt()) }
         content.addView(label("РАСПОЗНАВАНИЕ КОМАНД", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
-        addSlider(content, "Минимальное сходство слова «Яша»", 0.3f, 1f, config.wakeSimilarityThreshold, " %.2f") { config = config.copy(wakeSimilarityThreshold = it) }
-        addSlider(content, "Минимальное сходство действия", 0.3f, 1f, config.actionSimilarityThreshold, " %.2f") { config = config.copy(actionSimilarityThreshold = it) }
-        addSlider(content, "Тайм-аут ожидания второго слова", 500f, 10000f, config.secondWordTimeoutMs.toFloat(), " %.0f ms") { config = config.copy(secondWordTimeoutMs = it.toInt()) }
-        addSlider(content, "Максимальная пауза между словами", 100f, 5000f, config.maxInterWordPauseMs.toFloat(), " %.0f ms") { config = config.copy(maxInterWordPauseMs = it.toInt()) }
+        addSlider(content, "Минимальное сходство слова «Яша»", 0.3f, 1f, config.wakeSimilarityThreshold, " %.2f", "Насколько распознанный токен должен быть похож на «Яша» или разрешённые варианты. Выше — строже приём и меньше ложных совпадений, но больше пропусков.") { config = config.copy(wakeSimilarityThreshold = it) }
+        addSlider(content, "Минимальное сходство действия", 0.3f, 1f, config.actionSimilarityThreshold, " %.2f", "Порог сходства с командой «поехали». Выше — меньше ложных команд, но возможны пропуски из-за ошибок Vosk.") { config = config.copy(actionSimilarityThreshold = it) }
+        addSlider(content, "Тайм-аут ожидания второго слова", 500f, 10000f, config.secondWordTimeoutMs.toFloat(), " %.0f ms", "Сколько времени после «Яша» ждём действие. Выше — больше времени на ответ, но незавершённая команда дольше остаётся активной.") { config = config.copy(secondWordTimeoutMs = it.toInt()) }
+        addSlider(content, "Максимальная пауза между словами", 100f, 5000f, config.maxInterWordPauseMs.toFloat(), " %.0f ms", "Самая длинная пауза между сегментами «Яша» и «поехали». Выше — допускается более медленная речь, но легче объединить разные фразы.") { config = config.copy(maxInterWordPauseMs = it.toInt()) }
 
         content.addView(label("РЕЗУЛЬТАТЫ ИЗМЕРЕНИЯ", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
         result = label("Сегменты: 0 · Завершено: 0 · Достаточная длительность: 0", 14f, true)
@@ -184,10 +184,17 @@ class CalibrationActivity : Activity() {
         max: Float,
         initial: Float,
         format: String,
+        description: String,
         update: (Float) -> Unit
     ) {
         val caption = label("", 14f, true)
         parent.addView(caption)
+        val hint = label(
+            "Диапазон: ${String.format(Locale.US, format, min)} … ${String.format(Locale.US, format, max)}\\n$description",
+            12f, false
+        )
+        hint.setTextColor(0xff526170.toInt())
+        parent.addView(hint)
         val seek = SeekBar(this)
         seek.max = 1000
         fun valueAt(progress: Int) = min + (max - min) * progress / seek.max

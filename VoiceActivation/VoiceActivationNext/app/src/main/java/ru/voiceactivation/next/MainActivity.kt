@@ -726,20 +726,24 @@ private class AcousticMatcher(ctx: Context) {
 
     private fun dtw(a: List<DoubleArray>, b: List<DoubleArray>): Double {
         if (a.isEmpty() || b.isEmpty()) return Double.POSITIVE_INFINITY
-        var previous = DoubleArray(b.size + 1) { 1e9 }
+        var previous = DoubleArray(b.size + 1) { Double.POSITIVE_INFINITY }
         previous[0] = 0.0
+        // Centre the Sakoe-Chiba window on the scaled diagonal. A fixed i±12
+        // window rejects valid repetitions whenever their speaking rates differ.
+        val band = max(DTW_BAND, abs(a.size - b.size))
+        val aDenominator = max(1, a.size - 1).toDouble()
+        val bLast = max(0, b.size - 1)
         for (i in a.indices) {
-            val current = DoubleArray(b.size + 1) { 1e9 }
-            val from = max(0, i - DTW_BAND)
-            val to = min(b.size - 1, i + DTW_BAND)
-            if (from <= to) {
-                for (j in from..to) {
-                    val cost = sqrt(
-                        a[i].indices.sumOf { k -> (a[i][k] - b[j][k]).pow(2) } /
-                            MFCC_COEFFICIENTS.toDouble()
-                    )
-                    current[j + 1] = cost + minOf(previous[j + 1], current[j], previous[j])
-                }
+            val current = DoubleArray(b.size + 1) { Double.POSITIVE_INFINITY }
+            val center = (i * bLast / aDenominator).roundToInt()
+            val from = max(0, center - band)
+            val to = min(b.size - 1, center + band)
+            for (j in from..to) {
+                val cost = sqrt(
+                    a[i].indices.sumOf { k -> (a[i][k] - b[j][k]).pow(2) } /
+                        MFCC_COEFFICIENTS.toDouble()
+                )
+                current[j + 1] = cost + minOf(previous[j + 1], current[j], previous[j])
             }
             previous = current
         }

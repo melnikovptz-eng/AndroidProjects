@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +25,7 @@ import ru.voiceactivation.next.asr.VoskModelImporter;
 import ru.voiceactivation.next.asr.WakeWordDetector;
 
 public final class MainActivity extends Activity implements AudioCapture.Listener {
+    private static final int SAMPLE_RATE_HZ = 16000;
     private static final int REQUEST_MIC = 101;
     private static final int REQUEST_VOSK_MODEL = 102;
     private static final long UI_UPDATE_INTERVAL_MS = 500L;

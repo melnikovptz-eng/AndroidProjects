@@ -7,7 +7,7 @@ import org.json.JSONObject
 class ProfileRepository(context: Context) {
     private val prefs = context.getSharedPreferences("named_calibration_profiles_v1", Context.MODE_PRIVATE)
 
-    fun names(): List<String> = prefs.all.keys.sorted()
+    fun names(): List<String> = prefs.all.keys.filterNot { it == "__CURRENT__" }.sorted()
 
     fun save(name: String, config: CalibrationConfig) {
         val key = name.trim()
@@ -20,11 +20,12 @@ class ProfileRepository(context: Context) {
         return decodeConfig(JSONObject(raw))
     }
 
-    fun exportJson(experiments: ExperimentRepository): String {
+    fun exportJson(experiments: ExperimentRepository, current: CalibrationConfig): String {
         val profiles = JSONObject()
         names().forEach { name ->
             load(name)?.let { profiles.put(name, encodeConfig(it)) }
         }
+        profiles.put("__CURRENT__", encodeConfig(current))
         return JSONObject()
             .put("schemaVersion", 1)
             .put("profiles", profiles)
@@ -32,7 +33,7 @@ class ProfileRepository(context: Context) {
             .toString(2)
     }
 
-    fun importJson(json: String, experiments: ExperimentRepository) {
+    fun importJson(json: String, experiments: ExperimentRepository): CalibrationConfig? {
         val root = JSONObject(json)
         require(root.optInt("schemaVersion") == 1) { "Неподдерживаемая версия файла" }
         val profiles = root.getJSONObject("profiles")
@@ -45,6 +46,7 @@ class ProfileRepository(context: Context) {
         }
         editor.apply()
         if (root.has("experiments")) experiments.importJson(root.getJSONObject("experiments").toString())
+        return if (profiles.has("__CURRENT__")) decodeConfig(profiles.getJSONObject("__CURRENT__")) else null
     }
 
     private fun encodeConfig(c: CalibrationConfig) = JSONObject()

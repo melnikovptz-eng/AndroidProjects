@@ -18,7 +18,8 @@ data class AudioFrame(
 class AudioCapture(
     private val configProvider: () -> CalibrationConfig,
     private val onFrame: (AudioFrame) -> Unit,
-    private val onError: (String) -> Unit
+    private val onError: (String) -> Unit,
+    private val onSegment: (ShortArray) -> Unit = {}
 ) {
     @Volatile private var running = false
     @Volatile private var pendingNoiseBaseline: Float? = null
@@ -69,6 +70,10 @@ class AudioCapture(
     private fun captureLoop(audio: AudioRecord) {
         val frameSamples = 320
         val samples = ShortArray(frameSamples)
+        val preRoll = java.util.ArrayDeque<ShortArray>()
+        val segmentFrames = ArrayList<ShortArray>()
+        var preRollSamples = 0
+        var segmentActive = false
         try {
             while (running) {
                 val count = audio.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
@@ -81,6 +86,13 @@ class AudioCapture(
                 val rmsDb = AcousticMath.dbfs(AcousticMath.rms(samples, count))
                 val peakDb = AcousticMath.dbfs(AcousticMath.peak(samples, count))
                 val c = configProvider().normalized()
+                val frameCopy = samples.copyOf(count)
+                preRoll.addLast(frameCopy)
+                preRollSamples += count
+                val maxPreRollSamples = 16_000L * c.preRollMs / 1000L
+                while (preRoll.isNotEmpty() && preRollSamples > maxPreRollSamples) {
+                    preRollSamples -= preRoll.removeFirst().size
+                }
                 val threshold = maxOf(noise.levelDbfs + c.relativeThresholdDb, c.absoluteFloorDbfs)
                 val probableSpeech = rmsDb >= threshold - c.hysteresisDb
                 val alpha = (1.0 - exp(-frameMs.toDouble() / c.noiseWindowMs.coerceAtLeast(1))) *
@@ -88,6 +100,22 @@ class AudioCapture(
                 noise.update(rmsDb, alpha.toFloat().coerceIn(0.001f, 0.5f), probableSpeech)
                 val newThreshold = maxOf(noise.levelDbfs + c.relativeThresholdDb, c.absoluteFloorDbfs)
                 val event = segmenter.process(rmsDb, newThreshold, c, frameMs)
+                if (event.started) {
+                    segmentFrames.clear()
+                    preRoll.forEach { segmentFrames.add(it) }
+                    segmentActive = true
+                } else if (segmentActive) {
+                    segmentFrames.add(frameCopy)
+                }
+                if (event.ended && segmentActive) {
+                    val total = segmentFrames.sumOf { it.size }
+                    val joined = ShortArray(total)
+                    var offset = 0
+                    segmentFrames.forEach { part -> part.copyInto(joined, offset); offset += part.size }
+                    segmentActive = false
+                    segmentFrames.clear()
+                    onSegment(joined)
+                }
                 onFrame(
                     AudioFrame(
                         rmsDbfs = rmsDb,

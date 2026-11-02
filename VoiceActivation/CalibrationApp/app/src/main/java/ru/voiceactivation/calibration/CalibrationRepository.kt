@@ -17,7 +17,7 @@ class CalibrationRepository(context: Context) {
         preRollMs = prefs.getInt("preRollMs", 250),
         noiseAdaptation = prefs.getFloat("noiseAdaptation", 0.08f),
         cooldownMs = prefs.getInt("cooldownMs", 450),
-        wakeSimilarityThreshold = prefs.getFloat("wakeSimilarityThreshold", 0.72f),
+        wakeSimilarityThreshold = prefs.getFloat("wakeSimilarityThreshold", 0.80f),
         actionSimilarityThreshold = prefs.getFloat("actionSimilarityThreshold", 0.78f),
         secondWordTimeoutMs = prefs.getInt("secondWordTimeoutMs", 2500),
         maxInterWordPauseMs = prefs.getInt("maxInterWordPauseMs", 1200),

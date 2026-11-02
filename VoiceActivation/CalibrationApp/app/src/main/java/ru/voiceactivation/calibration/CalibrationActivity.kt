@@ -274,7 +274,7 @@ class CalibrationActivity : Activity() {
         }
         values.text = String.format(
             Locale.US,
-            "RMS: %.1f dBFS     PEAK: %.1f dBFS\nШум: %.1f dBFS     SNR: %.1f dB\nПорог: %.1f dBFS",
+            "RMS: %.1f dBFS     PEAK: %.1f dBFS\nШум: %.1f dBFS     SNR: %.1f dB\nТриггер: %.1f dBFS · порог: %.1f dBFS",
             frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.triggerLevelDbfs, frame.thresholdDbfs
         )
         chart.addFrame(frame.triggerLevelDbfs, frame.noiseDbfs, frame.thresholdDbfs)
@@ -293,7 +293,7 @@ class CalibrationActivity : Activity() {
         }
         result.text = "Сегменты: $starts · Завершено: $ends · Достаточная длительность: $acceptedSegments"
         if (noiseCalibrationStartedAt > 0L) {
-            noiseSamples.addLast(frame.rmsDbfs)
+            noiseSamples.addLast(frame.triggerLevelDbfs)
             val elapsed = System.currentTimeMillis() - noiseCalibrationStartedAt
             if (elapsed >= 5000L) {
                 val sorted = noiseSamples.sorted()

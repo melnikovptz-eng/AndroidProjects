@@ -2,12 +2,6 @@ name: Voice Calibration APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - voice-calibration-rebuild
-    paths:
-      - 'VoiceActivation/CalibrationApp/**'
-      - '.github/workflows/voice-calibration-build.yml'
 
 permissions:
   contents: read

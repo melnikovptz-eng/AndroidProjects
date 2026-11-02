@@ -415,6 +415,7 @@ class MainActivity : Activity() {
             try { analysisExecutor.awaitTermination(30, TimeUnit.SECONDS) } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
             }
+            adaptiveVad.save()
             testRecorder = null
             try {
                 recorder?.let {

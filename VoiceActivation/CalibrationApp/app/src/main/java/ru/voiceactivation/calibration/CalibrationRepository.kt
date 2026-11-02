@@ -16,7 +16,11 @@ class CalibrationRepository(context: Context) {
         noiseWindowMs = prefs.getInt("noiseWindowMs", 2500),
         preRollMs = prefs.getInt("preRollMs", 250),
         noiseAdaptation = prefs.getFloat("noiseAdaptation", 0.08f),
-        cooldownMs = prefs.getInt("cooldownMs", 450)
+        cooldownMs = prefs.getInt("cooldownMs", 450),
+        wakeSimilarityThreshold = prefs.getFloat("wakeSimilarityThreshold", 0.72f),
+        actionSimilarityThreshold = prefs.getFloat("actionSimilarityThreshold", 0.78f),
+        secondWordTimeoutMs = prefs.getInt("secondWordTimeoutMs", 2500),
+        maxInterWordPauseMs = prefs.getInt("maxInterWordPauseMs", 1200)
     )
 
     fun save(c: CalibrationConfig) {
@@ -32,6 +36,10 @@ class CalibrationRepository(context: Context) {
             .putInt("preRollMs", c.preRollMs)
             .putFloat("noiseAdaptation", c.noiseAdaptation)
             .putInt("cooldownMs", c.cooldownMs)
+            .putFloat("wakeSimilarityThreshold", c.wakeSimilarityThreshold)
+            .putFloat("actionSimilarityThreshold", c.actionSimilarityThreshold)
+            .putInt("secondWordTimeoutMs", c.secondWordTimeoutMs)
+            .putInt("maxInterWordPauseMs", c.maxInterWordPauseMs)
             .apply()
     }
 }

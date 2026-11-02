@@ -59,6 +59,7 @@ class CalibrationActivity : Activity() {
         profiles = ProfileRepository(this)
         config = repository.load()
         buildUi()
+        loadStoredVoskModel()
     }
 
     private fun buildUi() {
@@ -353,6 +354,21 @@ class CalibrationActivity : Activity() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivityForResult(intent, 44)
+    }
+
+    private fun loadStoredVoskModel() {
+        val directory = File(filesDir, "vosk-model")
+        if (!directory.exists() || !directory.isDirectory) return
+        Thread({
+            try {
+                val hasModel = directory.walkTopDown().any { it.isFile && it.name == "final.mdl" }
+                if (!hasModel) return@Thread
+                vosk.load(directory.absolutePath)
+                runOnUiThread { modelStatus.text = "Vosk: сохранённая модель загружена" }
+            } catch (t: Throwable) {
+                runOnUiThread { modelStatus.text = "Vosk: ошибка повторной загрузки — ${t.message}" }
+            }
+        }, "Vosk-Model-Restore").start()
     }
 
     private fun chooseVoskModel() {

@@ -465,7 +465,7 @@ class MainActivity : Activity() {
             ui("Остановите тест или боевой режим перед записью калибровки VAD.")
             return
         }
-        ui(if (speech) "Запись речи для VAD: говорите непрерывно 4 секунды."
+        ui(if (speech) "Запись речи для VAD: произнесите несколько коротких фраз с обычными паузами между ними за 4 секунды."
             else "Запись фонового шума для VAD: 4 секунды молчите.")
         thread(name = "VoiceActivationVadCalibration") {
             var recorder: AudioRecord? = null
@@ -526,12 +526,13 @@ class MainActivity : Activity() {
             ui("КАЛИБРОВКА VAD НЕ ВЫПОЛНЕНА\n" + result.message)
             return
         }
-        adaptiveVad.applyFittedThresholds(result.noiseRms, result.rmsThreshold, result.peakThreshold)
+        adaptiveVad.applyFittedThresholds(result.noiseRms, result.rmsThreshold, result.peakThreshold, result.silenceMs, result.minSpeechMs, result.maxSpeechMs)
         ui(
             "КАЛИБРОВКА VAD ЗАВЕРШЕНА\n" +
                 "Фоновый RMS: " + fmt(result.noiseRms) + "\n" +
                 "Порог RMS: " + fmt(result.rmsThreshold) + "\n" +
                 "Порог PEAK: " + fmt(result.peakThreshold) + "\n" +
+                "Пауза: " + result.silenceMs + " мс; минимум фразы: " + result.minSpeechMs + " мс; максимум: " + result.maxSpeechMs + " мс\n" +
                 "Точность на независимых записях: " + fmt(result.validationAccuracy * 100) + "%\n" +
                 "Сессии: шум " + result.noiseSessions + ", речь " + result.speechSessions + ". Пороги сохранены."
         )

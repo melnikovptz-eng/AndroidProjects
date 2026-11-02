@@ -19,6 +19,7 @@ data class CommandSequenceResult(
 
 class CommandSequenceTracker(private val matcher: CommandMatcher) {
     private var pendingWakeEndMs: Long? = null
+    private var secondSegmentStartMs: Long? = null
 
     @Synchronized
     fun accept(
@@ -31,6 +32,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
         val full = matcher.match(text, "поехали", c.wakeSimilarityThreshold, c.actionSimilarityThreshold)
         if (full.complete) {
             pendingWakeEndMs = null
+            secondSegmentStartMs = null
             return CommandSequenceResult(
                 CommandSequenceState.COMPLETE_SAME_SEGMENT,
                 "ЯША + ПОЕХАЛИ — ОК",
@@ -49,6 +51,7 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
         }
         if (full.wakeFound) {
             pendingWakeEndMs = segmentEndMs
+            secondSegmentStartMs = null
             return CommandSequenceResult(
                 CommandSequenceState.WAKE_DETECTED_WAITING_ACTION,
                 "ЯША — ОК. ОЖИДАЮ «ПОЕХАЛИ»",
@@ -92,13 +95,28 @@ class CommandSequenceTracker(private val matcher: CommandMatcher) {
     fun expire(nowMs: Long, config: CalibrationConfig): Boolean {
         val pending = pendingWakeEndMs ?: return false
         val c = config.normalized()
-        if (nowMs - pending > minOf(c.secondWordTimeoutMs, c.maxInterWordPauseMs)) {
+        val secondStart = secondSegmentStartMs
+        val expired = if (secondStart == null) {
+            nowMs - pending > c.maxInterWordPauseMs
+        } else {
+            nowMs - pending > c.secondWordTimeoutMs
+        }
+        if (expired) {
             pendingWakeEndMs = null
+            secondSegmentStartMs = null
             return true
         }
         return false
     }
 
     @Synchronized
-    fun reset() { pendingWakeEndMs = null }
+    fun onSegmentStarted(startTimeMs: Long) {
+        if (pendingWakeEndMs != null && secondSegmentStartMs == null) secondSegmentStartMs = startTimeMs
+    }
+
+    @Synchronized
+    fun reset() {
+        pendingWakeEndMs = null
+        secondSegmentStartMs = null
+    }
 }

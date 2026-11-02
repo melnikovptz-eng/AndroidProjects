@@ -7,7 +7,7 @@ import org.json.JSONObject
 data class CalibrationSample(
     val timestampMs: Long,
     val peakSnrDb: Float,
-    val maxRmsDbfs: Float,
+    val maxTriggerLevelDbfs: Float,
     val speechExpected: Boolean,
     val durationMs: Long,
     val capturedRelativeThresholdDb: Float,
@@ -82,8 +82,8 @@ class ExperimentRepository(context: Context) {
 
     fun clear() { prefs.edit().remove("samples").apply() }
 
-    fun recommend(): ThresholdRecommendation {
-        val data = samples()
+    fun recommend(usePeakForTrigger: Boolean): ThresholdRecommendation {
+        val data = samples().filter { it.capturedUsePeakForTrigger == usePeakForTrigger }
         val positives = data.count { it.speechExpected }
         val negatives = data.size - positives
         if (positives < 10 || negatives < 10) {

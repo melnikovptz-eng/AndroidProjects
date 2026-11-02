@@ -79,7 +79,7 @@ class ProfileRepository(context: Context) {
         preRollMs = o.optInt("preRollMs", 250),
         noiseAdaptation = o.optDouble("noiseAdaptation", 0.08).toFloat(),
         cooldownMs = o.optInt("cooldownMs", 450),
-        wakeSimilarityThreshold = o.optDouble("wakeSimilarityThreshold", 0.72).toFloat(),
+        wakeSimilarityThreshold = o.optDouble("wakeSimilarityThreshold", 0.80).toFloat(),
         actionSimilarityThreshold = o.optDouble("actionSimilarityThreshold", 0.78).toFloat(),
         secondWordTimeoutMs = o.optInt("secondWordTimeoutMs", 2500),
         maxInterWordPauseMs = o.optInt("maxInterWordPauseMs", 1200),

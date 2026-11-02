@@ -278,6 +278,7 @@ class CalibrationActivity : Activity() {
         windowPeakSnr = maxOf(windowPeakSnr, frame.snrDb)
         windowPeakDbfs = maxOf(windowPeakDbfs, frame.triggerLevelDbfs)
         if (frame.segment.started) {
+            commandSequence.onSegmentStarted(android.os.SystemClock.elapsedRealtime())
             starts++
             status.text = "МИКРОФОН: СЕГМЕНТ НАЧАЛСЯ"
         }

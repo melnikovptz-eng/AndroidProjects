@@ -3,6 +3,10 @@ package ru.voiceactivation.calibration
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.content.Intent
+import androidx.documentfile.provider.DocumentFile
+import java.io.File
+import java.io.FileOutputStream
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
@@ -26,6 +30,10 @@ class CalibrationActivity : Activity() {
     private lateinit var result: TextView
     private lateinit var chart: LevelChartView
     private lateinit var startButton: Button
+    private lateinit var modelStatus: TextView
+    private lateinit var transcriptView: TextView
+    private val vosk = VoskEngine()
+    private val commandMatcher = CommandMatcher()
     private lateinit var noiseButton: Button
     private val noiseSamples = ArrayDeque<Float>()
     private var noiseCalibrationStartedAt = 0L
@@ -72,6 +80,16 @@ class CalibrationActivity : Activity() {
         buttons.addView(startButton, LinearLayout.LayoutParams(0, -2, 1f))
         buttons.addView(noiseButton, LinearLayout.LayoutParams(0, -2, 1f))
         content.addView(buttons)
+        val modelButton = Button(this).apply {
+            text = "ВЫБРАТЬ ПАПКУ РУССКОЙ VOSK-МОДЕЛИ"
+            setOnClickListener { chooseVoskModel() }
+        }
+        content.addView(modelButton)
+        modelStatus = label("Vosk: модель не загружена", 13f, false)
+        content.addView(modelStatus)
+        transcriptView = label("РАСПОЗНАННЫЙ ТЕКСТ: —\\nКОМАНДА: —", 16f, true)
+        transcriptView.setPadding(0, dp(8), 0, dp(8))
+        content.addView(transcriptView)
 
         content.addView(label("ПАРАМЕТРЫ ТРИГГЕРА", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
         addSlider(content, "Превышение шума для старта", 0f, 30f, config.relativeThresholdDb, " %.1f dB") { config = config.copy(relativeThresholdDb = it) }
@@ -162,7 +180,22 @@ class CalibrationActivity : Activity() {
                 capture?.stop()
                 startButton.text = "НАЧАТЬ ИЗМЕРЕНИЕ"
                 noiseButton.isEnabled = false
-            } }
+            } },
+            onSegment = { pcm ->
+                if (!vosk.isLoaded()) {
+                    runOnUiThread { transcriptView.text = "Vosk: выберите папку модели\\nСегмент: ${pcm.size / 16} ms" }
+                } else {
+                    Thread({
+                        val recognized = vosk.recognizeSegment(pcm)?.text.orEmpty()
+                        val match = commandMatcher.match(recognized, "поехали")
+                        runOnUiThread {
+                            transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
+                                "ЯША: ${if (match.wakeFound) "ДА" else "НЕТ"} · ПОЕХАЛИ: ${if (match.actionFound) "ДА" else "НЕТ"}\\n" +
+                                "КОМАНДА: ${if (match.complete) "ОК" else "НЕ ОК"} · сходство: ${String.format(Locale.US, "%.2f / %.2f", match.wakeSimilarity, match.actionSimilarity)}"
+                        }
+                    }, "Vosk-Segment-Recognition").start()
+                }
+            }
         )
         capture?.start()
         if (capture?.isRunning() == true) {
@@ -216,9 +249,58 @@ class CalibrationActivity : Activity() {
         Toast.makeText(this, "5 секунд сохраняйте тишину", Toast.LENGTH_SHORT).show()
     }
 
+    private fun chooseVoskModel() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        startActivityForResult(intent, 42)
+    }
+
+    @Deprecated("Using SAF tree result for Android 10+ compatibility")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 42 || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Throwable) {}
+        modelStatus.text = "Vosk: копирование модели…"
+        Thread({
+            try {
+                val source = DocumentFile.fromTreeUri(this, uri) ?: throw IllegalStateException("Не удалось открыть выбранную папку")
+                val destination = File(filesDir, "vosk-model")
+                destination.deleteRecursively()
+                destination.mkdirs()
+                source.listFiles().forEach { copyDocument(it, destination) }
+                val hasAcousticModel = destination.walkTopDown().any { it.isFile && (it.name == "final.mdl" || it.name == "am.mdl") }
+                if (!hasAcousticModel) throw IllegalArgumentException("В выбранной папке не найдена структура Vosk-модели (final.mdl)")
+                vosk.load(destination.absolutePath)
+                runOnUiThread { modelStatus.text = "Vosk: МОДЕЛЬ ЗАГРУЖЕНА · ${destination.walkTopDown().count { it.isFile }} файлов" }
+            } catch (t: Throwable) {
+                runOnUiThread { modelStatus.text = "Vosk: ОШИБКА — ${t.message ?: t.javaClass.simpleName}" }
+            }
+        }, "Vosk-Model-Import").start()
+    }
+
+    private fun copyDocument(source: DocumentFile, parent: File) {
+        val name = source.name ?: return
+        if (source.isDirectory) {
+            val childDir = File(parent, name)
+            childDir.mkdirs()
+            source.listFiles().forEach { copyDocument(it, childDir) }
+        } else {
+            val target = File(parent, name)
+            contentResolver.openInputStream(source.uri)?.use { input -> FileOutputStream(target).use { output -> input.copyTo(output) } }
+                ?: throw IllegalStateException("Не удалось прочитать файл $name")
+        }
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 41 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) toggleCapture()
+    }
+
+    override fun onDestroy() {
+        vosk.close()
+        super.onDestroy()
     }
 
     override fun onPause() {

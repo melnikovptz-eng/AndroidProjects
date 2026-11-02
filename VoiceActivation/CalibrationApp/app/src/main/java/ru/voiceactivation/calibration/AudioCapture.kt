@@ -10,6 +10,7 @@ data class CapturedSpeechSegment(val pcm: ShortArray, val startTimeMs: Long, val
 data class AudioFrame(
     val rmsDbfs: Float,
     val peakDbfs: Float,
+    val triggerLevelDbfs: Float,
     val noiseDbfs: Float,
     val snrDb: Float,
     val thresholdDbfs: Float,
@@ -96,13 +97,14 @@ class AudioCapture(
                 while (preRoll.isNotEmpty() && preRollSamples > maxPreRollSamples) {
                     preRollSamples -= preRoll.removeFirst().size
                 }
+                val triggerLevel = if (c.usePeakForTrigger) peakDb else rmsDb
                 val threshold = maxOf(noise.levelDbfs + c.relativeThresholdDb, c.absoluteFloorDbfs)
-                val probableSpeech = rmsDb >= threshold - c.hysteresisDb
+                val probableSpeech = triggerLevel >= threshold - c.hysteresisDb
                 val alpha = (1.0 - exp(-frameMs.toDouble() / c.noiseWindowMs.coerceAtLeast(1))) *
                     (c.noiseAdaptation / 0.08f).toDouble()
-                noise.update(rmsDb, alpha.toFloat().coerceIn(0.001f, 0.5f), probableSpeech)
+                noise.update(triggerLevel, alpha.toFloat().coerceIn(0.001f, 0.5f), probableSpeech)
                 val newThreshold = maxOf(noise.levelDbfs + c.relativeThresholdDb, c.absoluteFloorDbfs)
-                val event = segmenter.process(rmsDb, newThreshold, c, frameMs)
+                val event = segmenter.process(triggerLevel, newThreshold, c, frameMs)
                 if (event.started) {
                     segmentStartedAtMs = android.os.SystemClock.elapsedRealtime()
                     segmentFrames.clear()
@@ -125,8 +127,9 @@ class AudioCapture(
                     AudioFrame(
                         rmsDbfs = rmsDb,
                         peakDbfs = peakDb,
+                        triggerLevelDbfs = triggerLevel,
                         noiseDbfs = noise.levelDbfs,
-                        snrDb = AcousticMath.snrDb(rmsDb, noise.levelDbfs),
+                        snrDb = AcousticMath.snrDb(triggerLevel, noise.levelDbfs),
                         thresholdDbfs = newThreshold,
                         segment = event,
                         frameDurationMs = frameMs

@@ -43,7 +43,7 @@ internal class AdaptiveVad(context: Context) {
     }
 
     /** Apply RMS/PEAK boundaries fitted from separately labelled noise and speech recordings. */
-    fun applyFittedThresholds(measuredNoiseRms: Double, rmsThreshold: Double, fittedPeakThreshold: Double) {
+    fun applyFittedThresholds(measuredNoiseRms: Double, rmsThreshold: Double, fittedPeakThreshold: Double, fittedSilenceMs: Int, fittedMinSpeechMs: Int, fittedMaxSpeechMs: Int) {
         noiseRms = measuredNoiseRms.coerceIn(0.00005, 0.25)
         val rms = rmsThreshold.coerceIn(0.00005, 0.5)
         val peak = fittedPeakThreshold.coerceIn(0.00005, 1.0)
@@ -51,6 +51,9 @@ internal class AdaptiveVad(context: Context) {
         minPeak = (peak * 0.5).coerceAtLeast(0.00005)
         multiplier = (rms / noiseRms).coerceIn(0.1, 40.0)
         peakMultiplier = (peak / noiseRms).coerceIn(0.1, 80.0)
+        silenceMs = fittedSilenceMs.coerceIn(100, 800)
+        minSpeechMs = fittedMinSpeechMs.coerceIn(100, 500)
+        maxSpeechMs = fittedMaxSpeechMs.coerceIn(max(3000, minSpeechMs), 10000)
         save()
     }
 

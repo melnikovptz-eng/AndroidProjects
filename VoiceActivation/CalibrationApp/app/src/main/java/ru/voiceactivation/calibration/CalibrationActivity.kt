@@ -23,6 +23,11 @@ import java.util.Locale
 
 class CalibrationActivity : Activity() {
     private lateinit var repository: CalibrationRepository
+    private lateinit var experiments: ExperimentRepository
+    private lateinit var optimizerStatus: TextView
+    private var recommendation: ThresholdRecommendation? = null
+    private var windowPeakSnr = -100f
+    private var windowPeakDbfs = -140f
     private var config = CalibrationConfig()
     private var capture: AudioCapture? = null
     private lateinit var status: TextView
@@ -45,6 +50,7 @@ class CalibrationActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         repository = CalibrationRepository(this)
+        experiments = ExperimentRepository(this)
         config = repository.load()
         buildUi()
     }
@@ -112,6 +118,15 @@ class CalibrationActivity : Activity() {
         content.addView(label("РЕЗУЛЬТАТЫ ИЗМЕРЕНИЯ", 18f, true).apply { setPadding(0, dp(16), 0, dp(4)) })
         result = label("Сегменты: 0 · Завершено: 0 · Достаточная длительность: 0", 14f, true)
         content.addView(result)
+        content.addView(label("РАЗМЕТКА ДЛЯ АВТОПОДБОРА ПОРОГА", 16f, true).apply { setPadding(0, dp(12), 0, dp(4)) })
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        labels.addView(Button(this).apply { text = "ЭТО БЫЛА РЕЧЬ"; setOnClickListener { markSample(true) } }, LinearLayout.LayoutParams(0, -2, 1f))
+        labels.addView(Button(this).apply { text = "ЭТО БЫЛ ШУМ"; setOnClickListener { markSample(false) } }, LinearLayout.LayoutParams(0, -2, 1f))
+        content.addView(labels)
+        content.addView(Button(this).apply { text = "РАССЧИТАТЬ РЕКОМЕНДУЕМЫЙ ПОРОГ"; setOnClickListener { showRecommendation() } })
+        content.addView(Button(this).apply { text = "ПРИМЕНИТЬ РЕКОМЕНДАЦИЮ"; setOnClickListener { applyRecommendation() } })
+        optimizerStatus = label("Размечено окон: 0", 13f, false)
+        content.addView(optimizerStatus)
         val reset = Button(this).apply {
             text = "СБРОСИТЬ СЧЁТЧИКИ И ПАРАМЕТРЫ"
             setOnClickListener {
@@ -218,6 +233,8 @@ class CalibrationActivity : Activity() {
             frame.rmsDbfs, frame.peakDbfs, frame.noiseDbfs, frame.snrDb, frame.thresholdDbfs
         )
         chart.addFrame(frame.rmsDbfs, frame.noiseDbfs, frame.thresholdDbfs)
+        windowPeakSnr = maxOf(windowPeakSnr, frame.snrDb)
+        windowPeakDbfs = maxOf(windowPeakDbfs, frame.rmsDbfs)
         if (frame.segment.started) {
             starts++
             status.text = "МИКРОФОН: СЕГМЕНТ НАЧАЛСЯ"
@@ -244,6 +261,33 @@ class CalibrationActivity : Activity() {
             }
         }
         lastFrameAt = System.currentTimeMillis()
+    }
+
+    private fun markSample(speech: Boolean) {
+        if (capture?.isRunning() != true) { Toast.makeText(this, "Сначала включите микрофон", Toast.LENGTH_SHORT).show(); return }
+        experiments.addSample(windowPeakSnr, windowPeakDbfs, speech)
+        windowPeakSnr = -100f
+        windowPeakDbfs = -140f
+        val count = experiments.samples().size
+        optimizerStatus.text = "Размечено окон: $count · последнее: ${if (speech) "РЕЧЬ" else "ФОН"}"
+    }
+
+    private fun showRecommendation() {
+        val r = experiments.recommend()
+        recommendation = r
+        optimizerStatus.text = if (r.ready) {
+            "Рекомендация: +${r.relativeThresholdDb.toInt()} dB к шуму; пол: ${r.absoluteFloorDbfs.toInt()} dBFS\\n" +
+                "Precision ${"%.2f".format(Locale.US, r.precision)} · Recall ${"%.2f".format(Locale.US, r.recall)} · F1 ${"%.2f".format(Locale.US, r.f1)}\\n" +
+                "Выборка: речь ${r.positiveSamples}, фон ${r.negativeSamples}. Повторно проверьте профиль."
+        } else r.explanation + " Размечено: ${r.positiveSamples} речевых / ${r.negativeSamples} фоновых окон."
+    }
+
+    private fun applyRecommendation() {
+        val r = recommendation
+        if (r == null || !r.ready) { Toast.makeText(this, "Сначала получите рекомендацию на достаточной выборке", Toast.LENGTH_LONG).show(); return }
+        config = config.copy(relativeThresholdDb = r.relativeThresholdDb, absoluteFloorDbfs = r.absoluteFloorDbfs).normalized()
+        repository.save(config)
+        recreate()
     }
 
     private fun beginNoiseCalibration() {

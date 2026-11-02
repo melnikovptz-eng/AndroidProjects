@@ -250,6 +250,7 @@ class CalibrationActivity : Activity() {
                             runOnUiThread { transcriptView.text = "РАСПОЗНАЁТСЯ: ${partial.text}" }
                         }?.text.orEmpty()
                         val latencyMs = android.os.SystemClock.elapsedRealtime() - recognitionStartedAt
+                        experiments.addLatency(latencyMs)
                         val sequence = commandSequence.accept(recognized, segment.startTimeMs, segment.endTimeMs, config)
                         runOnUiThread {
                             transcriptView.text = "РАСПОЗНАНО: ${recognized.ifBlank { "(пусто)" }}\\n" +
@@ -335,6 +336,7 @@ class CalibrationActivity : Activity() {
             "Рекомендация: +${r.relativeThresholdDb.toInt()} dB к шуму; пол: ${r.absoluteFloorDbfs.toInt()} dBFS\\n" +
                 "Precision ${"%.2f".format(Locale.US, r.precision)} · Recall ${"%.2f".format(Locale.US, r.recall)} · F1 ${"%.2f".format(Locale.US, r.f1)}\\n" +
                 "Ложных запусков/мин: ${"%.2f".format(Locale.US, r.falseTriggersPerMinute)}\\n" +
+                "Vosk latency: p50 ${experiments.latencies().sorted().let { if (it.isEmpty()) 0L else it[it.size / 2] }} ms · p95 ${experiments.latencies().sorted().let { if (it.isEmpty()) 0L else it[(it.size * 0.95).toInt().coerceIn(0, it.lastIndex)] }} ms\\n" +
                 "Выборка: речь ${r.positiveSamples}, фон ${r.negativeSamples}. Повторно проверьте профиль."
         } else r.explanation + " Размечено: ${r.positiveSamples} речевых / ${r.negativeSamples} фоновых окон."
     }
@@ -345,7 +347,7 @@ class CalibrationActivity : Activity() {
         val report = names.mapNotNull { name ->
             val profile = profiles.load(name) ?: return@mapNotNull null
             val metrics = experiments.evaluate(profile)
-            "$name: P=${"%.2f".format(Locale.US, metrics.precision)} R=${"%.2f".format(Locale.US, metrics.recall)} F1=${"%.2f".format(Locale.US, metrics.f1)} FP/min=${"%.2f".format(Locale.US, metrics.falseTriggersPerMinute)}"
+            "$name: P=${"%.2f".format(Locale.US, metrics.precision)} R=${"%.2f".format(Locale.US, metrics.recall)} F1=${"%.2f".format(Locale.US, metrics.f1)} FP/min=${"%.2f".format(Locale.US, metrics.falseTriggersPerMinute)} latency p50=${metrics.medianLatencyMs} p95=${metrics.p95LatencyMs} ms"
         }.joinToString("\\n")
         optimizerStatus.text = "СРАВНЕНИЕ НА ОДИНАКОВОЙ ВЫБОРКЕ\\n$report"
     }

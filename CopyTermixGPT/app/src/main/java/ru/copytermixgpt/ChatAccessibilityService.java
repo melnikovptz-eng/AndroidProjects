@@ -62,6 +62,8 @@ public class ChatAccessibilityService extends AccessibilityService {
     private String autoPreviousSnapshot = null;
     private String autoMatchedWord = "";
     private int autoStagnantCount = 0;
+    // Invalidates delayed work and gesture callbacks from previous AUTO sessions.
+    private int autoRunToken = 0;
 
     private final Runnable autoStepRunnable = this::autoStep;
     // AUTO_SEARCH_END
@@ -370,6 +372,7 @@ public class ChatAccessibilityService extends AccessibilityService {
             return;
         }
 
+        autoRunToken++;
         autoRunning = true;
         autoPreviousSnapshot = null;
         autoMatchedWord = "";
@@ -387,6 +390,7 @@ public class ChatAccessibilityService extends AccessibilityService {
 
     private void stopAutoSearch(String message, String statusValue) {
         autoRunning = false;
+        autoRunToken++;
         handler.removeCallbacks(autoStepRunnable);
         clearAutoButtonHighlights();
         status(statusValue);
@@ -457,20 +461,18 @@ public class ChatAccessibilityService extends AccessibilityService {
         if (match != null) {
             String found = autoMatchedWord;
 
-            match.performAction(
-                AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId()
-            );
-
             match.recycle();
             root.recycle();
 
             log("AUTO POSITION: найдено '" + found
                 + "'. Целевая высота: 2/3 экрана.");
 
-            handler.postDelayed(
-                () -> positionAutoMatch(found),
-                350
-            );
+            final int runToken = autoRunToken;
+            handler.postDelayed(() -> {
+                if (autoRunning && autoRunToken == runToken) {
+                    positionAutoMatch(found, runToken);
+                }
+            }, 350);
             return;
         }
 
@@ -503,8 +505,8 @@ public class ChatAccessibilityService extends AccessibilityService {
     }
 
 
-    private void positionAutoMatch(String word) {
-        if (!autoRunning) return;
+    private void positionAutoMatch(String word, int runToken) {
+        if (!autoRunning || autoRunToken != runToken) return;
 
         AccessibilityNodeInfo root = getRootInActiveWindow();
 
@@ -602,6 +604,10 @@ public class ChatAccessibilityService extends AccessibilityService {
             new GestureResultCallback() {
                 @Override
                 public void onCompleted(GestureDescription description) {
+                    if (!autoRunning || autoRunToken != runToken) {
+                        log("AUTO POSITION: устаревший callback проигнорирован.");
+                        return;
+                    }
                     log("AUTO POSITION: корректирующий жест выполнен.");
                     diagnoseCopyButton(word);
                     stopAutoSearch(
@@ -612,6 +618,10 @@ public class ChatAccessibilityService extends AccessibilityService {
 
                 @Override
                 public void onCancelled(GestureDescription description) {
+                    if (!autoRunning || autoRunToken != runToken) {
+                        log("AUTO POSITION: устаревший callback отмены проигнорирован.");
+                        return;
+                    }
                     log("AUTO POSITION: жест отменён.");
                     stopAutoSearch(
                         "Найдено слово: " + word
@@ -625,7 +635,7 @@ public class ChatAccessibilityService extends AccessibilityService {
 
         log("AUTO POSITION: dispatchGesture accepted=" + accepted);
 
-        if (!accepted) {
+        if (!accepted && autoRunning && autoRunToken == runToken) {
             stopAutoSearch(
                 "Найдено слово: " + word
                     + ". Корректирующий жест не принят.",
@@ -1199,7 +1209,7 @@ public class ChatAccessibilityService extends AccessibilityService {
         int depth,
         int[] count
     ) {
-        if (node == null || depth > 45 || count[0]++ > 1200) {
+        if (node == null || depth > 45 || count[0]++ >= 1200) {
             return "";
         }
 
@@ -1207,8 +1217,18 @@ public class ChatAccessibilityService extends AccessibilityService {
 
         if (node.isVisibleToUser() && !node.isEditable()) {
             CharSequence text = node.getText();
-            if (text != null) {
-                result.append(text).append('|');
+            CharSequence desc = node.getContentDescription();
+
+            if ((text != null && text.length() > 0)
+                    || (desc != null && desc.length() > 0)) {
+                Rect bounds = new Rect();
+                node.getBoundsInScreen(bounds);
+
+                result.append(bounds.toShortString()).append(':');
+                if (text != null) result.append(text);
+                result.append('|');
+                if (desc != null) result.append(desc);
+                result.append(';');
             }
         }
 
@@ -1216,11 +1236,13 @@ public class ChatAccessibilityService extends AccessibilityService {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child == null) continue;
 
-            result.append(
-                collectAutoSnapshot(child, depth + 1, count)
-            );
-
-            child.recycle();
+            try {
+                result.append(
+                    collectAutoSnapshot(child, depth + 1, count)
+                );
+            } finally {
+                child.recycle();
+            }
 
             if (result.length() > 30000) break;
         }
@@ -1263,9 +1285,11 @@ public class ChatAccessibilityService extends AccessibilityService {
             int depth,
             int[] visited,
             int screenWidth,
-            int screenHeight) {
+            int screenHeight,
+            android.graphics.Rect rootBounds) {
 
-        if (node == null || depth > 22 || visited[0] >= 350) {
+        if (node == null || depth > 22 || visited[0] >= 350
+                || !node.isVisibleToUser()) {
             return null;
         }
 
@@ -1277,7 +1301,12 @@ public class ChatAccessibilityService extends AccessibilityService {
                 android.graphics.Rect bounds = new android.graphics.Rect();
                 node.getBoundsInScreen(bounds);
 
-                if (bounds.width() >= screenWidth * 0.55f
+                boolean insideWindow = !bounds.isEmpty()
+                        && bounds.intersect(rootBounds)
+                        && bounds.intersect(0, 0, screenWidth, screenHeight);
+
+                if (insideWindow
+                        && bounds.width() >= screenWidth * 0.55f
                         && bounds.height() >= screenHeight * 0.28f) {
                     best = new android.graphics.Rect(bounds);
                 }
@@ -1298,7 +1327,8 @@ public class ChatAccessibilityService extends AccessibilityService {
                                         depth + 1,
                                         visited,
                                         screenWidth,
-                                        screenHeight
+                                        screenHeight,
+                                        rootBounds
                                 );
 
                         if (candidate != null) {
@@ -1313,14 +1343,16 @@ public class ChatAccessibilityService extends AccessibilityService {
                             }
                         }
                     }
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    log("AUTO SCROLL BOUNDS: ошибка чтения узла: " + e);
                 } finally {
                     if (child != null) {
                         try { child.recycle(); } catch (Exception ignored) {}
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log("AUTO SCROLL BOUNDS: ошибка обхода: " + e);
         }
 
         return best;
@@ -1328,6 +1360,7 @@ public class ChatAccessibilityService extends AccessibilityService {
 
     private void performAutoSwipe() {
         if (!autoRunning) return;
+        final int runToken = autoRunToken;
 
         AccessibilityNodeInfo root = getRootInActiveWindow();
 
@@ -1381,7 +1414,8 @@ public class ChatAccessibilityService extends AccessibilityService {
                         0,
                         visited,
                         screenWidth,
-                        screenHeight
+                        screenHeight,
+                        rootBounds
                 );
 
         boolean scrollableFound = target != null;
@@ -1465,24 +1499,32 @@ public class ChatAccessibilityService extends AccessibilityService {
                     @Override
                     public void onCompleted(
                             GestureDescription description) {
-                        log("AUTO SWIPE: жест завершён");
-
-                        if (autoRunning) {
-                            handler.postDelayed(autoStepRunnable, 1000);
+                        if (!autoRunning || autoRunToken != runToken) {
+                            log("AUTO SWIPE: устаревший callback завершения проигнорирован.");
+                            return;
                         }
+
+                        log("AUTO SWIPE: жест завершён");
+                        handler.postDelayed(() -> {
+                            if (autoRunning && autoRunToken == runToken) {
+                                autoStep();
+                            }
+                        }, 1000);
                     }
 
                     @Override
                     public void onCancelled(
                             GestureDescription description) {
-                        log("AUTO SWIPE: жест отменён");
-
-                        if (autoRunning) {
-                            stopAutoSearch(
-                                    "Системный жест прокрутки отменён.",
-                                    "auto_error"
-                            );
+                        if (!autoRunning || autoRunToken != runToken) {
+                            log("AUTO SWIPE: устаревший callback отмены проигнорирован.");
+                            return;
                         }
+
+                        log("AUTO SWIPE: жест отменён");
+                        stopAutoSearch(
+                                "Системный жест прокрутки отменён.",
+                                "auto_error"
+                        );
                     }
                 },
                 handler
@@ -1490,7 +1532,7 @@ public class ChatAccessibilityService extends AccessibilityService {
 
         log("AUTO SWIPE: dispatchGesture accepted=" + accepted);
 
-        if (!accepted) {
+        if (!accepted && autoRunning && autoRunToken == runToken) {
             stopAutoSearch(
                     "Android не принял жест прокрутки.",
                     "auto_error"
@@ -3565,9 +3607,17 @@ private void scanObservedChatButtons(
     private void resetCurrentOperation() {
         log("RESET: отмена текущей операции.");
 
+        // Сначала инвалидируем AUTO, включая уже выполняющиеся жесты.
+        autoRunning = false;
+        autoRunToken++;
+        autoPreviousSnapshot = null;
+        autoMatchedWord = "";
+        autoStagnantCount = 0;
+
         // Отменяем все ожидающие callbacks этого Handler.
         handler.removeCallbacksAndMessages(null);
 
+        clearAutoButtonHighlights();
         processing = false;
         termuxProcessing = false;
         awaitingTermuxResult = false;
@@ -3594,6 +3644,9 @@ private void scanObservedChatButtons(
     public void onDestroy() {
  passportScanRemoveWindows(); // PASSPORT_SCAN_CLEANUP
 
+        autoRunning = false;
+        autoRunToken++;
+        handler.removeCallbacks(autoStepRunnable);
         removeHighlight();
 
         if (receiverRegistered) {

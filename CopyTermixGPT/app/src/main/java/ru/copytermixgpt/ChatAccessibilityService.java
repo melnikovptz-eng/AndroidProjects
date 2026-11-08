@@ -333,6 +333,12 @@ public class ChatAccessibilityService extends AccessibilityService {
     @Override
     public void onInterrupt() {
         DiagnosticLogger.log("AccessibilityService прерван");
+
+        // Прерывание сервиса завершает AUTO и делает его callbacks устаревшими.
+        autoRunning = false;
+        autoRunToken++;
+        handler.removeCallbacks(autoStepRunnable);
+
         removeHighlight();
         clearAutoButtonHighlights();
         processing = false;
@@ -1335,10 +1341,12 @@ public class ChatAccessibilityService extends AccessibilityService {
                             long candidateArea =
                                     (long) candidate.width() * candidate.height();
 
-                            long bestArea = best == null ? -1L :
+                            long bestArea = best == null ? Long.MAX_VALUE :
                                     (long) best.width() * best.height();
 
-                            if (candidateArea > bestArea) {
+                            // Вложенная область прокрутки предпочтительнее
+                            // общего scrollable-контейнера окна.
+                            if (candidateArea < bestArea) {
                                 best = candidate;
                             }
                         }

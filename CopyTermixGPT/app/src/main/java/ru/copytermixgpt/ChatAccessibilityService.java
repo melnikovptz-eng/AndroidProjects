@@ -1429,16 +1429,21 @@ public class ChatAccessibilityService extends AccessibilityService {
         boolean scrollableFound = target != null;
 
         if (target == null) {
+            // ChatGPT may expose no scrollable Accessibility node.
+            // Use only the central conversation viewport: exclude the
+            // top toolbar and, critically, the bottom composer/input area.
             target = new android.graphics.Rect(rootBounds);
 
-            int fallbackTop = (int) (target.height() * 0.20f);
-            int fallbackBottom = (int) (target.height() * 0.10f);
+            int fallbackTop = (int) (target.height() * 0.18f);
+            int fallbackBottom = (int) (target.height() * 0.24f);
 
             target.top += fallbackTop;
             target.bottom -= fallbackBottom;
         } else {
-            int insetTop = (int) (target.height() * 0.08f);
-            int insetBottom = (int) (target.height() * 0.08f);
+            // Even a scrollable ancestor can include the composer.
+            // Keep the gesture away from the lower controls.
+            int insetTop = (int) (target.height() * 0.10f);
+            int insetBottom = (int) (target.height() * 0.18f);
 
             target.top += insetTop;
             target.bottom -= insetBottom;
@@ -1465,10 +1470,10 @@ public class ChatAccessibilityService extends AccessibilityService {
 
         int x = target.left + width / 2;
 
-        // Палец начинает движение внизу и заканчивает выше.
-        // Содержимое чата при этом перемещается к следующим фрагментам.
-        int startY = target.top + (int) (height * 0.82f);
-        int endY = target.top + (int) (height * 0.35f);
+        // Swipe inside the conversation body, not over the composer.
+        // Finger moves upward: the chat content advances toward later text.
+        int startY = target.top + (int) (height * 0.72f);
+        int endY = target.top + (int) (height * 0.28f);
 
         if (startY <= endY) {
             stopAutoSearch(
@@ -1490,7 +1495,9 @@ public class ChatAccessibilityService extends AccessibilityService {
                 + " target=" + target
                 + " fingerStart=(" + x + "," + startY + ")"
                 + " fingerEnd=(" + x + "," + endY + ")"
-                + " direction=BOTTOM_TO_TOP");
+                + " direction=BOTTOM_TO_TOP"
+                + " viewport=COMPOSER_EXCLUDED"
+                + " swipeRatio=72_TO_28");
 
         GestureDescription gesture =
                 new GestureDescription.Builder()

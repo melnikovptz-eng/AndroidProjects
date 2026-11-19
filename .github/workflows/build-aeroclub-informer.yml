@@ -102,10 +102,28 @@ jobs:
             echo "signing_certificate_sha256=$CERT_SHA256"
           } > "$INFO"
           cat "$INFO"
+      - name: Launch APK in Android emulator and capture screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            mkdir -p screenshots
+            adb install -r Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop ru.aeroclub.informer.mobile || true
+            adb shell am start -n ru.aeroclub.informer.mobile/.MainActivity
+            sleep 10
+            adb exec-out screencap -p > screenshots/aeroclub-main.png
+            test -s screenshots/aeroclub-main.png
+            file screenshots/aeroclub-main.png
       - uses: actions/upload-artifact@v4
         with:
           name: Aeroclub-Informer-debug-${{ github.sha }}
           path: |
             Aeroclub/app/build/outputs/apk/debug/app-debug.apk
             Aeroclub/app/build/outputs/apk/debug/build-info.txt
+            screenshots/aeroclub-main.png
           if-no-files-found: error

@@ -104,6 +104,8 @@ jobs:
           cat "$INFO"
       - name: Launch APK in Android emulator and capture screenshots
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 35
           target: google_apis

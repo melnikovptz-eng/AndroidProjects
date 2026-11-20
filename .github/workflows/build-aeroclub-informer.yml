@@ -108,6 +108,11 @@ jobs:
           test -n "$CERT_SHA256"
           test -n "$KEY_CERT_SHA256"
           test "$CERT_SHA256" = "$KEY_CERT_SHA256"
+          EXPECTED_CERT_SHA256="5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2"
+          if [ "$CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::Aeroclub debug signing identity changed. Refusing to publish an APK that may not update existing installations."
+            exit 1
+          fi
           INFO="Aeroclub/app/build/outputs/apk/debug/build-info.txt"
           {
             echo "project_id=AEROCLUB"

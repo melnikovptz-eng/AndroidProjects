@@ -51,7 +51,7 @@ jobs:
         with:
           packages: platform-tools
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platforms;android-30" "emulator" "system-images;android-30;google_apis;x86_64"
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "emulator" "system-images;android-35;google_apis;x86_64"
       - name: Detect hardware acceleration availability
         id: kvm
         shell: bash
@@ -133,12 +133,13 @@ jobs:
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
         with:
-          api-level: 30
+          api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-accel
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -memory 4096 -cores 4
           emulator-boot-timeout: 900
+          cores: 4
           disable-animations: true
           script: python3 Aeroclub/scripts/ui_acceptance.py
       - name: Record emulator acceptance limitation

@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -33,6 +33,7 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: aeroclub-debug-keystore-v2
+          enableCrossOsArchive: true
       - name: Ensure stable debug signing identity exists
         shell: bash
         run: |
@@ -137,7 +138,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -memory 4096 -cores 4
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot
           emulator-boot-timeout: 900
           cores: 4
           disable-animations: true

@@ -116,7 +116,7 @@ jobs:
             mkdir -p screenshots
             adb install -r Aeroclub/app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop ru.aeroclub.informer.mobile || true
-            adb shell am start -n ru.aeroclub.informer.mobile/.MainActivity
+            adb shell monkey -p ru.aeroclub.informer.mobile -c android.intent.category.LAUNCHER 1
             sleep 10
             adb exec-out screencap -p > screenshots/aeroclub-main.png
             test -s screenshots/aeroclub-main.png

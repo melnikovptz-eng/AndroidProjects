@@ -129,7 +129,6 @@ jobs:
           cat "$INFO"
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
-        if: steps.kvm.outputs.available == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
@@ -138,6 +137,8 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-accel
+          emulator-boot-timeout: 900
           disable-animations: true
           script: |
             set +e
@@ -198,15 +199,15 @@ jobs:
               exit 1
             fi
       - name: Record emulator acceptance limitation
-        if: steps.kvm.outputs.available != 'true'
+        if: failure() && steps.emulator_ui.outcome != 'success'
         shell: bash
         run: |
           mkdir -p diagnostics
           {
-            echo "ui_acceptance=SKIPPED"
-            echo "reason=GitHub-hosted runner has no usable /dev/kvm"
+            echo "ui_acceptance=FAILED_OR_UNAVAILABLE"
+            echo "reason=Software-rendered emulator did not complete UI acceptance"
             echo "next_required_action=Run on a KVM-enabled self-hosted runner or verify on a physical Android device"
-            echo "software_emulator_diagnostic=Not repeated; previous run 412 captured splash screen only"
+            echo "software_emulator_diagnostic=Attempted with SwiftShader and disabled acceleration"
           } > diagnostics/ui-acceptance-skipped.txt
 
       - name: Upload APK and complete emulator diagnostics

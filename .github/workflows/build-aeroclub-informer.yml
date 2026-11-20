@@ -52,16 +52,25 @@ jobs:
           packages: platform-tools
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "emulator" "system-images;android-35;google_apis;x86_64"
-      - name: Verify hardware acceleration is available
+      - name: Detect hardware acceleration availability
+        id: kvm
         shell: bash
         run: |
-          echo "runner=$(uname -a)"
+          mkdir -p diagnostics
+          echo "runner=$(uname -a)" > diagnostics/emulator-environment.txt
           if [ ! -e /dev/kvm ]; then
-            echo "::error::/dev/kvm is unavailable; refusing to claim a full emulator UI test."
-            exit 1
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "kvm=unavailable; emulator UI acceptance skipped" >> diagnostics/emulator-environment.txt
+            echo "::notice::/dev/kvm is unavailable. Build and unit tests will continue; no software-rendered run will be labelled as device acceptance."
+          elif "$ANDROID_HOME/emulator/emulator" -accel-check; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "kvm=available" >> diagnostics/emulator-environment.txt
+            ls -l /dev/kvm >> diagnostics/emulator-environment.txt
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "kvm=present_but_unusable; emulator UI acceptance skipped" >> diagnostics/emulator-environment.txt
+            echo "::warning::KVM exists but is not usable. Build will continue without emulator acceptance."
           fi
-          ls -l /dev/kvm
-          "$ANDROID_HOME/emulator/emulator" -accel-check
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
@@ -115,6 +124,7 @@ jobs:
           cat "$INFO"
       - name: Launch KD PILOT and verify the actual calendar UI
         id: emulator_ui
+        if: steps.kvm.outputs.available == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
@@ -181,6 +191,18 @@ jobs:
               echo "::error::KD PILOT calendar UI did not pass emulator acceptance. See diagnostics and screenshots artifacts."
               exit 1
             fi
+      - name: Record emulator acceptance limitation
+        if: steps.kvm.outputs.available != 'true'
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          {
+            echo "ui_acceptance=SKIPPED"
+            echo "reason=GitHub-hosted runner has no usable /dev/kvm"
+            echo "next_required_action=Run on a KVM-enabled self-hosted runner or verify on a physical Android device"
+            echo "software_emulator_diagnostic=Not repeated; previous run 412 captured splash screen only"
+          } > diagnostics/ui-acceptance-skipped.txt
+
       - name: Upload APK and complete emulator diagnostics
         if: always()
         uses: actions/upload-artifact@v4

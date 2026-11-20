@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
         competitionsTab.setGravity(android.view.Gravity.CENTER);
         tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(44), 1));
         tabs.addView(competitionsTab, new LinearLayout.LayoutParams(0, dp(44), 1));
+        allTab.setOnClickListener(v -> renderAllFlightsScreen());
         competitionsTab.setOnClickListener(v -> android.widget.Toast.makeText(this,
             "Раздел соревнований ещё не подключён.", android.widget.Toast.LENGTH_SHORT).show());
         root.addView(tabs, lp(-1, -2));

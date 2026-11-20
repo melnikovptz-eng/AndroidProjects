@@ -583,7 +583,7 @@ public class MainActivity extends Activity {
         }
         ModuleDebugLog.log(this, "UI-01", "informer_onResume", "started", "screen_foreground");
         flightSyncHandler.removeCallbacks(flightSyncPoll);
-        if (FlightRepository.syncFromDownload(this)) renderCalendarScreen();
+        if (FlightRepository.syncFromDownload(this)) renderAllFlightsScreen();
         flightSyncHandler.postDelayed(flightSyncPoll, 5000L);
         if (flightTitle == null) return;
         FlightReminderScheduler.syncAll(this);

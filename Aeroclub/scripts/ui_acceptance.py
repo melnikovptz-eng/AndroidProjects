@@ -41,7 +41,21 @@ def home():
  run(["adb","shell","am","start","-W","-n","ru.aeroclub.informer.mobile/ru.aeroclub.informer.MainActivity"],False);time.sleep(7)
 try:
  open(f"{DIAG}/emulator-environment.txt","w").write("sdk="+run(["adb","shell","getprop","ro.build.version.sdk"],capture=True)+"\nabi="+run(["adb","shell","getprop","ro.product.cpu.abi"],capture=True)+"\n")
- run(["adb","logcat","-c"]);run(["adb","install","-r",APK]);home()
+ run(["adb","logcat","-c"])
+ ready=False
+ for attempt in range(1,181):
+  probe=run(["adb","shell","service","check","package"],False,True)
+  if "found" in probe.lower():
+   ready=True;break
+  time.sleep(2)
+ if not ready: raise RuntimeError("Package Manager service not ready after 360 seconds")
+ installed=False
+ for attempt in range(1,7):
+  result=run(["adb","install","--no-streaming","-r",APK],False,True)
+  if "Success" in result: installed=True;break
+  time.sleep(10)
+ if not installed: raise RuntimeError("APK install failed after retries: "+result)
+ home()
  capture("S12-all-flights",("Все полёты","Создать полёт"))
  if tap("Соревнования"):capture("S12-competitions",("Соревнования",))
  else:raise RuntimeError("competition tab not clickable")

@@ -73,3 +73,12 @@ YYYY-MM-DD | PROJECT_ID | branch | source SHA | изменение | прове�
 - Reworked W01 into the reference's single-row header, 14-segment variometer with seven labels, clock/date panel and one horizontal row of four colored actions; added separate vector icons and pressed-state resources. Screen tree S01–S11 and existing repositories/actions remain intact.
 - CI run #397 succeeded: https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39768506462; artifact ID `12420319406`; APK SHA-256 `b2f59c3902bbb209635e575e5c94916b46735499bb899bf57b70ee34396d0ba1`; package ID `ru.aeroclub.informer.mobile`; signing certificate SHA-256 `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`.
 - Remaining: `dezign.jpg` is a flattened mockup and no separate mountain-photo asset is in the repository; current background is a vector approximation. Physical launcher geometry, actual pressed feedback and four device-level action scenarios are not yet verified. Do not call the design fully accepted.
+
+
+## KD PILOT — emulator acceptance correction (2026-11-20)
+- Branch: `aeroclub-informer`; workflow CI update commit: `58420dde6b47ee5621cb5717e1720587cda68c01`.
+- Inspected run #412 artifact: the only PNG is the Android system splash screen, not S01. The old workflow's successful status was a false positive for UI acceptance because it only ran `monkey`, slept 10 seconds, and saved a screenshot without checking app foreground/UI content.
+- Added KVM preflight and strict UI acceptance: explicit launcher Activity start, UIAutomator title assertion, process/Activity checks, repeated screenshots, logcat capture and fatal/ANR detection. On hosted runners without usable KVM, UI acceptance is explicitly skipped; no SwiftShader result is misreported as device acceptance.
+- Run #413 correctly stopped at the initial strict KVM gate; workflow was adjusted so a missing KVM no longer blocks tests/build.
+- Run #414 succeeded for exact source SHA `58420dde6b47ee5621cb5717e1720587cda68c01`. Configured unit-test tasks, APK package verification and signing-certificate comparison passed. Artifact ID `14606583675`; APK SHA-256 `3c7b95819ffc460e6a2b82bbea0c95c1319e2605eff078bf79c9edfe7a949d0a`; package `ru.aeroclub.informer.mobile`; certificate SHA-256 `5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2`.
+- UI acceptance: **SKIPPED**, because GitHub-hosted runner has no usable `/dev/kvm`. S01, W01 geometry, pressed states and widget actions remain unverified on a real device. Do not close AERO-009/AERO-011.

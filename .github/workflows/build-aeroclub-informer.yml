@@ -51,7 +51,7 @@ jobs:
         with:
           packages: platform-tools
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "emulator" "system-images;android-35;google_apis;x86_64"
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platforms;android-30" "emulator" "system-images;android-30;google_apis;x86_64"
       - name: Detect hardware acceleration availability
         id: kvm
         shell: bash
@@ -133,71 +133,14 @@ jobs:
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
         with:
-          api-level: 35
+          api-level: 30
           target: google_apis
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-accel
           emulator-boot-timeout: 900
           disable-animations: true
-          script: |
-            set +e
-            mkdir -p screenshots diagnostics
-            echo "runner=$(uname -a)" > diagnostics/emulator-environment.txt
-            echo "sdk=$(adb shell getprop ro.build.version.sdk)" >> diagnostics/emulator-environment.txt
-            echo "abi=$(adb shell getprop ro.product.cpu.abi)" >> diagnostics/emulator-environment.txt
-            adb devices -l >> diagnostics/emulator-environment.txt 2>&1
-            adb shell getprop ro.hardware.egl >> diagnostics/emulator-environment.txt 2>&1
-            adb shell getprop ro.opengles.version >> diagnostics/emulator-environment.txt 2>&1
-
-            adb logcat -c
-            adb install -r Aeroclub/app/build/outputs/apk/debug/app-debug.apk > diagnostics/install.txt 2>&1
-            INSTALL_RC=$?
-            cat diagnostics/install.txt
-            if [ "$INSTALL_RC" -ne 0 ]; then
-              adb logcat -d -v threadtime > diagnostics/logcat.txt
-              exit "$INSTALL_RC"
-            fi
-
-            adb shell am force-stop ru.aeroclub.informer.mobile
-            adb shell am start -W -n ru.aeroclub.informer.mobile/ru.aeroclub.informer.MainActivity > diagnostics/activity-start.txt 2>&1
-            START_RC=$?
-            cat diagnostics/activity-start.txt
-
-            UI_FOUND=0
-            for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-              sleep 2
-              adb shell dumpsys activity activities > "diagnostics/activities-${attempt}.txt" 2>&1
-              adb shell pidof ru.aeroclub.informer.mobile > "diagnostics/process-${attempt}.txt" 2>&1
-              adb shell uiautomator dump /sdcard/kd-pilot-window.xml > "diagnostics/uiautomator-${attempt}.txt" 2>&1
-              adb pull /sdcard/kd-pilot-window.xml "diagnostics/window-${attempt}.xml" >/dev/null 2>&1
-              adb exec-out screencap -p > "screenshots/kd-pilot-attempt-${attempt}.png"
-              if grep -q "Все полёты" "diagnostics/window-${attempt}.xml" 2>/dev/null &&
-                 grep -q "Создать полёт" "diagnostics/window-${attempt}.xml" 2>/dev/null; then
-                cp "screenshots/kd-pilot-attempt-${attempt}.png" screenshots/kd-pilot-main.png
-                cp "diagnostics/window-${attempt}.xml" diagnostics/kd-pilot-main-window.xml
-                UI_FOUND=1
-                break
-              fi
-            done
-
-            adb shell dumpsys activity activities > diagnostics/final-activities.txt 2>&1
-            adb shell dumpsys window windows > diagnostics/final-windows.txt 2>&1
-            adb shell pidof ru.aeroclub.informer.mobile > diagnostics/final-process.txt 2>&1
-            adb logcat -d -v threadtime > diagnostics/logcat.txt 2>&1
-            grep -E "FATAL EXCEPTION|ANR in |Fatal signal|AndroidRuntime" diagnostics/logcat.txt > diagnostics/fatal-errors.txt
-            FATAL_RC=$?
-            if [ "$FATAL_RC" -ne 0 ]; then : > diagnostics/fatal-errors.txt; fi
-
-            echo "start_exit_code=$START_RC" >> diagnostics/result.txt
-            echo "s12_flights_home_ui_found=$UI_FOUND" >> diagnostics/result.txt
-            echo "fatal_error_lines=$(wc -l < diagnostics/fatal-errors.txt)" >> diagnostics/result.txt
-            cat diagnostics/result.txt
-
-            if [ "$START_RC" -ne 0 ] || [ "$UI_FOUND" -ne 1 ] || [ -s diagnostics/fatal-errors.txt ] || [ ! -s diagnostics/final-process.txt ]; then
-              echo "::error::KD PILOT S12 flights home UI did not pass emulator acceptance. See diagnostics and screenshots artifacts."
-              exit 1
-            fi
+          script: python3 Aeroclub/scripts/ui_acceptance.py
       - name: Record emulator acceptance limitation
         if: failure() && steps.emulator_ui.outcome != 'success'
         shell: bash

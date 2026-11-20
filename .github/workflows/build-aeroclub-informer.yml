@@ -1,7 +1,6 @@
 name: Build Aeroclub Informer APK
-# Run the control build manually after a complete logical implementation batch.
-# Control build for current Aeroclub source, including calendar-first event-card flow and Downloads exchange.
-# Avoid starting a new Android build for every small source/documentation commit.
+# Control build: unit tests, APK verification, then a real UI launch check on an accelerated emulator.
+# A splash/home-screen screenshot is a failed UI test, never a successful artifact.
 
 on:
   workflow_dispatch:
@@ -52,7 +51,17 @@ jobs:
         with:
           packages: platform-tools
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "emulator" "system-images;android-35;google_apis;x86_64"
+      - name: Verify hardware acceleration is available
+        shell: bash
+        run: |
+          echo "runner=$(uname -a)"
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::/dev/kvm is unavailable; refusing to claim a full emulator UI test."
+            exit 1
+          fi
+          ls -l /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -accel-check
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
@@ -74,7 +83,9 @@ jobs:
           :feature:informer:testDebugUnitTest
           :app:assembleDebug
       - name: Verify APK and write build manifest
+        shell: bash
         run: |
+          set -euo pipefail
           APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
@@ -91,7 +102,7 @@ jobs:
           INFO="Aeroclub/app/build/outputs/apk/debug/build-info.txt"
           {
             echo "project_id=AEROCLUB"
-            echo "project_name=Aeroclub Informer"
+            echo "project_name=KD PILOT"
             echo "branch=$GITHUB_REF_NAME"
             echo "source_sha=$GITHUB_SHA"
             echo "workflow_run_id=$GITHUB_RUN_ID"
@@ -102,7 +113,8 @@ jobs:
             echo "signing_certificate_sha256=$CERT_SHA256"
           } > "$INFO"
           cat "$INFO"
-      - name: Launch APK in Android emulator and capture screenshots
+      - name: Launch KD PILOT and verify the actual calendar UI
+        id: emulator_ui
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
@@ -113,19 +125,70 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            mkdir -p screenshots
-            adb install -r Aeroclub/app/build/outputs/apk/debug/app-debug.apk
-            adb shell am force-stop ru.aeroclub.informer.mobile || true
-            adb shell monkey -p ru.aeroclub.informer.mobile -c android.intent.category.LAUNCHER 1
-            sleep 10
-            adb exec-out screencap -p > screenshots/aeroclub-main.png
-            test -s screenshots/aeroclub-main.png
-            file screenshots/aeroclub-main.png
-      - uses: actions/upload-artifact@v4
+            set +e
+            mkdir -p screenshots diagnostics
+            echo "runner=$(uname -a)" > diagnostics/emulator-environment.txt
+            echo "sdk=$(adb shell getprop ro.build.version.sdk)" >> diagnostics/emulator-environment.txt
+            echo "abi=$(adb shell getprop ro.product.cpu.abi)" >> diagnostics/emulator-environment.txt
+            adb devices -l >> diagnostics/emulator-environment.txt 2>&1
+            adb shell getprop ro.hardware.egl >> diagnostics/emulator-environment.txt 2>&1
+            adb shell getprop ro.opengles.version >> diagnostics/emulator-environment.txt 2>&1
+
+            adb logcat -c
+            adb install -r Aeroclub/app/build/outputs/apk/debug/app-debug.apk > diagnostics/install.txt 2>&1
+            INSTALL_RC=$?
+            cat diagnostics/install.txt
+            if [ "$INSTALL_RC" -ne 0 ]; then
+              adb logcat -d -v threadtime > diagnostics/logcat.txt
+              exit "$INSTALL_RC"
+            fi
+
+            adb shell am force-stop ru.aeroclub.informer.mobile
+            adb shell am start -W -n ru.aeroclub.informer.mobile/ru.aeroclub.informer.MainActivity > diagnostics/activity-start.txt 2>&1
+            START_RC=$?
+            cat diagnostics/activity-start.txt
+
+            UI_FOUND=0
+            for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+              sleep 2
+              adb shell dumpsys activity activities > "diagnostics/activities-${attempt}.txt" 2>&1
+              adb shell pidof ru.aeroclub.informer.mobile > "diagnostics/process-${attempt}.txt" 2>&1
+              adb shell uiautomator dump /sdcard/kd-pilot-window.xml > "diagnostics/uiautomator-${attempt}.txt" 2>&1
+              adb pull /sdcard/kd-pilot-window.xml "diagnostics/window-${attempt}.xml" >/dev/null 2>&1
+              adb exec-out screencap -p > "screenshots/kd-pilot-attempt-${attempt}.png"
+              if grep -q "КАЛЕНДАРЬ МЕРОПРИЯТИЙ" "diagnostics/window-${attempt}.xml" 2>/dev/null; then
+                cp "screenshots/kd-pilot-attempt-${attempt}.png" screenshots/kd-pilot-main.png
+                cp "diagnostics/window-${attempt}.xml" diagnostics/kd-pilot-main-window.xml
+                UI_FOUND=1
+                break
+              fi
+            done
+
+            adb shell dumpsys activity activities > diagnostics/final-activities.txt 2>&1
+            adb shell dumpsys window windows > diagnostics/final-windows.txt 2>&1
+            adb shell pidof ru.aeroclub.informer.mobile > diagnostics/final-process.txt 2>&1
+            adb logcat -d -v threadtime > diagnostics/logcat.txt 2>&1
+            grep -E "FATAL EXCEPTION|ANR in |Fatal signal|AndroidRuntime" diagnostics/logcat.txt > diagnostics/fatal-errors.txt
+            FATAL_RC=$?
+            if [ "$FATAL_RC" -ne 0 ]; then : > diagnostics/fatal-errors.txt; fi
+
+            echo "start_exit_code=$START_RC" >> diagnostics/result.txt
+            echo "calendar_ui_found=$UI_FOUND" >> diagnostics/result.txt
+            echo "fatal_error_lines=$(wc -l < diagnostics/fatal-errors.txt)" >> diagnostics/result.txt
+            cat diagnostics/result.txt
+
+            if [ "$START_RC" -ne 0 ] || [ "$UI_FOUND" -ne 1 ] || [ -s diagnostics/fatal-errors.txt ] || [ ! -s diagnostics/final-process.txt ]; then
+              echo "::error::KD PILOT calendar UI did not pass emulator acceptance. See diagnostics and screenshots artifacts."
+              exit 1
+            fi
+      - name: Upload APK and complete emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: Aeroclub-Informer-debug-${{ github.sha }}
+          name: KD-PILOT-${{ github.sha }}-run-${{ github.run_number }}
           path: |
             Aeroclub/app/build/outputs/apk/debug/app-debug.apk
             Aeroclub/app/build/outputs/apk/debug/build-info.txt
-            screenshots/aeroclub-main.png
-          if-no-files-found: error
+            screenshots/
+            diagnostics/
+          if-no-files-found: warn

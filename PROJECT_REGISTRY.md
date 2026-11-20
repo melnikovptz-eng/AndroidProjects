@@ -25,12 +25,12 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Current branch HEAD after W01 rebuild documentation: `7049de793ec0df44bb8eaf96a768ba15ec7160f1` (runtime source built from `ab4da64d9c7f222e1311df06e42862c9238e4b57`; subsequent change is documentation-only).
-- Latest successful workflow run: [run #397](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39768506462), source SHA `ab4da64d9c7f222e1311df06e42862c9238e4b57`; APK SHA-256 `b2f59c3902bbb209635e575e5c94916b46735499bb899bf57b70ee34396d0ba1`, artifact ID `12420319406`. W01 build/tests/signature checks pass; physical-device checks and exact photographic background remain pending.
-- Artifact: [Aeroclub-Informer-debug-c6170e47148c9b6ba40d9c20d80755d57d01831e](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39667063119/artifacts/12378181588); APK SHA-256: `b0e00da9911de745fd2012df589329e697ee4fb61b27eedd7728c8ac8e88c306`.
-- **Status: BUILD SUCCESS.** Available unit tests passed; some modules have no test sources. Real device behavior remains unverified.
-- Main screen includes manual JSON message export/import via Android's file picker. Task registry: `Aeroclub/TASK_REGISTRY.md`; numbered screen map: `Aeroclub/SCREEN_MAP.md`. Runtime defects reported on 2026-10-21 are open tasks AERO-001 through AERO-009. Import validates format/version and records, caps input at 2 MiB, merges by unique message ID. This enables manually moving a file between installations; it is not automatic messaging or cross-device sync.
-- Other known limitations: no API/authentication/FCM/remote incoming messages; sound, reminder firing and widget updates require real-device acceptance testing.
+- Current branch HEAD: `58420dde6b47ee5621cb5717e1720587cda68c01`; runtime source built by latest successful CI is the same SHA.
+- Latest successful workflow run: [run #414](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/44687191465), source SHA `58420dde6b47ee5621cb5717e1720587cda68c01`; artifact ID `14606583675`; APK SHA-256 `3c7b95819ffc460e6a2b82bbea0c95c1319e2605eff078bf79c9edfe7a949d0a`; package ID `ru.aeroclub.informer.mobile`; signing certificate SHA-256 `5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2`.
+- **Status: BUILD SUCCESS.** Configured unit-test tasks, APK package verification and signing-certificate comparison passed. UI acceptance was **SKIPPED** because GitHub-hosted runner has no usable `/dev/kvm`; do not call this a successful emulator/device launch.
+- Important correction: run #412's saved screenshot was inspected and showed only the Android system splash screen, not KD PILOT S01. The previous workflow's success was a false positive for UI acceptance. The workflow now verifies foreground UI content with UIAutomator, process/Activity state and logcat when KVM is available; it explicitly skips UI acceptance otherwise.
+- W01 visual match, two-cell launcher width, pressed feedback and all four widget actions remain unverified on a physical device. AERO-009 and AERO-011 remain OPEN.
+- Main screen/calendar and admin functionality remain subject to the existing open tasks in `Aeroclub/TASK_REGISTRY.md`. There is no API/authentication/FCM/remote incoming-message delivery; file exchange and local reminders must not be described as server sync or guaranteed delivery.
 - Markdown-only updates do not trigger another build; rebuild after code/resources/Gradle changes or a device-test fix.
 
 ### VARIO

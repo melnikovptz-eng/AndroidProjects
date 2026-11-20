@@ -25,13 +25,13 @@
 Checkpoint — это последняя документированная точка, а не гарантия, что код после неё не менялся. Если HEAD другой, просмотреть только изменения после checkpoint.
 
 ### AEROCLUB
-- Current branch HEAD: `58420dde6b47ee5621cb5717e1720587cda68c01`; runtime source built by latest successful CI is the same SHA.
-- Latest successful workflow run: [run #414](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/44687191465), source SHA `58420dde6b47ee5621cb5717e1720587cda68c01`; artifact ID `14606583675`; APK SHA-256 `3c7b95819ffc460e6a2b82bbea0c95c1319e2605eff078bf79c9edfe7a949d0a`; package ID `ru.aeroclub.informer.mobile`; signing certificate SHA-256 `5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2`.
-- **Status: BUILD SUCCESS.** Configured unit-test tasks, APK package verification and signing-certificate comparison passed. UI acceptance was **SKIPPED** because GitHub-hosted runner has no usable `/dev/kvm`; do not call this a successful emulator/device launch.
-- Important correction: run #412's saved screenshot was inspected and showed only the Android system splash screen, not KD PILOT S01. The previous workflow's success was a false positive for UI acceptance. The workflow now verifies foreground UI content with UIAutomator, process/Activity state and logcat when KVM is available; it explicitly skips UI acceptance otherwise.
-- W01 visual match, two-cell launcher width, pressed feedback and all four widget actions remain unverified on a physical device. AERO-009 and AERO-011 remain OPEN.
-- Main screen/calendar and admin functionality remain subject to the existing open tasks in `Aeroclub/TASK_REGISTRY.md`. There is no API/authentication/FCM/remote incoming-message delivery; file exchange and local reminders must not be described as server sync or guaranteed delivery.
-- Markdown-only updates do not trigger another build; rebuild after code/resources/Gradle changes or a device-test fix.
+- Current branch HEAD: `efcb07dfa4fd798e587a1593a7c2274c3e96b804`; latest successful build source SHA: `d177f0e765b0dae3a03daeae138e8075a9675fea` (the newer HEAD changes only signing verification/documentation; run #416 is checking it).
+- Latest successful workflow run: [run #415](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/44687605669), source SHA `d177f0e765b0dae3a03daeae138e8075a9675fea`; artifact ID `14607232147`; APK SHA-256 `3c7b95819ffc460e6a2b82bbea0c95c1319e2605eff078bf79c9edfe7a949d0a`; package ID `ru.aeroclub.informer.mobile`; signing certificate SHA-256 `5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2`.
+- **Status: BUILD SUCCESS.** Configured unit-test tasks, APK package verification and signing-certificate comparison passed. UI acceptance was **SKIPPED** because the GitHub-hosted runner has no usable `/dev/kvm`; do not call this a successful emulator/device launch.
+- Run #412's saved screenshot was inspected and showed only the Android system splash screen, not KD PILOT S01. The old workflow therefore produced a false positive for UI acceptance. The new workflow verifies UIAutomator text, process/Activity state, repeated screenshots and logcat when KVM is available; otherwise it records an explicit skip.
+- Signing compatibility warning: run #397 used certificate `4c99d724c36aa82948619f089bb1a89d7925cb2b6f98b3e31e36dad03938f73b`; runs #411–#415 use `5167486c217aa60f9be53f2290ecca9b4f4f4c2b87d01483f4d51bc439d36db2`. The current APK cannot update a run #397 installation with the old signature. The workflow now pins the current fingerprint and fails closed if it changes; long-term continuity still requires a protected keystore secret.
+- W01 visual match, two-cell launcher width, pressed feedback and all four widget actions remain unverified on a physical device. AERO-009 and AERO-011 remain OPEN. No API/authentication/FCM/remote incoming-message delivery is implemented.
+- Current run #416 is checking the signing-pin commit; use its result before calling the current branch HEAD fully build-verified.
 
 ### VARIO
 - Последний найденный успешный run: [run #10](https://github.com/melnikovptz-eng/AndroidProjects/actions/runs/39656240472).

@@ -103,39 +103,64 @@ public class MainActivity extends Activity {
         for (Flight flight : flights) {
             if (!flight.published && !flight.isDemo) continue;
             visible++;
+            String response = AttendanceRepository.getResponse(this, flight.id);
+            boolean going = AttendanceRepository.STATUS_GOING.equals(response);
+            boolean notGoing = AttendanceRepository.STATUS_NOT_GOING.equals(response);
+            int accent = going ? Color.rgb(52, 190, 139) :
+                notGoing ? Color.rgb(244, 91, 119) : Color.rgb(112, 132, 160);
+
             LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(16), dp(14), dp(14), dp(14));
-            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16, Color.rgb(229, 234, 241)));
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            card.setPadding(0, 0, dp(12), 0);
+            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 17,
+                visible == 1 ? Color.rgb(28, 111, 245) : Color.rgb(230, 236, 244)));
             LinearLayout.LayoutParams cardParams = lp(-1, -2);
             cardParams.bottomMargin = dp(12);
             list.addView(card, cardParams);
 
-            LinearLayout top = new LinearLayout(this);
-            top.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            TextView date = text(flight.date, 15, NAVY, true);
-            top.addView(date, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView time = text(flight.time, 14, Color.rgb(48, 105, 174), true);
-            top.addView(time, lp(-2, -2));
-            card.addView(top, lp(-1, -2));
+            View accentBar = new View(this);
+            accentBar.setBackgroundColor(visible == 1 ? Color.rgb(28, 111, 245) : accent);
+            card.addView(accentBar, lp(dp(5), dp(118)));
 
-            TextView title = text(FlightPresentation.title(flight), 17, NAVY, true);
-            LinearLayout.LayoutParams titleParams = lp(-1, -2);
-            titleParams.topMargin = dp(8);
-            card.addView(title, titleParams);
+            LinearLayout details = new LinearLayout(this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setPadding(dp(14), dp(13), dp(8), dp(13));
+            card.addView(details, new LinearLayout.LayoutParams(0, -2, 1));
+
+            LinearLayout dateRow = new LinearLayout(this);
+            dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            TextView date = text("▦  " + flight.date, 15, NAVY, true);
+            dateRow.addView(date, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView statusText = text((going ? "♟  Едут" : notGoing ? "⊘  Не едут" : "ⓘ  Нет ответа"),
+                12, going ? Color.rgb(13, 143, 91) : notGoing ? Color.rgb(221, 53, 83) : Color.rgb(76, 96, 125), true);
+            statusText.setGravity(android.view.Gravity.CENTER);
+            statusText.setPadding(dp(10), dp(7), dp(10), dp(7));
+            statusText.setBackground(AeroclubUi.rounded(this,
+                going ? Color.rgb(224, 248, 240) : notGoing ? Color.rgb(255, 232, 238) : Color.rgb(237, 241, 247), 22,
+                Color.TRANSPARENT));
+            dateRow.addView(statusText, lp(-2, -2));
+            details.addView(dateRow, lp(-1, -2));
+
+            TextView time = text("◷  " + flight.time, 14, NAVY, false);
+            LinearLayout.LayoutParams timeParams = lp(-1, -2);
+            timeParams.topMargin = dp(7);
+            details.addView(time, timeParams);
             TextView place = text("⌖  " + (flight.place == null ? "Место встречи не указано" : flight.place),
-                13, MUTED, false);
+                13, NAVY, false);
             LinearLayout.LayoutParams placeParams = lp(-1, -2);
             placeParams.topMargin = dp(6);
-            card.addView(place, placeParams);
+            details.addView(place, placeParams);
 
-            String response = AttendanceRepository.getResponse(this, flight.id);
-            TextView statusText = text("●  " + response, 12,
-                AttendanceRepository.STATUS_GOING.equals(response) ? Color.rgb(35, 137, 91) :
-                AttendanceRepository.STATUS_NOT_GOING.equals(response) ? Color.rgb(177, 75, 75) : MUTED, true);
-            LinearLayout.LayoutParams statusParams = lp(-1, -2);
-            statusParams.topMargin = dp(12);
-            card.addView(statusText, statusParams);
+            TextView demo = text(flight.isDemo ? "Демонстрационный полёт" : "", 10, MUTED, false);
+            if (flight.isDemo) {
+                LinearLayout.LayoutParams demoParams = lp(-1, -2);
+                demoParams.topMargin = dp(5);
+                details.addView(demo, demoParams);
+            }
+            TextView chevron = text("›", 30, Color.rgb(103, 127, 160), false);
+            chevron.setGravity(android.view.Gravity.CENTER);
+            card.addView(chevron, lp(dp(24), dp(56)));
             card.setOnClickListener(v -> showEventCard(flight));
             card.setFocusable(true);
             card.setContentDescription(FlightPresentation.title(flight) + ", " + flight.date + ", " +

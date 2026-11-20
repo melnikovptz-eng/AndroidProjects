@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
         header.setPadding(dp(20), dp(16), dp(20), dp(12));
         header.setBackgroundColor(Color.WHITE);
-        TextView brand = text("Аэроклуб", 25, NAVY, true);
+        TextView brand = text("✈  Аэроклуб", 25, NAVY, true);
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         Button create = button("＋ Создать полёт");
         create.setTextSize(12);
@@ -121,12 +121,19 @@ public class MainActivity extends Activity {
 
             View accentBar = new View(this);
             accentBar.setBackgroundColor(visible == 1 ? Color.rgb(28, 111, 245) : accent);
-            card.addView(accentBar, lp(dp(5), dp(118)));
+            card.addView(accentBar, lp(dp(5), visible == 1 ? dp(132) : dp(118)));
 
             LinearLayout details = new LinearLayout(this);
             details.setOrientation(LinearLayout.VERTICAL);
             details.setPadding(dp(14), dp(13), dp(8), dp(13));
             card.addView(details, new LinearLayout.LayoutParams(0, -2, 1));
+
+            if (visible == 1) {
+                TextView nearest = text("⌖  Ближайший полёт", 12, Color.rgb(35, 105, 205), true);
+                LinearLayout.LayoutParams nearestParams = lp(-1, -2);
+                nearestParams.bottomMargin = dp(5);
+                details.addView(nearest, nearestParams);
+            }
 
             LinearLayout dateRow = new LinearLayout(this);
             dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);

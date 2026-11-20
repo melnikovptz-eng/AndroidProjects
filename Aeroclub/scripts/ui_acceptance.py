@@ -38,7 +38,12 @@ def capture(name,required=()):
  print("SCREEN_OK",name,os.path.getsize(f"{OUT}/{name}.png"))
 def home():
  run(["adb","shell","am","force-stop","ru.aeroclub.informer.mobile"])
- run(["adb","shell","am","start","-W","-n","ru.aeroclub.informer.mobile/ru.aeroclub.informer.MainActivity"],False);time.sleep(7)
+ run(["adb","shell","am","start","-n","ru.aeroclub.informer.mobile/ru.aeroclub.informer.MainActivity"],False)
+ deadline=time.time()+150
+ while time.time()<deadline:
+  root=dump("startup-check")
+  if "Все полёты" in visible(root) and "Создать полёт" in visible(root): break
+  time.sleep(8)
 try:
  open(f"{DIAG}/emulator-environment.txt","w").write("sdk="+run(["adb","shell","getprop","ro.build.version.sdk"],capture=True)+"\nabi="+run(["adb","shell","getprop","ro.product.cpu.abi"],capture=True)+"\n")
  run(["adb","logcat","-c"])

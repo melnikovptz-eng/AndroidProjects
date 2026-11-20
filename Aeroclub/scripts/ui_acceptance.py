@@ -17,12 +17,16 @@ def tap(label):
  end=time.time()+18
  while time.time()<end:
   root=dump("current")
+  parents={child:parent for parent in root.iter() for child in parent}
   for n in root.iter("node"):
    val=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip()
-   if label in val and n.attrib.get("clickable")=="true":
-    m=re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
-    if m:
-     x1,y1,x2,y2=map(int,m.groups());run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)]);time.sleep(3);return True
+   if label in val:
+    target=n
+    while target is not None and target.attrib.get("clickable")!="true": target=parents.get(target)
+    if target is not None:
+     m=re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
+     if m:
+      x1,y1,x2,y2=map(int,m.groups());run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)]);time.sleep(3);return True
   time.sleep(1)
  return False
 def capture(name,required=()):

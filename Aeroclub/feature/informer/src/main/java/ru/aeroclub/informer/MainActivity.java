@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
     private DebugOperation screenOpenOperation;
     private boolean storageWarningShown;
     private final Handler flightSyncHandler = new Handler(Looper.getMainLooper());
-    private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) renderCalendarScreen(); flightSyncHandler.postDelayed(this, 5000L); } };
+    private final Runnable flightSyncPoll = new Runnable() { public void run() { if (isFinishing()) return; if (FlightRepository.syncFromDownload(MainActivity.this)) renderAllFlightsScreen(); flightSyncHandler.postDelayed(this, 5000L); } };
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -41,13 +41,145 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         FlightRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
-        renderCalendarScreen();
+        renderAllFlightsScreen();
         handleWidgetRouteIntent(getIntent());
         ensureLegacyDownloadsPermission();
         if (screenOpenOperation != null) {
             screenOpenOperation.finish("success", "calendar_ready");
             screenOpenOperation = null;
         }
+    }
+
+    /** S12 participant home: upcoming flights list, separate from the S01 calendar. */
+    private void renderAllFlightsScreen() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.rgb(244, 247, 251));
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(20), dp(16), dp(20), dp(12));
+        header.setBackgroundColor(Color.WHITE);
+        TextView brand = text("Аэроклуб", 25, NAVY, true);
+        header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
+        Button create = button("＋ Создать полёт");
+        create.setTextSize(12);
+        header.addView(create, lp(-2, dp(42)));
+        create.setOnClickListener(v -> startActivity(new Intent().setComponent(
+            new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))));
+        root.addView(header, lp(-1, -2));
+
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setPadding(dp(20), dp(8), dp(20), dp(8));
+        tabs.setBackgroundColor(Color.WHITE);
+        TextView allTab = text("Все полёты", 15, NAVY, true);
+        TextView competitionsTab = text("Соревнования", 15, MUTED, false);
+        allTab.setGravity(android.view.Gravity.CENTER);
+        competitionsTab.setGravity(android.view.Gravity.CENTER);
+        tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(44), 1));
+        tabs.addView(competitionsTab, new LinearLayout.LayoutParams(0, dp(44), 1));
+        competitionsTab.setOnClickListener(v -> android.widget.Toast.makeText(this,
+            "Раздел соревнований ещё не подключён.", android.widget.Toast.LENGTH_SHORT).show());
+        root.addView(tabs, lp(-1, -2));
+        View tabLine = new View(this);
+        tabLine.setBackgroundColor(Color.rgb(40, 105, 190));
+        LinearLayout.LayoutParams lineParams = lp(dp(120), dp(3));
+        lineParams.leftMargin = dp(20);
+        root.addView(tabLine, lineParams);
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setFillViewport(true);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(16), dp(12), dp(16), dp(16));
+        java.util.List<Flight> flights = new java.util.ArrayList<>(FlightRepository.getFlights(this));
+        java.util.Collections.sort(flights, (a,b) -> {
+            String ad = a.dateIso == null ? "" : a.dateIso;
+            String bd = b.dateIso == null ? "" : b.dateIso;
+            int dateOrder = ad.compareTo(bd);
+            return dateOrder != 0 ? dateOrder : String.valueOf(a.time).compareTo(String.valueOf(b.time));
+        });
+        int visible = 0;
+        for (Flight flight : flights) {
+            if (!flight.published && !flight.isDemo) continue;
+            visible++;
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(16), dp(14), dp(14), dp(14));
+            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16, Color.rgb(229, 234, 241)));
+            LinearLayout.LayoutParams cardParams = lp(-1, -2);
+            cardParams.bottomMargin = dp(12);
+            list.addView(card, cardParams);
+
+            LinearLayout top = new LinearLayout(this);
+            top.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            TextView date = text(flight.date, 15, NAVY, true);
+            top.addView(date, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView time = text(flight.time, 14, Color.rgb(48, 105, 174), true);
+            top.addView(time, lp(-2, -2));
+            card.addView(top, lp(-1, -2));
+
+            TextView title = text(FlightPresentation.title(flight), 17, NAVY, true);
+            LinearLayout.LayoutParams titleParams = lp(-1, -2);
+            titleParams.topMargin = dp(8);
+            card.addView(title, titleParams);
+            TextView place = text("⌖  " + (flight.place == null ? "Место встречи не указано" : flight.place),
+                13, MUTED, false);
+            LinearLayout.LayoutParams placeParams = lp(-1, -2);
+            placeParams.topMargin = dp(6);
+            card.addView(place, placeParams);
+
+            String response = AttendanceRepository.getResponse(this, flight.id);
+            TextView statusText = text("●  " + response, 12,
+                AttendanceRepository.STATUS_GOING.equals(response) ? Color.rgb(35, 137, 91) :
+                AttendanceRepository.STATUS_NOT_GOING.equals(response) ? Color.rgb(177, 75, 75) : MUTED, true);
+            LinearLayout.LayoutParams statusParams = lp(-1, -2);
+            statusParams.topMargin = dp(12);
+            card.addView(statusText, statusParams);
+            card.setOnClickListener(v -> showEventCard(flight));
+            card.setFocusable(true);
+            card.setContentDescription(FlightPresentation.title(flight) + ", " + flight.date + ", " +
+                flight.time + ", " + flight.place + ". " + response + ". Открыть карточку.");
+        }
+        if (visible == 0) {
+            TextView empty = text("Пока нет опубликованных полётов.\nНовые мероприятия появятся здесь.",
+                15, MUTED, false);
+            empty.setGravity(android.view.Gravity.CENTER);
+            empty.setPadding(dp(24), dp(48), dp(24), dp(48));
+            list.addView(empty, lp(-1, -2));
+        }
+        scroll.addView(list);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        LinearLayout nav = new LinearLayout(this);
+        nav.setBackgroundColor(Color.WHITE);
+        nav.setElevation(dp(8));
+        String[] labels = {"Главная", "Участники", "Календарь", "Настройки"};
+        String[] icons = {"⌂", "♙", "▦", "⚙"};
+        for (int i = 0; i < labels.length; i++) {
+            final int item = i;
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(android.view.Gravity.CENTER);
+            TextView icon = text(icons[i], 19, i == 0 ? Color.rgb(40,105,190) : MUTED, true);
+            TextView label = text(labels[i], 10, i == 0 ? Color.rgb(40,105,190) : MUTED, i == 0);
+            icon.setGravity(android.view.Gravity.CENTER);
+            label.setGravity(android.view.Gravity.CENTER);
+            cell.addView(icon, lp(-1, dp(25)));
+            cell.addView(label, lp(-1, dp(20)));
+            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(58), 1));
+            cell.setOnClickListener(v -> {
+                if (item == 2) renderCalendarScreen();
+                else if (item == 1) startActivity(new Intent().setComponent(
+                    new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")));
+                else if (item == 3) startActivity(new Intent().setComponent(
+                    new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")));
+            });
+        }
+        root.addView(nav, lp(-1, dp(58)));
+        setContentView(root);
+        clubLabel = brand;
+        flightTitle = brand;
     }
 
     /** Main flow: calendar -> red event day -> event card with four actions. */
@@ -218,7 +350,7 @@ public class MainActivity extends Activity {
 
     private void ensureLegacyDownloadsPermission(){if(Build.VERSION.SDK_INT<29&&checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE,android.Manifest.permission.WRITE_EXTERNAL_STORAGE},7103);}
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){super.onRequestPermissionsResult(requestCode,permissions,grantResults);if(requestCode==7103){if(grantResults.length>1&&grantResults[1]==android.content.pm.PackageManager.PERMISSION_GRANTED){FlightRepository.ensureInitialized(this);FlightDownloadExchange.publish(this,LocalFilePreferences.get(this),"flights_json","active_flight_id");refreshFlightSummary();}else{android.widget.Toast.makeText(this,"Без доступа к Download автоматический файл полётов недоступен.",android.widget.Toast.LENGTH_LONG).show();ModuleDebugLog.log(this,"FLIGHT-FILE","legacy_permission","denied","downloads_unavailable");}}}
-    private void refreshFlightSummary(){ FlightReminderScheduler.syncAll(this); renderCalendarScreen(); }
+    private void refreshFlightSummary(){ FlightReminderScheduler.syncAll(this); renderAllFlightsScreen(); }
 
     private void launchMessageExport() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);

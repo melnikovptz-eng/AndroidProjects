@@ -141,6 +141,21 @@ jobs:
           cat Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
           grep -Fq -- '-accel on' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
           grep -Fq -- '-gpu host' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
+      - name: Preflight host GPU device before emulator launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Checking physical GPU access required by -gpu host"
+          if [ ! -d /dev/dri ] || ! compgen -G '/dev/dri/renderD*' >/dev/null; then
+            echo "::error::This GitHub-hosted runner exposes KVM but no DRM render node. A real host-GPU UI test cannot run here; refusing to fall back to software rendering."
+            exit 1
+          fi
+          ls -l /dev/dri
+          if command -v vulkaninfo >/dev/null 2>&1; then
+            vulkaninfo --summary
+          else
+            echo "vulkaninfo unavailable; emulator startup remains the authoritative GPU check"
+          fi
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
         timeout-minutes: 25

@@ -89,7 +89,7 @@ try:
   time.sleep(8)
  if not installed:raise RuntimeError("APK install failed: "+result)
  open_home()
- capture("S12-all-flights",("Все полёты","Создать полёт"))
+ capture("S12-all-flights",("Все полёты","Создать полёт","Полёт выходного дня","Утренний тренировочный вылет","Маршрутный полёт","Вечерний учебный вылет","Демонстрационный полёт"))
  if tap("Ближайший полёт"):
   capture("S12-flight-details",("Я поеду","Я не поеду","Маршрут","Telegram"))
   run(["adb","shell","input","keyevent","4"],False);time.sleep(2)
@@ -124,7 +124,7 @@ try:
  if not tap("Календарь"):raise RuntimeError("admin calendar navigation not clickable")
  capture("S05-admin-calendar",("Календарь",))
  if not tap("Участники"):raise RuntimeError("admin participants navigation not clickable")
- capture("S06-admin-participants",("Поиск участника",))
+ capture("S06-admin-participants",("Поиск участника","Александр Волков","Мария Соколова","Дмитрий Орлов"))
  if not tap("Настройки"):raise RuntimeError("admin settings navigation not clickable")
  capture("S07-club-settings",("Профиль клуба",))
  if not tap("Главная"):raise RuntimeError("return to admin overview before notifications failed")

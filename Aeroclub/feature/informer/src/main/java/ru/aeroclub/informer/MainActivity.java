@@ -242,29 +242,44 @@ public class MainActivity extends Activity {
 
     /** Main flow: calendar -> red event day -> event card with four actions. */
     private void renderCalendarScreen() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(16), dp(16), dp(16));
-        root.setBackgroundColor(AeroclubUi.BACKGROUND);
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(Color.rgb(243, 247, 253));
 
-        TextView title = text("S01  •  АЭРОКЛУБ • КАЛЕНДАРЬ МЕРОПРИЯТИЙ", 16, NAVY, true);
-        root.addView(title, lp(-1, -2));
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(18), 0, dp(18), 0);
+        toolbar.setBackgroundColor(Color.rgb(8, 103, 237));
+        TextView mark = text("✈", 25, Color.WHITE, true);
+        toolbar.addView(mark, lp(dp(42), dp(58)));
+        TextView title = text("Календарь", 19, Color.WHITE, true);
+        toolbar.addView(title, new LinearLayout.LayoutParams(0, dp(58), 1));
+        page.addView(toolbar, lp(-1, dp(58)));
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setFillViewport(false);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(14), dp(14), dp(14), dp(18));
+
+        LinearLayout calendarCard = new LinearLayout(this);
+        calendarCard.setOrientation(LinearLayout.VERTICAL);
+        calendarCard.setPadding(dp(12), dp(10), dp(12), dp(12));
+        calendarCard.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16, Color.rgb(229,236,246)));
+        calendarCard.setElevation(dp(2));
 
         LinearLayout monthRow = new LinearLayout(this);
         monthRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        monthRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams monthParams = lp(-1, dp(48));
-        monthParams.topMargin = dp(12);
-        root.addView(monthRow, monthParams);
-
-        Button previous = button("‹");
-        Button next = button("›");
-        TextView monthLabel = text("", 16, NAVY, true);
+        TextView previous = text("‹", 29, Color.rgb(8,103,237), true);
+        previous.setGravity(android.view.Gravity.CENTER);
+        monthRow.addView(previous, lp(dp(44), dp(44)));
+        TextView monthLabel = text("", 17, NAVY, true);
         monthLabel.setGravity(android.view.Gravity.CENTER);
-        monthRow.addView(previous, new LinearLayout.LayoutParams(dp(52), dp(48)));
-        monthRow.addView(monthLabel, new LinearLayout.LayoutParams(0, -1, 1));
-        monthRow.addView(next, new LinearLayout.LayoutParams(dp(52), dp(48)));
-
+        monthRow.addView(monthLabel, new LinearLayout.LayoutParams(0, dp(44), 1));
+        TextView next = text("›", 29, Color.rgb(8,103,237), true);
+        next.setGravity(android.view.Gravity.CENTER);
+        monthRow.addView(next, lp(dp(44), dp(44)));
+        calendarCard.addView(monthRow);
         Calendar month = (Calendar) displayedCalendarMonth.clone();
         month.set(Calendar.DAY_OF_MONTH, 1);
         monthLabel.setText(new SimpleDateFormat("LLLL yyyy", new Locale("ru")).format(month.getTime()));
@@ -272,43 +287,37 @@ public class MainActivity extends Activity {
         next.setOnClickListener(v -> { displayedCalendarMonth.add(Calendar.MONTH, 1); renderCalendarScreen(); });
 
         LinearLayout week = new LinearLayout(this);
-        week.setOrientation(LinearLayout.HORIZONTAL);
         String[] weekdays = {"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
         for (String day : weekdays) {
-            TextView cell = text(day, 12, MUTED, true);
+            TextView cell = text(day, 11, MUTED, true);
             cell.setGravity(android.view.Gravity.CENTER);
-            week.addView(cell, new LinearLayout.LayoutParams(0, dp(32), 1));
+            week.addView(cell, new LinearLayout.LayoutParams(0, dp(30), 1));
         }
-        LinearLayout.LayoutParams weekParams = lp(-1, dp(32));
-        weekParams.topMargin = dp(8);
-        root.addView(week, weekParams);
+        calendarCard.addView(week);
 
         java.util.Map<String, java.util.List<Flight>> flightsByDate = new java.util.HashMap<>();
+        java.util.List<Flight> flights = new java.util.ArrayList<>();
         for (Flight flight : FlightRepository.getFlights(this)) {
+            if (!flight.published && !flight.isDemo) continue;
             if (flight.dateIso == null || flight.dateIso.isEmpty()) continue;
+            flights.add(flight);
             java.util.List<Flight> sameDate = flightsByDate.get(flight.dateIso);
             if (sameDate == null) { sameDate = new java.util.ArrayList<>(); flightsByDate.put(flight.dateIso, sameDate); }
             sameDate.add(flight);
         }
-
-        LinearLayout calendarGrid = new LinearLayout(this);
-        calendarGrid.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams gridParams = lp(-1, -2);
-        gridParams.topMargin = dp(2);
-        root.addView(calendarGrid, gridParams);
         int offset = (month.get(Calendar.DAY_OF_WEEK) + 5) % 7;
         int daysInMonth = month.getActualMaximum(Calendar.DAY_OF_MONTH);
         int cells = ((offset + daysInMonth + 6) / 7) * 7;
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
         for (int base = 0; base < cells; base += 7) {
             LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            calendarGrid.addView(row, lp(-1, dp(44)));
             for (int col = 0; col < 7; col++) {
-                int index = base + col;
-                int dayNumber = index - offset + 1;
-                TextView dayCell = text(dayNumber >= 1 && dayNumber <= daysInMonth ? String.valueOf(dayNumber) : "", 14, AeroclubUi.BODY, false);
+                int dayNumber = base + col - offset + 1;
+                TextView dayCell = text(dayNumber >= 1 && dayNumber <= daysInMonth ? String.valueOf(dayNumber) : "",
+                    13, AeroclubUi.BODY, false);
                 dayCell.setGravity(android.view.Gravity.CENTER);
-                LinearLayout.LayoutParams dayParams = new LinearLayout.LayoutParams(0, dp(40), 1);
+                LinearLayout.LayoutParams dayParams = new LinearLayout.LayoutParams(0, dp(39), 1);
                 dayParams.setMargins(dp(2), dp(2), dp(2), dp(2));
                 row.addView(dayCell, dayParams);
                 if (dayNumber < 1 || dayNumber > daysInMonth) continue;
@@ -316,47 +325,104 @@ public class MainActivity extends Activity {
                 date.set(Calendar.DAY_OF_MONTH, dayNumber);
                 String iso = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(date.getTime());
                 java.util.List<Flight> dayFlights = flightsByDate.get(iso);
+                boolean today = iso.equals(new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new java.util.Date()));
                 if (dayFlights != null && !dayFlights.isEmpty()) {
                     dayCell.setTextColor(Color.WHITE);
                     dayCell.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                    dayCell.setBackground(AeroclubUi.rounded(this, Color.rgb(190, 45, 55), 12, Color.rgb(190, 45, 55)));
+                    dayCell.setBackground(AeroclubUi.rounded(this, Color.rgb(8,103,237), 12, Color.rgb(8,103,237)));
                     dayCell.setContentDescription(dayNumber + ", мероприятий: " + dayFlights.size());
                     dayCell.setOnClickListener(v -> showEventCardForDate(iso, dayFlights));
                 } else {
-                    dayCell.setBackground(AeroclubUi.rounded(this, Color.WHITE, 12, AeroclubUi.BORDER));
-                    dayCell.setOnClickListener(v -> android.widget.Toast.makeText(this, "На эту дату мероприятий нет.", android.widget.Toast.LENGTH_SHORT).show());
+                    dayCell.setBackground(AeroclubUi.rounded(this,
+                        today ? Color.rgb(231,241,255) : Color.WHITE, 12,
+                        today ? Color.rgb(8,103,237) : Color.rgb(237,241,247)));
+                    dayCell.setOnClickListener(v -> Toast.makeText(this, "На эту дату мероприятий нет.", Toast.LENGTH_SHORT).show());
                 }
             }
+            grid.addView(row, lp(-1, dp(43)));
         }
-
-        TextView hint = text("Красный день — есть мероприятие. Нажмите на него, чтобы открыть карточку.", 12, MUTED, false);
+        calendarCard.addView(grid);
+        TextView hint = text("Синим отмечены дни с мероприятиями. Нажмите на дату, чтобы открыть вылет.",
+            11, MUTED, false);
         LinearLayout.LayoutParams hintParams = lp(-1, -2);
         hintParams.topMargin = dp(8);
-        root.addView(hint, hintParams);
+        calendarCard.addView(hint, hintParams);
+        body.addView(calendarCard, lp(-1, -2));
 
-        Button admin = button("Панель администратора");
-        LinearLayout.LayoutParams adminParams = lp(-1, dp(52));
-        adminParams.topMargin = dp(16);
-        root.addView(admin, adminParams);
-        admin.setOnClickListener(v -> runTimedAction("ADM-01", "open_admin", () ->
-            startActivity(new Intent().setComponent(new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")))));
+        TextView upcomingTitle = text("Предстоящие полёты", 18, NAVY, true);
+        LinearLayout.LayoutParams upcomingTitleParams = lp(-1, -2);
+        upcomingTitleParams.topMargin = dp(18);
+        upcomingTitleParams.bottomMargin = dp(10);
+        body.addView(upcomingTitle, upcomingTitleParams);
+        java.util.Collections.sort(flights, (a,b) -> {
+            int order = String.valueOf(a.dateIso).compareTo(String.valueOf(b.dateIso));
+            return order != 0 ? order : String.valueOf(a.time).compareTo(String.valueOf(b.time));
+        });
+        if (flights.isEmpty()) {
+            TextView empty = text("Предстоящих опубликованных полётов пока нет.", 13, MUTED, false);
+            empty.setPadding(dp(4), dp(12), dp(4), dp(12));
+            body.addView(empty);
+        }
+        for (Flight flight : flights) {
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(14), dp(12), dp(14), dp(12));
+            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 14, Color.rgb(229,236,246)));
+            card.setElevation(dp(1));
+            TextView status = text(flight.isDemo ? "ДЕМО-МЕРОПРИЯТИЕ" :
+                (flight.published ? "ОПУБЛИКОВАНО ЛОКАЛЬНО" : "ЧЕРНОВИК"), 10,
+                flight.isDemo ? Color.rgb(191,112,24) : Color.rgb(13,143,91), true);
+            card.addView(status);
+            TextView date = text(formatFlightDate(flight), 16, NAVY, true);
+            LinearLayout.LayoutParams dateParams = lp(-1, -2);
+            dateParams.topMargin = dp(5);
+            card.addView(date, dateParams);
+            TextView details = text(flight.time + "  •  " +
+                (flight.place == null ? "Место встречи не указано" : flight.place), 13, MUTED, false);
+            LinearLayout.LayoutParams detailsParams = lp(-1, -2);
+            detailsParams.topMargin = dp(5);
+            card.addView(details, detailsParams);
+            LinearLayout.LayoutParams cardParams = lp(-1, -2);
+            cardParams.bottomMargin = dp(10);
+            body.addView(card, cardParams);
+            card.setOnClickListener(v -> showEventCard(flight));
+        }
+        scroll.addView(body);
+        page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        Button exportMessages = button("Экспортировать файл сообщений");
-        Button importMessages = button("Импортировать файл сообщений");
-        LinearLayout.LayoutParams exchangeParams = lp(-1, dp(48));
-        exchangeParams.topMargin = dp(8);
-        root.addView(exportMessages, exchangeParams);
-        LinearLayout.LayoutParams importParams = lp(-1, dp(48));
-        importParams.topMargin = dp(4);
-        root.addView(importMessages, importParams);
-        exportMessages.setOnClickListener(v -> launchMessageExport());
-        importMessages.setOnClickListener(v -> launchMessageImport());
-
-        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setClipToPadding(false);
-        scroll.addView(root);
-        setContentView(scroll);
+        LinearLayout nav = new LinearLayout(this);
+        nav.setBackgroundColor(Color.WHITE);
+        nav.setElevation(dp(9));
+        String[] labels = {"Главная", "Участники", "Календарь", "Настройки"};
+        String[] icons = {"⌂", "♙", "▦", "⚙"};
+        for (int i = 0; i < labels.length; i++) {
+            final int item = i;
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(android.view.Gravity.CENTER);
+            int color = i == 2 ? Color.rgb(8,103,237) : Color.rgb(104,124,155);
+            TextView icon = text(icons[i], 21, color, true);
+            icon.setGravity(android.view.Gravity.CENTER);
+            TextView label = text(labels[i], 10, color, i == 2);
+            label.setGravity(android.view.Gravity.CENTER);
+            cell.addView(icon, lp(-1, dp(27)));
+            cell.addView(label, lp(-1, dp(19)));
+            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(62), 1));
+            cell.setOnClickListener(v -> {
+                if (item == 0) renderAllFlightsScreen();
+                else if (item == 2) renderCalendarScreen();
+                else {
+                    Intent admin = new Intent().setComponent(new android.content.ComponentName(
+                        getPackageName(), "ru.aeroclub.informer.AdminActivity"));
+                    admin.putExtra("initial_section", item == 1 ? "Участники" : "Настройки");
+                    startActivity(admin);
+                }
+            });
+        }
+        page.addView(nav, lp(-1, dp(62)));
+        getWindow().setStatusBarColor(Color.rgb(8,103,237));
+        getWindow().getDecorView().setSystemUiVisibility(0);
+        setContentView(page);
         clubLabel = title;
         flightTitle = title;
     }

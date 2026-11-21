@@ -118,8 +118,17 @@ jobs:
             echo "signing_certificate_sha256=$CERT_SHA256"
           } > "$INFO"
           cat "$INFO"
+      - name: Publish the built APK before emulator acceptance
+        uses: actions/upload-artifact@v4
+        with:
+          name: KD-PILOT-APK-${{ github.sha }}-run-${{ github.run_number }}
+          path: |
+            Aeroclub/app/build/outputs/apk/debug/app-debug.apk
+            Aeroclub/app/build/outputs/apk/debug/build-info.txt
+          if-no-files-found: error
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
+        timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
@@ -129,7 +138,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu host
-          emulator-boot-timeout: 900
+          emulator-boot-timeout: 300
           cores: 4
           disable-animations: true
           script: python3 Aeroclub/scripts/ui_acceptance.py

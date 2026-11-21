@@ -99,7 +99,7 @@ public class MainActivity extends Activity {
         competitionsTab.setOnClickListener(v -> renderCompetitionsScreen());
         root.addView(tabs, lp(-1, -2));
         View tabLine = new View(this);
-        tabLine.setBackgroundColor(Color.rgb(8, 103, 237));
+        tabLine.setBackgroundColor(AeroclubUi.BLUE);
         LinearLayout.LayoutParams lineParams = lp(Math.max(dp(150), getResources().getDisplayMetrics().widthPixels / 2 - dp(18)), dp(3));
         lineParams.leftMargin = competitions ? getResources().getDisplayMetrics().widthPixels / 2 + dp(2) : dp(20);
         root.addView(tabLine, lineParams);
@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
             list.addView(card, cardParams);
 
             View accentBar = new View(this);
-            accentBar.setBackgroundColor(visible == 1 ? Color.rgb(8, 103, 237) : accent);
+            accentBar.setBackgroundColor(visible == 1 ? AeroclubUi.BLUE : accent);
             card.addView(accentBar, lp(dp(5), visible == 1 ? dp(132) : dp(118)));
 
             LinearLayout details = new LinearLayout(this);
@@ -255,7 +255,7 @@ public class MainActivity extends Activity {
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setGravity(android.view.Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(18), 0, dp(18), 0);
-        toolbar.setBackgroundColor(Color.rgb(8, 103, 237));
+        toolbar.setBackgroundColor(AeroclubUi.BLUE);
         TextView mark = text("✈", 25, Color.WHITE, true);
         toolbar.addView(mark, lp(dp(42), dp(58)));
         TextView title = text("Календарь", 19, Color.WHITE, true);
@@ -282,7 +282,7 @@ public class MainActivity extends Activity {
         TextView monthLabel = text("", 17, NAVY, true);
         monthLabel.setGravity(android.view.Gravity.CENTER);
         monthRow.addView(monthLabel, new LinearLayout.LayoutParams(0, dp(44), 1));
-        TextView next = text("›", 29, Color.rgb(8,103,237), true);
+        TextView next = text("›", 29, AeroclubUi.BLUE, true);
         next.setGravity(android.view.Gravity.CENTER);
         monthRow.addView(next, lp(dp(44), dp(44)));
         calendarCard.addView(monthRow);
@@ -341,7 +341,7 @@ public class MainActivity extends Activity {
                 } else {
                     dayCell.setBackground(AeroclubUi.rounded(this,
                         today ? Color.rgb(231,241,255) : Color.WHITE, 12,
-                        today ? Color.rgb(8,103,237) : Color.rgb(237,241,247)));
+                        today ? AeroclubUi.BLUE : Color.rgb(237,241,247)));
                     dayCell.setOnClickListener(v -> Toast.makeText(this, "На эту дату мероприятий нет.", Toast.LENGTH_SHORT).show());
                 }
             }
@@ -406,7 +406,7 @@ public class MainActivity extends Activity {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(android.view.Gravity.CENTER);
-            int color = i == 2 ? Color.rgb(8,103,237) : Color.rgb(104,124,155);
+            int color = i == 2 ? AeroclubUi.BLUE : Color.rgb(104,124,155);
             TextView icon = text(icons[i], 24, color, true);
             icon.setGravity(android.view.Gravity.CENTER);
             TextView label = text(labels[i], 12, color, i == 2);
@@ -426,7 +426,7 @@ public class MainActivity extends Activity {
             });
         }
         page.addView(nav, lp(-1, dp(100)));
-        getWindow().setStatusBarColor(Color.rgb(8,103,237));
+        getWindow().setStatusBarColor(AeroclubUi.BLUE);
         getWindow().getDecorView().setSystemUiVisibility(0);
         setContentView(page);
         clubLabel = title;

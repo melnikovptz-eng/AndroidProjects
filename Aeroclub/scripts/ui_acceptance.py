@@ -93,7 +93,7 @@ try:
  else:raise RuntimeError("competition tab not clickable")
  if not tap("Все полёты"):raise RuntimeError("all flights tab not clickable")
  if not tap("Календарь"):raise RuntimeError("calendar nav not clickable")
- capture("S01-calendar",("КАЛЕНДАРЬ МЕРОПРИЯТИЙ",))
+ capture("S01-calendar",("Календарь",))
  if not tap("Панель администратора"):raise RuntimeError("S01 admin entry not clickable")
  capture("S02-admin-overview",("Обзор","Вылеты","Участники","Сообщения"))
  admin_section("Вылеты","S03-admin-flights",("Создать вылет",))

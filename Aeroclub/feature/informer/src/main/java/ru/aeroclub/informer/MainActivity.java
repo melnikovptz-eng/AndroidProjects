@@ -41,6 +41,7 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         FlightRepository.ensureInitialized(this);
+        ParticipantRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
         renderAllFlightsScreen();
         handleWidgetRouteIntent(getIntent());

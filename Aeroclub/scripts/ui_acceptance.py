@@ -101,8 +101,10 @@ try:
   capture("S03-flight-editor",("Создать вылет","Сохранить локально"))
   if not tap("Сохранить локально"):raise RuntimeError("flight editor save button not clickable")
   time.sleep(3)
-  capture("S03-admin-flights-after-create",("Удалить этот вылет",))
+  # The destructive action is below the fold on compact screens. Scroll first,
+  # then verify its presence and tap it; never require off-screen text.
   run(["adb","shell","input","swipe","520","1500","520","500","450"],False)
+  capture("S03-admin-flights-after-create",("Удалить этот вылет",))
   if tap("Удалить этот вылет"):
    capture("S11-delete-flight-confirmation",("Удалить", "Отмена"),True)
    run(["adb","shell","input","keyevent","4"],False)

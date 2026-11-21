@@ -67,7 +67,7 @@ try:
  if not tap("Все полёты"):raise RuntimeError("all flights tab not clickable")
  if not tap("Календарь"):raise RuntimeError("calendar nav not clickable")
  capture("S01-calendar",("КАЛЕНДАРЬ МЕРОПРИЯТИЙ",))
- if not tap("Панель администратора"):raise RuntimeError("admin button not clickable")
+ if not tap("Создать полёт"):raise RuntimeError("create flight/admin entry button not clickable")
  capture("S02-admin-overview")
  home()
  if tap("Участники"):capture("S06-participants")

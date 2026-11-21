@@ -36,7 +36,7 @@ public class AdminActivity extends Activity {
     private static final int BG = AeroclubUi.BACKGROUND;
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
-    private static final int BLUE = Color.rgb(8, 103, 237);
+    private static final int BLUE = AeroclubUi.BLUE;
     private static final int GREEN = AeroclubUi.GREEN;
     private LinearLayout root, content;
     private String section = "Обзор";
@@ -67,7 +67,7 @@ public class AdminActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         screenOpenOperation = ModuleDebugLog.startOperation(this, "ADM-01", "admin_screen_open", "admin_screen_created");
-        getWindow().setStatusBarColor(Color.rgb(8, 103, 237));
+        getWindow().setStatusBarColor(AeroclubUi.BLUE);
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(0);
         root = new LinearLayout(this);
@@ -162,7 +162,7 @@ public class AdminActivity extends Activity {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setPadding(dp(16), 0, dp(16), 0);
-        toolbar.setBackgroundColor(Color.rgb(8, 103, 237));
+        toolbar.setBackgroundColor(AeroclubUi.BLUE);
         TextView backIcon = text(section.equals("Обзор") ? "✈" : "‹", 27, Color.WHITE, true);
         backIcon.setGravity(Gravity.CENTER);
         toolbar.addView(backIcon, lp(dp(42), dp(58)));

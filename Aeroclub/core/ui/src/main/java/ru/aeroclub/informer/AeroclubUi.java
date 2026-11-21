@@ -3,6 +3,7 @@ package ru.aeroclub.informer;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.view.View;
 
 /** Shared UI tokens and shape helpers used by the app's screens. */
 public final class AeroclubUi {
@@ -16,6 +17,23 @@ public final class AeroclubUi {
     public static final int BODY = Color.rgb(55, 65, 81);
 
     private AeroclubUi() {}
+
+    /** Root typography context: 16sp at the 393dp reference viewport, clamped for compact/wide screens. */
+    public static float rootFontSp(Context context) {
+        float widthDp = context.getResources().getDisplayMetrics().widthPixels /
+            context.getResources().getDisplayMetrics().density;
+        return Math.max(14f, Math.min(18f, 16f * widthDp / 393f));
+    }
+
+    /** Child text size expressed as a ratio of its parent typography context (em-like). */
+    public static float relativeSp(Context context, float parentFontSp, float ratio) {
+        return parentFontSp * ratio;
+    }
+
+    /** Converts a design token expressed against the 16sp root into the active root context. */
+    public static float rootRelativeSp(Context context, float designTokenSp) {
+        return relativeSp(context, rootFontSp(context), designTokenSp / 16f);
+    }
 
     public static int dp(Context context, int value) {
         return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);

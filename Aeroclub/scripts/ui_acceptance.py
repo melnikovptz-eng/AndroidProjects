@@ -113,19 +113,19 @@ try:
  else:raise RuntimeError("create flight entry not clickable")
  if not tap("Главная"):raise RuntimeError("return to admin overview from flights failed")
  admin_section("Открыть сообщения","S04-admin-messages",("Предпросмотр сообщения",))
- if tap("изменить"):capture("S10-recipient-selection",("Всем",),True);run(["adb","shell","input","keyevent","4"],False)
- run(["adb","shell","input","keyevent","4"],False);time.sleep(2)
- # Return to the overview, then open the separate admin calendar.
- if tap("К информеру"):pass
- start("ru.aeroclub.informer.AdminActivity")
- if tap("Обзор"):time.sleep(1)
- if tap("Открыть календарь"):capture("S05-admin-calendar",("Календарь клуба",))
- start("ru.aeroclub.informer.AdminActivity")
- admin_section("Участники","S06-admin-participants",("Поиск участника",))
- start("ru.aeroclub.informer.AdminActivity")
- if tap("Настройки"):capture("S07-club-settings",("Профиль клуба",))
- start("ru.aeroclub.informer.AdminActivity")
- if tap("Уведомления"):capture("S08-notifications",("Локальные напоминания",))
+ if tap("изменить"):
+  capture("S10-recipient-selection",("Всем",),True)
+  run(["adb","shell","input","keyevent","4"],False);time.sleep(2)
+ if not tap("Главная"):raise RuntimeError("return to admin overview from messages failed")
+ if not tap("Календарь"):raise RuntimeError("admin calendar navigation not clickable")
+ capture("S05-admin-calendar",("Календарь",))
+ if not tap("Участники"):raise RuntimeError("admin participants navigation not clickable")
+ capture("S06-admin-participants",("Поиск участника",))
+ if not tap("Настройки"):raise RuntimeError("admin settings navigation not clickable")
+ capture("S07-club-settings",("Профиль клуба",))
+ if not tap("Главная"):raise RuntimeError("return to admin overview before notifications failed")
+ if not tap("Уведомления"):raise RuntimeError("notifications entry not clickable")
+ capture("S08-notifications",("Локальные напоминания",))
  # Return to the actual participant-facing calendar and capture its event dialog if one is present.
  open_home()
  if tap("Календарь"): 

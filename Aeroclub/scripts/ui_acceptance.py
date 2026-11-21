@@ -34,14 +34,14 @@ def tap(label,timeout=18):
   parents={child:parent for parent in root.iter() for child in parent}
   for n in root.iter("node"):
    val=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip()
-   if label.lower() in val.lower():
-    target=n
-    while target is not None and target.attrib.get("clickable")!="true": target=parents.get(target)
-    if target is not None:
-     m=re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
-     if m:
-      x1,y1,x2,y2=map(int,m.groups());run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)])
-      time.sleep(2);return True
+   if label.lower() not in val.lower(): continue
+   target=n
+   while target is not None and target.attrib.get("clickable")!="true": target=parents.get(target)
+   if target is not None:
+    m=re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
+    if m:
+     x1,y1,x2,y2=map(int,m.groups());run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)])
+     time.sleep(2);return True
   time.sleep(1)
  return False
 def capture(name,required=(),allow_dialog=False):

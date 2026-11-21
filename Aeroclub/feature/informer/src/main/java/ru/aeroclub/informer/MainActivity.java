@@ -109,7 +109,13 @@ public class MainActivity extends Activity {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(dp(24), dp(20), dp(24), dp(24));
-        java.util.List<Flight> flights = new java.util.ArrayList<>(FlightRepository.getFlights(this));
+        long nowMillis = System.currentTimeMillis();
+        java.util.List<Flight> flights = new java.util.ArrayList<>();
+        for (Flight candidate : FlightRepository.getFlights(this)) {
+            if (!candidate.published && !candidate.isDemo) continue;
+            long departureMillis = FlightDateUtils.toMillis(candidate.dateIso, candidate.time);
+            if (departureMillis >= nowMillis) flights.add(candidate);
+        }
         java.util.Collections.sort(flights, (a,b) -> {
             String ad = a.dateIso == null ? "" : a.dateIso;
             String bd = b.dateIso == null ? "" : b.dateIso;
@@ -348,7 +354,7 @@ public class MainActivity extends Activity {
             grid.addView(row, lp(-1, dp(43)));
         }
         calendarCard.addView(grid);
-        TextView hint = text("Синим отмечены дни с мероприятиями. Нажмите на дату, чтобы открыть вылет.",
+        TextView hint = text("Красным отмечены дни с мероприятиями. Нажмите на дату, чтобы открыть вылет.",
             11, MUTED, false);
         LinearLayout.LayoutParams hintParams = lp(-1, -2);
         hintParams.topMargin = dp(8);

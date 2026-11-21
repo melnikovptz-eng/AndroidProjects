@@ -60,15 +60,16 @@ jobs:
           {
             echo "runner=$(uname -a)"
             echo "host_arch=$(uname -m)"
-            if [ -e /dev/kvm ]; then
-              echo "kvm_device=present"
-              ls -l /dev/kvm
-            else
-              echo "kvm_device=missing"
+            if [ ! -e /dev/kvm ]; then
+              echo "::error::GitHub runner does not expose /dev/kvm"
+              exit 1
             fi
+            echo "kvm_device=present"
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
             "$ANDROID_HOME/emulator/emulator" -accel-check
           } 2>&1 | tee diagnostics/emulator-environment.txt
-          grep -Eiq "KVM.*(installed|usable)|accel" diagnostics/emulator-environment.txt
+          grep -Eiq "KVM.*installed and usable" diagnostics/emulator-environment.txt
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'

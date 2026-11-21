@@ -156,7 +156,17 @@ jobs:
           emulator-boot-timeout: 900
           cores: 4
           disable-animations: true
-          script: python3 Aeroclub/scripts/ui_acceptance.py
+          script: |
+            set -euo pipefail
+            mkdir -p diagnostics
+            adb shell dumpsys SurfaceFlinger > diagnostics/surfaceflinger-renderer.txt
+            adb shell getprop ro.hardware.egl >> diagnostics/surfaceflinger-renderer.txt
+            cat diagnostics/surfaceflinger-renderer.txt
+            if grep -Eiq 'swiftshader|llvmpipe|software rasterizer' diagnostics/surfaceflinger-renderer.txt; then
+              echo "::error::Software GPU renderer detected; hardware GPU rendering is required"
+              exit 1
+            fi
+            python3 Aeroclub/scripts/ui_acceptance.py
       - name: Record emulator acceptance limitation
         if: failure() && steps.emulator_ui.outcome != 'success'
         shell: bash
@@ -166,7 +176,7 @@ jobs:
             echo "ui_acceptance=FAILED_OR_UNAVAILABLE"
             echo "reason=KVM-accelerated Android emulator did not complete UI acceptance"
             echo "next_required_action=Inspect emulator boot diagnostics and resolve UI acceptance failure"
-            echo "hardware_acceleration=Linux KVM CPU virtualization; SwiftShader GPU rendering"
+            echo "hardware_acceleration=KVM CPU virtualization and requested host GPU; renderer verification did not complete"
           } > diagnostics/ui-acceptance-skipped.txt
 
       - name: Upload APK and complete emulator diagnostics

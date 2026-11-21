@@ -1,0 +1,67 @@
+name: Build supplied static Aeroclub APK
+on:
+  push:
+    branches: [aeroclub-informer]
+    paths:
+      - 'KD-PILOT-static/source.zip.b64'
+      - '.github/workflows/build-static-aeroclub.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Unpack supplied source and normalize Android source sets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d KD-PILOT-static/source.zip.b64 > /tmp/aeroclub.zip
+          unzip -t /tmp/aeroclub.zip
+          mkdir -p /tmp/aeroclub
+          unzip -q /tmp/aeroclub.zip -d /tmp/aeroclub
+          cd /tmp/aeroclub/aeroclub
+          mkdir -p app/src/main
+          cp -R java app/src/main/java
+          cp -R res app/src/main/res
+          # Keep the supplied manifest; only source/resource paths are normalized.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("app/build.gradle")
+          s=p.read_text()
+          s=s.replace("    buildTypes {", """    sourceSets {
+              main {
+                  java.srcDirs = ['src/main/java']
+                  res.srcDirs = ['src/main/res']
+              }
+          }
+          buildTypes {""")
+          p.write_text(s)
+          PY
+          echo "Static source prepared."
+      - name: Build static APK
+        working-directory: /tmp/aeroclub/aeroclub
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace assembleDebug
+      - name: Verify APK
+        run: |
+          set -euo pipefail
+          APK=/tmp/aeroclub/aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          sha256sum "$APK" | tee /tmp/apk.sha256
+          stat -c 'APK size: %s bytes' "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aeroclub-Static-APK
+          path: /tmp/aeroclub/aeroclub/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aeroclub-Static-Build-Manifest
+          path: /tmp/apk.sha256
+          if-no-files-found: error

@@ -94,9 +94,10 @@ try:
  if not tap("Все полёты"):raise RuntimeError("all flights tab not clickable")
  if not tap("Календарь"):raise RuntimeError("calendar nav not clickable")
  capture("S01-calendar",("Календарь",))
- start("ru.aeroclub.informer.AdminActivity")
- capture("S02-admin-overview",("Обзор","Вылеты","Участники","Сообщения"))
- admin_section("Вылеты","S03-admin-flights",("Создать вылет",))
+ if not tap("Участники"):raise RuntimeError("admin entry through participant navigation is not clickable")
+ if not tap("Главная"):raise RuntimeError("admin overview navigation is not clickable")
+ capture("S02-admin-overview",("Панель администратора","Участники","Сообщения"))
+ admin_section("Открыть вылеты","S03-admin-flights",("Создать вылет",))
  if tap("Создать вылет"):
   capture("S03-flight-editor",("Создать вылет","Сохранить локально"))
   if not tap("Сохранить локально"):raise RuntimeError("flight editor save button not clickable")
@@ -110,7 +111,8 @@ try:
    run(["adb","shell","input","keyevent","4"],False)
   else:raise RuntimeError("delete confirmation entry not found after creating second flight")
  else:raise RuntimeError("create flight entry not clickable")
- admin_section("Сообщения","S04-admin-messages",("Предпросмотр сообщения",))
+ if not tap("Главная"):raise RuntimeError("return to admin overview from flights failed")
+ admin_section("Открыть сообщения","S04-admin-messages",("Предпросмотр сообщения",))
  if tap("изменить"):capture("S10-recipient-selection",("Всем",),True);run(["adb","shell","input","keyevent","4"],False)
  run(["adb","shell","input","keyevent","4"],False);time.sleep(2)
  # Return to the overview, then open the separate admin calendar.

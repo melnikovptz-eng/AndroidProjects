@@ -36,6 +36,25 @@ public final class ParticipantRepository {
             }
             p.edit().putString(KEY, migrated.toString()).apply();
         }
+        // First-install static fixtures: keep existing/legacy user records untouched.
+        final String DEMO_PARTICIPANTS_SEEDED = "demo_participants_seeded_v1";
+        if (!p.getBoolean(DEMO_PARTICIPANTS_SEEDED, false)) {
+            List<Participant> current = getAllWithoutInit(p);
+            if (current.isEmpty()) {
+                ArrayList<Participant> demo = new ArrayList<>();
+                String[] names = {"Александр Волков", "Мария Соколова", "Дмитрий Орлов", "Анна Белова", "Илья Морозов"};
+                for (String name : names) demo.add(new Participant("demo-" + UUID.randomUUID(), name, System.currentTimeMillis()));
+                saveAll(c, demo);
+                List<Flight> demoFlights = FlightRepository.getFlights(c);
+                if (!demoFlights.isEmpty()) {
+                    String flightId = demoFlights.get(0).id;
+                    AttendanceRepository.setResponse(c, demo.get(0).id, flightId, AttendanceRepository.STATUS_GOING);
+                    AttendanceRepository.setResponse(c, demo.get(1).id, flightId, AttendanceRepository.STATUS_GOING);
+                    AttendanceRepository.setResponse(c, demo.get(2).id, flightId, AttendanceRepository.STATUS_NOT_GOING);
+                }
+            }
+            p.edit().putBoolean(DEMO_PARTICIPANTS_SEEDED, true).apply();
+        }
         // Migrate old name-based statuses once; never rescan the full participant × flight
         // matrix on every UI render. The marker is written even when there was nothing to migrate.
         if (!p.getBoolean(STATUS_MIGRATION_DONE, false)) {

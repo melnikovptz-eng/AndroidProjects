@@ -2,10 +2,10 @@
 <resources>
     <color name="aero_background">#F5F7FA</color>
     <color name="aero_white">#FFFFFF</color>
-    <color name="aero_navy">#172B4D</color>
-    <color name="aero_muted">#526477</color>
-    <color name="aero_blue">#195EA8</color>
-    <color name="aero_green">#137547</color>
-    <color name="aero_border">#DCE4EC</color>
-    <color name="aero_body">#34465A</color>
+    <color name="aero_navy">#1F2937</color>
+    <color name="aero_muted">#9CA3AF</color>
+    <color name="aero_blue">#0066FF</color>
+    <color name="aero_green">#00C853</color>
+    <color name="aero_border">#E5E7EB</color>
+    <color name="aero_body">#374151</color>
 </resources>

@@ -718,7 +718,7 @@ public class AdminActivity extends Activity {
         for(int row=0;row<6;row++){LinearLayout week=new LinearLayout(this);week.setOrientation(LinearLayout.HORIZONTAL);
             for(int col=0;col<7;col++){int day=row*7+col-offset+1;if(day<1||day>days){week.addView(text("",12,MUTED,false),new LinearLayout.LayoutParams(0,dp(40),1));continue;}
                 Calendar date=(Calendar)displayedMonth.clone();date.set(Calendar.DAY_OF_MONTH,day);String iso=new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(date.getTime());
-                boolean selected=iso.equals(draftDateIso()),hasFlight=flightDates.contains(iso);Button cell=new Button(this);cell.setText(hasFlight?day+" •":String.valueOf(day));cell.setTextSize(11);cell.setAllCaps(false);
+                boolean selected=iso.equals(draftDateIso()),hasFlight=flightDates.contains(iso);Button cell=new Button(this);cell.setText(hasFlight?day+" •":String.valueOf(day));cell.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,11));cell.setAllCaps(false);
                 cell.setMinWidth(0);cell.setMinimumWidth(0);cell.setMinHeight(0);cell.setMinimumHeight(0);cell.setPadding(0,0,0,0);cell.setTextColor(selected?Color.WHITE:NAVY);
                 cell.setBackground(rippleBackground(selected?BLUE:Color.WHITE,8,hasFlight?GREEN:Color.rgb(225,230,237)));
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(40),1);p.setMargins(dp(1),dp(1),dp(1),dp(1));week.addView(cell,p);
@@ -1011,7 +1011,7 @@ public class AdminActivity extends Activity {
     }
 
     private Button smallButton(String label) {
-        Button b=new Button(this); b.setText(label); b.setAllCaps(false); b.setTextSize(12);
+        Button b=new Button(this); b.setText(label); b.setAllCaps(false);
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,12)); b.setMinHeight(dp(42)); b.setMinimumHeight(dp(42)); b.setPadding(dp(10),0,dp(10),0);
         b.setBackground(rippleBackground(Color.WHITE, 10, Color.rgb(220,228,236)));
         return b;

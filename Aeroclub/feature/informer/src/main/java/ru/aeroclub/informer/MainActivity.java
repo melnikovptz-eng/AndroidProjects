@@ -219,8 +219,8 @@ public class MainActivity extends Activity {
         }
         root.addView(nav, lp(-1, dp(58)));
         setContentView(root);
-        clubLabel = brand;
-        flightTitle = brand;
+        clubLabel = brandName;
+        flightTitle = brandName;
     }
 
     private String formatFlightDate(Flight flight) {

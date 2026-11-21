@@ -26,20 +26,32 @@ public final class FlightRepository {
         SharedPreferences p = prefs(c);
         FlightDownloadExchange.importIfChanged(c, p, FLIGHTS, ACTIVE_ID);
         if (!p.contains(FLIGHTS)) {
-            String id = UUID.randomUUID().toString();
-            String title = p.getString("flight_title", "Полёт выходного дня");
-            String date = p.getString("flight_date", "Вс, 25 октября");
-            String time = p.getString("flight_time", "10:30");
-            String place = p.getString("flight_place", "аэродром «Северный»");
-            boolean demoSample = "Полёт выходного дня".equals(title)
-                && "Вс, 25 октября".equals(date)
-                && "10:30".equals(time)
-                && "аэродром «Северный»".equals(place);
-            Flight initial = new Flight(id, title, date, time, place, false, FlightDateUtils.toIso(date), demoSample);
+            // First install only: deterministic demo scenarios with dates relative to today.
+            // Existing user data is never replaced by this fixture.
             JSONArray arr = new JSONArray();
-            arr.put(toJson(initial));
-            p.edit().putString(FLIGHTS, arr.toString()).putString(ACTIVE_ID, id).apply();
-            writeLegacy(p, initial);
+            Calendar day = Calendar.getInstance();
+            day.add(Calendar.DAY_OF_YEAR, 2);
+            String[][] samples = {
+                {"Полёт выходного дня", "10:30", "Аэродром «Северный»"},
+                {"Утренний тренировочный вылет", "08:45", "Аэродром «Северный»"},
+                {"Маршрутный полёт", "12:00", "Аэродром «Южный»"},
+                {"Вечерний учебный вылет", "17:15", "Аэродром «Северный»"}
+            };
+            String activeId = null;
+            for (int i = 0; i < samples.length; i++) {
+                Calendar flightDay = (Calendar) day.clone();
+                flightDay.add(Calendar.DAY_OF_YEAR, i == 0 ? 0 : (i * 3));
+                String dateIso = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(flightDay.getTime());
+                String dateLabel = FlightDateUtils.toDisplay(dateIso);
+                String id = UUID.randomUUID().toString();
+                Flight demo = new Flight(id, samples[i][0], dateLabel, samples[i][1],
+                    samples[i][2], false, dateIso, true);
+                arr.put(toJson(demo));
+                if (activeId == null) activeId = id;
+            }
+            Flight first = fromJson(arr.optJSONObject(0));
+            p.edit().putString(FLIGHTS, arr.toString()).putString(ACTIVE_ID, activeId).apply();
+            writeLegacy(p, first);
             FlightDownloadExchange.publish(c, p, FLIGHTS, ACTIVE_ID);
         } else if (getActive(c) == null && !getFlights(c).isEmpty()) {
             activate(c, getFlights(c).get(0).id);

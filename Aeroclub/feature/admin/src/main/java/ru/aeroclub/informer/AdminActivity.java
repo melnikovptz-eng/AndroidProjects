@@ -67,9 +67,9 @@ public class AdminActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         screenOpenOperation = ModuleDebugLog.startOperation(this, "ADM-01", "admin_screen_open", "admin_screen_created");
-        getWindow().setStatusBarColor(BG);
+        getWindow().setStatusBarColor(Color.rgb(8, 103, 237));
         getWindow().setNavigationBarColor(Color.WHITE);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        getWindow().getDecorView().setSystemUiVisibility(0);
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
@@ -959,10 +959,11 @@ public class AdminActivity extends Activity {
     private void card(String title, String body, String action, Runnable click) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(14),dp(13),dp(14),dp(12));
-        box.setBackground(round(Color.WHITE,16,Color.rgb(220,228,236)));
-        TextView h=text(title,16,NAVY,true); box.addView(h);
-        TextView t=text(body,14,MUTED,false);
+        box.setPadding(dp(16),dp(15),dp(16),dp(14));
+        box.setBackground(round(Color.WHITE,16,Color.rgb(229,236,246)));
+        box.setElevation(dp(2));
+        TextView h=text(title,17,NAVY,true); box.addView(h);
+        TextView t=text(body,14,Color.rgb(63,81,108),false);
         LinearLayout.LayoutParams tp=lp(-1,-2); tp.topMargin=dp(7); box.addView(t,tp);
         if(action!=null) {
             Button b=smallButton(action);
@@ -996,20 +997,22 @@ public class AdminActivity extends Activity {
         EditText e=new EditText(this); e.setSingleLine(false); e.setHint(hint); e.setText(value);
         e.setTextSize(15); e.setTextColor(NAVY); e.setHintTextColor(MUTED);
         e.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        e.setPadding(dp(10),dp(8),dp(10),dp(8));
+        e.setPadding(dp(12),dp(10),dp(12),dp(10));
+        e.setMinHeight(dp(48));
+        e.setBackground(round(Color.WHITE,10,Color.rgb(216,228,244)));
         return e;
     }
 
     private Button actionButton(String label, boolean primary) {
         Button b=smallButton(label); b.setTextSize(14);
         b.setTextColor(primary?Color.WHITE:NAVY);
-        b.setBackground(rippleBackground(primary?BLUE:Color.WHITE,12,primary?BLUE:Color.rgb(220,228,236)));
+        b.setBackground(rippleBackground(primary?Color.rgb(8,103,237):Color.WHITE,12,primary?Color.rgb(8,103,237):Color.rgb(216,228,244)));
         return b;
     }
 
     private Button smallButton(String label) {
         Button b=new Button(this); b.setText(label); b.setAllCaps(false); b.setTextSize(12);
-        b.setMinHeight(dp(40)); b.setMinimumHeight(dp(40)); b.setPadding(dp(8),0,dp(8),0);
+        b.setMinHeight(dp(42)); b.setMinimumHeight(dp(42)); b.setPadding(dp(10),0,dp(10),0);
         b.setBackground(rippleBackground(Color.WHITE, 10, Color.rgb(220,228,236)));
         return b;
     }

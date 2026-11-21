@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     private void renderAllFlightsScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(243, 247, 253));
+        root.setBackgroundColor(AeroclubUi.BACKGROUND);
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -62,15 +62,15 @@ public class MainActivity extends Activity {
         header.setBackgroundColor(Color.WHITE);
         TextView brand = text("✈", 34, Color.rgb(8, 103, 237), true);
         header.addView(brand, lp(dp(46), dp(48)));
-        TextView brandName = text("Аэроклуб", 26, NAVY, true);
+        TextView brandName = text("Аэроклуб", 28, Color.rgb(31, 41, 55), true);
         header.addView(brandName, new LinearLayout.LayoutParams(0, -2, 1));
         Button create = button("＋  Создать полёт");
-        create.setTextSize(13);
+        create.setTextSize(16);
         create.setTextColor(Color.WHITE);
         create.setAllCaps(false);
         create.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        create.setPadding(dp(14), 0, dp(14), 0);
-        create.setBackground(AeroclubUi.rounded(this, Color.rgb(8, 103, 237), 15, Color.rgb(8, 103, 237)));
+        create.setPadding(dp(16), dp(12), dp(16), dp(12));
+        create.setBackground(AeroclubUi.rounded(this, Color.rgb(0, 102, 255), 32, Color.rgb(0, 102, 255)));
         header.addView(create, lp(-2, dp(44)));
         create.setOnClickListener(v -> {
             Intent admin = new Intent().setComponent(new android.content.ComponentName(
@@ -79,16 +79,17 @@ public class MainActivity extends Activity {
             startActivity(admin);
         });
         root.addView(header, lp(-1, -2));
+        header.setMinimumHeight(dp(76));
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setPadding(dp(18), dp(6), dp(18), dp(5));
         tabs.setBackgroundColor(Color.WHITE);
-        TextView allTab = text("Все полёты", 16, Color.rgb(8, 103, 237), true);
-        TextView competitionsTab = text("Соревнования", 16, Color.rgb(91, 115, 151), false);
+        TextView allTab = text("Все полёты", 18, Color.rgb(0, 102, 255), true);
+        TextView competitionsTab = text("Соревнования", 18, Color.rgb(156, 163, 175), false);
         allTab.setGravity(android.view.Gravity.CENTER);
         competitionsTab.setGravity(android.view.Gravity.CENTER);
-        tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(44), 1));
-        tabs.addView(competitionsTab, new LinearLayout.LayoutParams(0, dp(44), 1));
+        tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(52), 1));
+        tabs.addView(competitionsTab, new LinearLayout.LayoutParams(0, dp(52), 1));
         allTab.setOnClickListener(v -> renderAllFlightsScreen());
         competitionsTab.setOnClickListener(v -> android.widget.Toast.makeText(this,
             "Раздел соревнований ещё не подключён.", android.widget.Toast.LENGTH_SHORT).show());
@@ -103,7 +104,7 @@ public class MainActivity extends Activity {
         scroll.setFillViewport(true);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(16), dp(14), dp(16), dp(18));
+        list.setPadding(dp(24), dp(20), dp(24), dp(24));
         java.util.List<Flight> flights = new java.util.ArrayList<>(FlightRepository.getFlights(this));
         java.util.Collections.sort(flights, (a,b) -> {
             String ad = a.dateIso == null ? "" : a.dateIso;
@@ -125,9 +126,9 @@ public class MainActivity extends Activity {
             card.setOrientation(LinearLayout.HORIZONTAL);
             card.setGravity(android.view.Gravity.CENTER_VERTICAL);
             card.setPadding(0, 0, dp(12), 0);
-            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 19,
-                visible == 1 ? Color.rgb(8, 103, 237) : Color.rgb(255, 255, 255)));
-            card.setElevation(dp(3));
+            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16,
+                visible == 1 ? Color.rgb(255, 255, 255) : Color.rgb(255, 255, 255)));
+            card.setElevation(dp(2));
             LinearLayout.LayoutParams cardParams = lp(-1, -2);
             cardParams.bottomMargin = dp(14);
             list.addView(card, cardParams);
@@ -142,7 +143,7 @@ public class MainActivity extends Activity {
             card.addView(details, new LinearLayout.LayoutParams(0, -2, 1));
 
             if (visible == 1) {
-                TextView nearest = text("⌖  Ближайший полёт", 13, Color.rgb(8, 103, 237), true);
+                TextView nearest = text("Ближайший полёт", 20, Color.rgb(31, 41, 55), true);
                 LinearLayout.LayoutParams nearestParams = lp(-1, -2);
                 nearestParams.bottomMargin = dp(5);
                 details.addView(nearest, nearestParams);
@@ -150,7 +151,7 @@ public class MainActivity extends Activity {
 
             LinearLayout dateRow = new LinearLayout(this);
             dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            TextView date = text("▦  " + formatFlightDate(flight), 16, NAVY, true);
+            TextView date = text(formatFlightDate(flight), 18, Color.rgb(31, 41, 55), true);
             dateRow.addView(date, new LinearLayout.LayoutParams(0, -2, 1));
             TextView statusText = text((going ? "♟  Едут" : notGoing ? "⊘  Не едут" : "ⓘ  Нет ответа"),
                 12, going ? Color.rgb(13, 143, 91) : notGoing ? Color.rgb(221, 53, 83) : Color.rgb(76, 96, 125), true);
@@ -162,12 +163,12 @@ public class MainActivity extends Activity {
             dateRow.addView(statusText, lp(-2, -2));
             details.addView(dateRow, lp(-1, -2));
 
-            TextView time = text("◷  " + flight.time, 15, NAVY, false);
+            TextView time = text(flight.time == null ? "Время не указано" : flight.time, 16, Color.rgb(31, 41, 55), false);
             LinearLayout.LayoutParams timeParams = lp(-1, -2);
             timeParams.topMargin = dp(8);
             details.addView(time, timeParams);
-            TextView place = text("⌖  " + (flight.place == null ? "Место встречи не указано" : flight.place),
-                14, NAVY, false);
+            TextView place = text(flight.place == null ? "Место встречи не указано" : flight.place,
+                14, Color.rgb(107, 114, 128), false);
             LinearLayout.LayoutParams placeParams = lp(-1, -2);
             placeParams.topMargin = dp(7);
             details.addView(place, placeParams);
@@ -206,13 +207,13 @@ public class MainActivity extends Activity {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(android.view.Gravity.CENTER);
-            TextView icon = text(icons[i], 22, i == 0 ? Color.rgb(8,103,237) : Color.rgb(104,124,155), true);
-            TextView label = text(labels[i], 11, i == 0 ? Color.rgb(8,103,237) : Color.rgb(104,124,155), i == 0);
+            TextView icon = text(icons[i], 24, i == 0 ? Color.rgb(0,102,255) : Color.rgb(156,163,175), true);
+            TextView label = text(labels[i], 12, i == 0 ? Color.rgb(0,102,255) : Color.rgb(156,163,175), i == 0);
             icon.setGravity(android.view.Gravity.CENTER);
             label.setGravity(android.view.Gravity.CENTER);
             cell.addView(icon, lp(-1, dp(25)));
             cell.addView(label, lp(-1, dp(20)));
-            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(64), 1));
+            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(100), 1));
             cell.setOnClickListener(v -> {
                 if (item == 2) renderCalendarScreen();
                 else if (item == 1 || item == 3) {
@@ -223,7 +224,7 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        root.addView(nav, lp(-1, dp(64)));
+        root.addView(nav, lp(-1, dp(100)));
         setContentView(root);
         clubLabel = brandName;
         flightTitle = brandName;

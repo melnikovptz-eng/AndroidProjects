@@ -86,6 +86,9 @@ try:
  if not installed:raise RuntimeError("APK install failed: "+result)
  open_home()
  capture("S12-all-flights",("Все полёты","Создать полёт"))
+ if tap("Ближайший полёт"):
+  capture("S12-flight-details",("Я поеду","Я не поеду","Маршрут","Telegram"))
+  run(["adb","shell","input","keyevent","4"],False);time.sleep(2)
  if tap("Соревнования"):capture("S12-competitions-tab",("Соревнования",),True)
  else:raise RuntimeError("competition tab not clickable")
  if not tap("Все полёты"):raise RuntimeError("all flights tab not clickable")

@@ -276,7 +276,7 @@ public class MainActivity extends Activity {
 
         LinearLayout monthRow = new LinearLayout(this);
         monthRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        TextView previous = text("‹", 29, Color.rgb(8,103,237), true);
+        TextView previous = text("‹", 29, AeroclubUi.BLUE, true);
         previous.setGravity(android.view.Gravity.CENTER);
         monthRow.addView(previous, lp(dp(44), dp(44)));
         TextView monthLabel = text("", 17, NAVY, true);
@@ -335,7 +335,7 @@ public class MainActivity extends Activity {
                 if (dayFlights != null && !dayFlights.isEmpty()) {
                     dayCell.setTextColor(Color.WHITE);
                     dayCell.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                    dayCell.setBackground(AeroclubUi.rounded(this, Color.rgb(8,103,237), 12, Color.rgb(8,103,237)));
+                    dayCell.setBackground(AeroclubUi.rounded(this, Color.rgb(255,59,48), 12, Color.rgb(255,59,48)));
                     dayCell.setContentDescription(dayNumber + ", мероприятий: " + dayFlights.size());
                     dayCell.setOnClickListener(v -> showEventCardForDate(iso, dayFlights));
                 } else {

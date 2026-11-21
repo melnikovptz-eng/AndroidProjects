@@ -159,24 +159,15 @@ public class MainActivity extends Activity {
                 notGoing ? Color.rgb(244, 91, 119) : Color.rgb(112, 132, 160);
 
             LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            card.setPadding(0, 0, dp(12), 0);
-            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16,
-                visible == 1 ? Color.rgb(255, 255, 255) : Color.rgb(255, 255, 255)));
-            card.setElevation(dp(2));
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(20), dp(18), dp(20), dp(18));
+            card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16, AeroclubUi.BORDER));
+            card.setElevation(dp(1));
             LinearLayout.LayoutParams cardParams = lp(-1, -2);
-            cardParams.bottomMargin = dp(14);
+            cardParams.bottomMargin = dp(12);
             list.addView(card, cardParams);
 
-            View accentBar = new View(this);
-            accentBar.setBackgroundColor(visible == 1 ? AeroclubUi.BLUE : accent);
-            card.addView(accentBar, lp(dp(5), visible == 1 ? dp(132) : dp(118)));
-
-            LinearLayout details = new LinearLayout(this);
-            details.setOrientation(LinearLayout.VERTICAL);
-            details.setPadding(dp(15), dp(14), dp(8), dp(14));
-            card.addView(details, new LinearLayout.LayoutParams(0, -2, 1));
+            LinearLayout details = card;
 
             LinearLayout dateRow = new LinearLayout(this);
             dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -190,6 +181,11 @@ public class MainActivity extends Activity {
                 going ? Color.rgb(224, 248, 240) : notGoing ? Color.rgb(255, 232, 238) : Color.rgb(237, 241, 247), 22,
                 Color.TRANSPARENT));
             dateRow.addView(statusText, lp(-2, -2));
+            TextView chevron = text("›", 26, Color.rgb(103, 127, 160), false);
+            chevron.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams chevronParams = lp(dp(22), dp(30));
+            chevronParams.leftMargin = dp(6);
+            dateRow.addView(chevron, chevronParams);
             details.addView(dateRow, lp(-1, -2));
 
             TextView time = text(flight.time == null ? "Время не указано" : flight.time, 16, Color.rgb(31, 41, 55), false);
@@ -208,9 +204,6 @@ public class MainActivity extends Activity {
                 demoParams.topMargin = dp(5);
                 details.addView(demo, demoParams);
             }
-            TextView chevron = text("›", 30, Color.rgb(103, 127, 160), false);
-            chevron.setGravity(android.view.Gravity.CENTER);
-            card.addView(chevron, lp(dp(24), dp(56)));
             card.setOnClickListener(v -> showEventCard(flight));
             card.setFocusable(true);
             card.setContentDescription(FlightPresentation.title(flight) + ", " + flight.date + ", " +

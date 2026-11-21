@@ -72,8 +72,12 @@ public class MainActivity extends Activity {
         create.setPadding(dp(14), 0, dp(14), 0);
         create.setBackground(AeroclubUi.rounded(this, Color.rgb(28, 111, 245), 14, Color.rgb(28, 111, 245)));
         header.addView(create, lp(-2, dp(44)));
-        create.setOnClickListener(v -> startActivity(new Intent().setComponent(
-            new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))));
+        create.setOnClickListener(v -> {
+            Intent admin = new Intent().setComponent(new android.content.ComponentName(
+                getPackageName(), "ru.aeroclub.informer.AdminActivity"));
+            admin.putExtra("initial_section", "Вылеты");
+            startActivity(admin);
+        });
         root.addView(header, lp(-1, -2));
 
         LinearLayout tabs = new LinearLayout(this);
@@ -211,10 +215,12 @@ public class MainActivity extends Activity {
             nav.addView(cell, new LinearLayout.LayoutParams(0, dp(58), 1));
             cell.setOnClickListener(v -> {
                 if (item == 2) renderCalendarScreen();
-                else if (item == 1) startActivity(new Intent().setComponent(
-                    new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")));
-                else if (item == 3) startActivity(new Intent().setComponent(
-                    new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity")));
+                else if (item == 1 || item == 3) {
+                    Intent admin = new Intent().setComponent(new android.content.ComponentName(
+                        getPackageName(), "ru.aeroclub.informer.AdminActivity"));
+                    admin.putExtra("initial_section", item == 1 ? "Участники" : "Настройки");
+                    startActivity(admin);
+                }
             });
         }
         root.addView(nav, lp(-1, dp(58)));

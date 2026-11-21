@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
         header.setPadding(dp(18), dp(14), dp(18), dp(10));
         header.setBackgroundColor(Color.WHITE);
-        TextView brand = text("✈", 34, Color.rgb(8, 103, 237), true);
+        TextView brand = text("✈", 34, AeroclubUi.BLUE, true);
         header.addView(brand, lp(dp(46), dp(48)));
         TextView brandName = text("Аэроклуб", 28, Color.rgb(31, 41, 55), true);
         header.addView(brandName, new LinearLayout.LayoutParams(0, -2, 1));
@@ -250,7 +250,7 @@ public class MainActivity extends Activity {
     private void renderCalendarScreen() {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(Color.rgb(243, 247, 253));
+        page.setBackgroundColor(AeroclubUi.BACKGROUND);
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -407,13 +407,13 @@ public class MainActivity extends Activity {
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(android.view.Gravity.CENTER);
             int color = i == 2 ? Color.rgb(8,103,237) : Color.rgb(104,124,155);
-            TextView icon = text(icons[i], 21, color, true);
+            TextView icon = text(icons[i], 24, color, true);
             icon.setGravity(android.view.Gravity.CENTER);
-            TextView label = text(labels[i], 10, color, i == 2);
+            TextView label = text(labels[i], 12, color, i == 2);
             label.setGravity(android.view.Gravity.CENTER);
-            cell.addView(icon, lp(-1, dp(27)));
-            cell.addView(label, lp(-1, dp(19)));
-            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(62), 1));
+            cell.addView(icon, lp(-1, dp(30)));
+            cell.addView(label, lp(-1, dp(22)));
+            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(100), 1));
             cell.setOnClickListener(v -> {
                 if (item == 0) renderAllFlightsScreen();
                 else if (item == 2) renderCalendarScreen();
@@ -425,7 +425,7 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        page.addView(nav, lp(-1, dp(62)));
+        page.addView(nav, lp(-1, dp(100)));
         getWindow().setStatusBarColor(Color.rgb(8,103,237));
         getWindow().getDecorView().setSystemUiVisibility(0);
         setContentView(page);

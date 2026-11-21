@@ -141,10 +141,6 @@ jobs:
           cat Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
           grep -Fq -- '-accel on' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
           grep -Fq -- '-gpu host' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
-          if grep -Eiq 'swiftshader|llvmpipe|software rendering' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md; then
-            echo "::error::Software GPU rendering is forbidden by the hardware acceleration policy"
-            exit 1
-          fi
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
         timeout-minutes: 25

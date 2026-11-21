@@ -66,7 +66,7 @@ public class MainActivity extends Activity {
         TextView brandName = text("Аэроклуб", 28, Color.rgb(31, 41, 55), true);
         header.addView(brandName, new LinearLayout.LayoutParams(0, -2, 1));
         Button create = button("＋  Создать полёт");
-        create.setTextSize(16);
+        create.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, 16));
         create.setTextColor(Color.WHITE);
         create.setAllCaps(false);
         create.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -759,7 +759,7 @@ public class MainActivity extends Activity {
     private TextView text(String value, int size, int color, boolean bold) {
         TextView t = new TextView(this);
         t.setText(value);
-        t.setTextSize(size);
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, size));
         t.setTextColor(color);
         if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         return t;
@@ -769,7 +769,7 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(value);
         b.setAllCaps(false);
-        b.setTextSize(14);
+        b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, 14));
         b.setMinHeight(dp(48));
         b.setMinimumHeight(dp(48));
         return b;

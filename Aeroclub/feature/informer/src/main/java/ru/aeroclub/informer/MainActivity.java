@@ -72,6 +72,10 @@ public class MainActivity extends Activity {
         brandName.setSingleLine(true);
         brandName.setIncludeFontPadding(false);
         header.addView(brandName, lp(-2, -2));
+        // Keep the brand and action in separate flexible regions: never let the
+        // title collide with the create button on compact-width devices.
+        View headerSpacer = new View(this);
+        header.addView(headerSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
         Button create = button("＋  Создать полёт");
         create.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, 16));
         create.setSingleLine(true);
@@ -80,9 +84,17 @@ public class MainActivity extends Activity {
         create.setTextColor(Color.WHITE);
         create.setAllCaps(false);
         create.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        create.setPadding(dp(16), dp(12), dp(16), dp(12));
+        int headerWidthDp = (int) (getResources().getDisplayMetrics().widthPixels /
+            getResources().getDisplayMetrics().density);
+        boolean compactHeader = headerWidthDp < 370;
+        create.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,
+            AeroclubUi.rootRelativeSp(this, compactHeader ? 14 : 16));
+        create.setPadding(dp(compactHeader ? 10 : 16), dp(10),
+            dp(compactHeader ? 10 : 16), dp(10));
         create.setBackground(AeroclubUi.rounded(this, Color.rgb(0, 102, 255), 32, Color.rgb(0, 102, 255)));
-        header.addView(create, lp(-2, dp(52)));
+        LinearLayout.LayoutParams createParams = lp(-2, dp(52));
+        createParams.leftMargin = dp(8);
+        header.addView(create, createParams);
         create.setOnClickListener(v -> {
             Intent admin = new Intent().setComponent(new android.content.ComponentName(
                 getPackageName(), "ru.aeroclub.informer.AdminActivity"));

@@ -52,7 +52,11 @@ public class MainActivity extends Activity {
     }
 
     /** S12 participant home: upcoming flights list, separate from the S01 calendar. */
-    private void renderAllFlightsScreen() {
+    private void renderAllFlightsScreen() { renderFlightsScreen(false); }
+
+    private void renderCompetitionsScreen() { renderFlightsScreen(true); }
+
+    private void renderFlightsScreen(boolean competitions) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(AeroclubUi.BACKGROUND);
@@ -85,20 +89,19 @@ public class MainActivity extends Activity {
         LinearLayout tabs = new LinearLayout(this);
         tabs.setPadding(dp(18), dp(6), dp(18), dp(5));
         tabs.setBackgroundColor(Color.WHITE);
-        TextView allTab = text("Все полёты", 18, Color.rgb(0, 102, 255), true);
-        TextView competitionsTab = text("Соревнования", 18, Color.rgb(156, 163, 175), false);
+        TextView allTab = text("Все полёты", 18, competitions ? Color.rgb(156, 163, 175) : Color.rgb(0, 102, 255), !competitions);
+        TextView competitionsTab = text("Соревнования", 18, competitions ? Color.rgb(0, 102, 255) : Color.rgb(156, 163, 175), competitions);
         allTab.setGravity(android.view.Gravity.CENTER);
         competitionsTab.setGravity(android.view.Gravity.CENTER);
         tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(52), 1));
         tabs.addView(competitionsTab, new LinearLayout.LayoutParams(0, dp(52), 1));
         allTab.setOnClickListener(v -> renderAllFlightsScreen());
-        competitionsTab.setOnClickListener(v -> android.widget.Toast.makeText(this,
-            "Раздел соревнований ещё не подключён.", android.widget.Toast.LENGTH_SHORT).show());
+        competitionsTab.setOnClickListener(v -> renderCompetitionsScreen());
         root.addView(tabs, lp(-1, -2));
         View tabLine = new View(this);
         tabLine.setBackgroundColor(Color.rgb(8, 103, 237));
         LinearLayout.LayoutParams lineParams = lp(Math.max(dp(150), getResources().getDisplayMetrics().widthPixels / 2 - dp(18)), dp(3));
-        lineParams.leftMargin = dp(20);
+        lineParams.leftMargin = competitions ? getResources().getDisplayMetrics().widthPixels / 2 + dp(2) : dp(20);
         root.addView(tabLine, lineParams);
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
@@ -115,6 +118,7 @@ public class MainActivity extends Activity {
         });
         int visible = 0;
         for (Flight flight : flights) {
+            if (competitions) continue; // No competition data model/API exists yet; never mislabel ordinary flights.
             if (!flight.published && !flight.isDemo) continue;
             visible++;
             String response = AttendanceRepository.getResponse(this, flight.id);
@@ -189,7 +193,7 @@ public class MainActivity extends Activity {
                 flight.time + ", " + flight.place + ". " + response + ". Открыть карточку.");
         }
         if (visible == 0) {
-            TextView empty = text("Пока нет опубликованных полётов.\nНовые мероприятия появятся здесь.",
+            TextView empty = text(competitions ? "Соревнования пока не опубликованы." : "Пока нет опубликованных полётов.\nНовые мероприятия появятся здесь.",
                 15, MUTED, false);
             empty.setGravity(android.view.Gravity.CENTER);
             empty.setPadding(dp(24), dp(48), dp(24), dp(48));

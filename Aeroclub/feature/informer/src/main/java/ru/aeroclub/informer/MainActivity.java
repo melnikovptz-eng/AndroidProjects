@@ -68,21 +68,21 @@ public class MainActivity extends Activity {
         header.setBackgroundColor(Color.WHITE);
         TextView brand = text("✈", 28, AeroclubUi.BLUE, true);
         header.addView(brand, lp(dp(32), dp(40)));
-        TextView brandName = text("Аэроклуб", 24, Color.rgb(31, 41, 55), true);
+        TextView brandName = text("Аэроклуб", 28, Color.rgb(31, 41, 55), true);
         brandName.setSingleLine(true);
         brandName.setIncludeFontPadding(false);
         header.addView(brandName, lp(-2, -2));
         Button create = button("＋  Создать полёт");
-        create.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, 12));
+        create.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this, 16));
         create.setSingleLine(true);
         create.setMaxLines(1);
         create.setEllipsize(android.text.TextUtils.TruncateAt.END);
         create.setTextColor(Color.WHITE);
         create.setAllCaps(false);
         create.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        create.setPadding(dp(8), dp(6), dp(8), dp(6));
+        create.setPadding(dp(16), dp(12), dp(16), dp(12));
         create.setBackground(AeroclubUi.rounded(this, Color.rgb(0, 102, 255), 32, Color.rgb(0, 102, 255)));
-        header.addView(create, lp(-2, dp(44)));
+        header.addView(create, lp(-2, dp(52)));
         create.setOnClickListener(v -> {
             Intent admin = new Intent().setComponent(new android.content.ComponentName(
                 getPackageName(), "ru.aeroclub.informer.AdminActivity"));

@@ -995,7 +995,7 @@ public class AdminActivity extends Activity {
 
     private EditText field(String hint, String value) {
         EditText e=new EditText(this); e.setSingleLine(false); e.setHint(hint); e.setText(value);
-        e.setTextSize(15); e.setTextColor(NAVY); e.setHintTextColor(MUTED);
+        e.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,15)); e.setTextColor(NAVY); e.setHintTextColor(MUTED);
         e.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         e.setPadding(dp(12),dp(10),dp(12),dp(10));
         e.setMinHeight(dp(48));
@@ -1004,7 +1004,7 @@ public class AdminActivity extends Activity {
     }
 
     private Button actionButton(String label, boolean primary) {
-        Button b=smallButton(label); b.setTextSize(14);
+        Button b=smallButton(label); b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,14));
         b.setTextColor(primary?Color.WHITE:NAVY);
         b.setBackground(rippleBackground(primary?Color.rgb(8,103,237):Color.WHITE,12,primary?Color.rgb(8,103,237):Color.rgb(216,228,244)));
         return b;
@@ -1012,7 +1012,7 @@ public class AdminActivity extends Activity {
 
     private Button smallButton(String label) {
         Button b=new Button(this); b.setText(label); b.setAllCaps(false); b.setTextSize(12);
-        b.setMinHeight(dp(42)); b.setMinimumHeight(dp(42)); b.setPadding(dp(10),0,dp(10),0);
+        b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,12)); b.setMinHeight(dp(42)); b.setMinimumHeight(dp(42)); b.setPadding(dp(10),0,dp(10),0);
         b.setBackground(rippleBackground(Color.WHITE, 10, Color.rgb(220,228,236)));
         return b;
     }
@@ -1023,7 +1023,7 @@ public class AdminActivity extends Activity {
     }
 
     private TextView text(String value,int size,int color,boolean bold) {
-        TextView t=new TextView(this); t.setText(value); t.setTextSize(size); t.setTextColor(color);
+        TextView t=new TextView(this); t.setText(value); t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,size)); t.setTextColor(color);
         if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         return t;
     }

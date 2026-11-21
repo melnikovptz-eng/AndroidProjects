@@ -3,7 +3,7 @@ import os,re,subprocess,sys,time,xml.etree.ElementTree as ET
 APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"; OUT="screenshots"; DIAG="diagnostics"
 os.makedirs(OUT,exist_ok=True); os.makedirs(DIAG,exist_ok=True)
 def run(a,check=True,capture=False):
- p=subprocess.run(a,text=True,stdout=subprocess.PIPE if capture else None,stderr=subprocess.STDOUT if capture else None)
+ p=subprocess.run(a,text=True,stdout=subprocess.PIPE if capture else None,stderr=subprocess.STDOUT if capture else None,timeout=90)
  if check and p.returncode: raise RuntimeError("command failed: "+" ".join(a)+" "+(p.stdout or ""))
  return p.stdout.strip() if capture else p.returncode
 def dump(n):
@@ -48,7 +48,7 @@ def capture(name,required=(),allow_dialog=False):
  time.sleep(2);root=dump(name);txt=visible(root)
  if recover_system_dialog(root):
   time.sleep(8);root=dump(name+"-retry");txt=visible(root)
- with open(f"{OUT}/{name}.png","wb") as f: subprocess.run(["adb","exec-out","screencap","-p"],stdout=f,check=True)
+ with open(f"{OUT}/{name}.png","wb") as f: subprocess.run(["adb","exec-out","screencap","-p"],stdout=f,check=True,timeout=30)
  open(f"{DIAG}/{name}-text.txt","w").write(txt)
  miss=[x for x in required if x.lower() not in txt.lower()]
  if miss and not allow_dialog: raise RuntimeError(name+" missing "+str(miss)+" visible="+txt[:1800])

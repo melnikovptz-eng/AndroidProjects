@@ -104,6 +104,25 @@ public class MainActivity extends Activity {
         root.addView(header, lp(-1, -2));
         header.setMinimumHeight(dp(76));
 
+        java.util.List<Flight> flights = getUpcomingFlights();
+        if (!competitions && !flights.isEmpty()) {
+            Flight nearestFlight = flights.get(0);
+            LinearLayout nearestCard = new LinearLayout(this);
+            nearestCard.setOrientation(LinearLayout.VERTICAL);
+            nearestCard.setPadding(dp(20), dp(18), dp(20), dp(18));
+            nearestCard.setBackground(AeroclubUi.rounded(this, Color.WHITE, 16, AeroclubUi.BORDER));
+            LinearLayout.LayoutParams nearestParams = lp(-1, -2);
+            nearestParams.setMargins(dp(16), dp(16), dp(16), dp(8));
+            root.addView(nearestCard, nearestParams);
+
+            TextView nearestTitle = text("Ближайший полёт", 20, NAVY, true);
+            nearestTitle.setIncludeFontPadding(false);
+            nearestCard.addView(nearestTitle, lp(-1, -2));
+            addSummaryRow(nearestCard, "▦", formatFlightDate(nearestFlight), 12);
+            addSummaryRow(nearestCard, "◷", nearestFlight.time == null ? "Время не указано" : nearestFlight.time, 8);
+            addSummaryRow(nearestCard, "⌖", nearestFlight.place == null ? "Место встречи не указано" : nearestFlight.place, 8);
+        }
+
         LinearLayout tabs = new LinearLayout(this);
         tabs.setPadding(dp(18), dp(6), dp(18), dp(5));
         tabs.setBackgroundColor(Color.WHITE);
@@ -127,19 +146,7 @@ public class MainActivity extends Activity {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(dp(24), dp(20), dp(24), dp(24));
-        long nowMillis = System.currentTimeMillis();
-        java.util.List<Flight> flights = new java.util.ArrayList<>();
-        for (Flight candidate : FlightRepository.getFlights(this)) {
-            if (!candidate.published && !candidate.isDemo) continue;
-            long departureMillis = FlightDateUtils.toMillis(candidate.dateIso, candidate.time);
-            if (departureMillis >= nowMillis) flights.add(candidate);
-        }
-        java.util.Collections.sort(flights, (a,b) -> {
-            String ad = a.dateIso == null ? "" : a.dateIso;
-            String bd = b.dateIso == null ? "" : b.dateIso;
-            int dateOrder = ad.compareTo(bd);
-            return dateOrder != 0 ? dateOrder : String.valueOf(a.time).compareTo(String.valueOf(b.time));
-        });
+        // Reuse the same sorted source for the nearest-flight summary and the list.\n        flights = getUpcomingFlights();
         int visible = 0;
         for (Flight flight : flights) {
             if (competitions) continue; // No competition data model/API exists yet; never mislabel ordinary flights.
@@ -170,13 +177,6 @@ public class MainActivity extends Activity {
             details.setOrientation(LinearLayout.VERTICAL);
             details.setPadding(dp(15), dp(14), dp(8), dp(14));
             card.addView(details, new LinearLayout.LayoutParams(0, -2, 1));
-
-            if (visible == 1) {
-                TextView nearest = text("Ближайший полёт", 20, Color.rgb(31, 41, 55), true);
-                LinearLayout.LayoutParams nearestParams = lp(-1, -2);
-                nearestParams.bottomMargin = dp(5);
-                details.addView(nearest, nearestParams);
-            }
 
             LinearLayout dateRow = new LinearLayout(this);
             dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -257,6 +257,41 @@ public class MainActivity extends Activity {
         setContentView(root);
         clubLabel = brandName;
         flightTitle = brandName;
+    }
+
+    private java.util.List<Flight> getUpcomingFlights() {
+        long nowMillis = System.currentTimeMillis();
+        java.util.List<Flight> flights = new java.util.ArrayList<>();
+        for (Flight candidate : FlightRepository.getFlights(this)) {
+            if (!candidate.published && !candidate.isDemo) continue;
+            long departureMillis = FlightDateUtils.toMillis(candidate.dateIso, candidate.time);
+            if (departureMillis >= nowMillis) flights.add(candidate);
+        }
+        java.util.Collections.sort(flights, (a, b) -> {
+            String ad = a.dateIso == null ? "" : a.dateIso;
+            String bd = b.dateIso == null ? "" : b.dateIso;
+            int dateOrder = ad.compareTo(bd);
+            return dateOrder != 0 ? dateOrder : String.valueOf(a.time).compareTo(String.valueOf(b.time));
+        });
+        return flights;
+    }
+
+    private void addSummaryRow(LinearLayout card, String icon, String value, int topMargin) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams rowParams = lp(-1, -2);
+        rowParams.topMargin = dp(topMargin);
+        TextView glyph = text(icon, 16, MUTED, true);
+        glyph.setGravity(android.view.Gravity.CENTER);
+        row.addView(glyph, lp(dp(20), dp(22)));
+        TextView label = text(value, 16, NAVY, false);
+        label.setSingleLine(false);
+        label.setIncludeFontPadding(false);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, -2, 1);
+        labelParams.leftMargin = dp(8);
+        row.addView(label, labelParams);
+        card.addView(row, rowParams);
     }
 
     private String formatFlightDate(Flight flight) {

@@ -54,17 +54,24 @@ public class MainActivity extends Activity {
     private void renderAllFlightsScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(244, 247, 251));
+        root.setBackgroundColor(Color.rgb(246, 249, 253));
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(android.view.Gravity.CENTER_VERTICAL);
         header.setPadding(dp(20), dp(16), dp(20), dp(12));
         header.setBackgroundColor(Color.WHITE);
-        TextView brand = text("✈  Аэроклуб", 25, NAVY, true);
-        header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
-        Button create = button("＋ Создать полёт");
-        create.setTextSize(12);
-        header.addView(create, lp(-2, dp(42)));
+        TextView brand = text("✈", 31, Color.rgb(28, 111, 245), true);
+        header.addView(brand, lp(dp(42), dp(46)));
+        TextView brandName = text("Аэроклуб", 25, NAVY, true);
+        header.addView(brandName, new LinearLayout.LayoutParams(0, -2, 1));
+        Button create = button("＋  Создать полёт");
+        create.setTextSize(13);
+        create.setTextColor(Color.WHITE);
+        create.setAllCaps(false);
+        create.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        create.setPadding(dp(14), 0, dp(14), 0);
+        create.setBackground(AeroclubUi.rounded(this, Color.rgb(28, 111, 245), 14, Color.rgb(28, 111, 245)));
+        header.addView(create, lp(-2, dp(44)));
         create.setOnClickListener(v -> startActivity(new Intent().setComponent(
             new android.content.ComponentName(getPackageName(), "ru.aeroclub.informer.AdminActivity"))));
         root.addView(header, lp(-1, -2));
@@ -83,8 +90,8 @@ public class MainActivity extends Activity {
             "Раздел соревнований ещё не подключён.", android.widget.Toast.LENGTH_SHORT).show());
         root.addView(tabs, lp(-1, -2));
         View tabLine = new View(this);
-        tabLine.setBackgroundColor(Color.rgb(40, 105, 190));
-        LinearLayout.LayoutParams lineParams = lp(dp(120), dp(3));
+        tabLine.setBackgroundColor(Color.rgb(28, 111, 245));
+        LinearLayout.LayoutParams lineParams = lp(dp(150), dp(3));
         lineParams.leftMargin = dp(20);
         root.addView(tabLine, lineParams);
 
@@ -115,7 +122,8 @@ public class MainActivity extends Activity {
             card.setGravity(android.view.Gravity.CENTER_VERTICAL);
             card.setPadding(0, 0, dp(12), 0);
             card.setBackground(AeroclubUi.rounded(this, Color.WHITE, 17,
-                visible == 1 ? Color.rgb(28, 111, 245) : Color.rgb(230, 236, 244)));
+                visible == 1 ? Color.rgb(28, 111, 245) : Color.rgb(226, 233, 243)));
+            card.setElevation(dp(2));
             LinearLayout.LayoutParams cardParams = lp(-1, -2);
             cardParams.bottomMargin = dp(12);
             list.addView(card, cardParams);
@@ -138,7 +146,7 @@ public class MainActivity extends Activity {
 
             LinearLayout dateRow = new LinearLayout(this);
             dateRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            TextView date = text("▦  " + flight.date, 15, NAVY, true);
+            TextView date = text("▦  " + formatFlightDate(flight), 15, NAVY, true);
             dateRow.addView(date, new LinearLayout.LayoutParams(0, -2, 1));
             TextView statusText = text((going ? "♟  Едут" : notGoing ? "⊘  Не едут" : "ⓘ  Нет ответа"),
                 12, going ? Color.rgb(13, 143, 91) : notGoing ? Color.rgb(221, 53, 83) : Color.rgb(76, 96, 125), true);
@@ -213,6 +221,17 @@ public class MainActivity extends Activity {
         setContentView(root);
         clubLabel = brand;
         flightTitle = brand;
+    }
+
+    private String formatFlightDate(Flight flight) {
+        if (flight == null) return "";
+        try {
+            SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+            input.setLenient(false);
+            java.util.Date parsed = input.parse(flight.dateIso);
+            if (parsed != null) return new SimpleDateFormat("d MMMM yyyy", new Locale("ru")).format(parsed);
+        } catch (Exception ignored) {}
+        return flight.date == null ? "" : flight.date;
     }
 
     /** Main flow: calendar -> red event day -> event card with four actions. */

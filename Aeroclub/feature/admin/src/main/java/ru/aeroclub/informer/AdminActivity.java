@@ -78,6 +78,12 @@ public class AdminActivity extends Activity {
         ParticipantRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
         loadDraftFromActiveFlight();
+        String requestedSection = getIntent().getStringExtra("initial_section");
+        if ("Вылеты".equals(requestedSection) || "Участники".equals(requestedSection)
+                || "Сообщения".equals(requestedSection) || "Календарь".equals(requestedSection)
+                || "Настройки".equals(requestedSection) || "Уведомления".equals(requestedSection)) {
+            section = requestedSection;
+        }
         setContentView(root);
         render();
         if (screenOpenOperation != null) { screenOpenOperation.finish("success", "screen_ready"); screenOpenOperation = null; }

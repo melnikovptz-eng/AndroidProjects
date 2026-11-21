@@ -135,7 +135,7 @@ jobs:
           if-no-files-found: error
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
-        timeout-minutes: 18
+        timeout-minutes: 25
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"

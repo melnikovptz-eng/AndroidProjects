@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os,re,subprocess,sys,time,xml.etree.ElementTree as ET
-APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"; OUT="screenshots"; DIAG="diagnostics"
+APK="Aeroclub/app/build/outputs/apk/debug/app-debug.apk"; OUT="screenshots"; DIAG="diagnostics"; POLICY="Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md"
 os.makedirs(OUT,exist_ok=True); os.makedirs(DIAG,exist_ok=True)
 def run(a,check=True,capture=False):
  p=subprocess.run(a,text=True,stdout=subprocess.PIPE if capture else None,stderr=subprocess.STDOUT if capture else None,timeout=90)
@@ -70,7 +70,11 @@ def admin_section(label,name,required=()):
  if not tap(label): raise RuntimeError("admin navigation not clickable: "+label)
  capture(name,required)
 try:
- open(f"{DIAG}/emulator-environment.txt","a").write("sdk="+run(["adb","shell","getprop","ro.build.version.sdk"],capture=True)+"\nabi="+run(["adb","shell","getprop","ro.product.cpu.abi"],capture=True)+"\n")
+ if not os.path.isfile(POLICY): raise RuntimeError("mandatory emulator hardware acceleration policy is missing")
+ policy=open(POLICY,encoding="utf-8").read()
+ if "-accel on" not in policy or "-gpu host" not in policy: raise RuntimeError("mandatory hardware acceleration policy does not require KVM + host GPU")
+ print("EMULATOR_POLICY_READ",POLICY,"KVM=ON GPU=HOST")
+ open(f"{DIAG}/emulator-environment.txt","a").write("policy="+POLICY+"\nrequested_gpu_mode=host\nrequested_cpu_acceleration=on\nsdk="+run(["adb","shell","getprop","ro.build.version.sdk"],capture=True)+"\nabi="+run(["adb","shell","getprop","ro.product.cpu.abi"],capture=True)+"\n")
  run(["adb","logcat","-c"])
  ready=False
  for _ in range(120):

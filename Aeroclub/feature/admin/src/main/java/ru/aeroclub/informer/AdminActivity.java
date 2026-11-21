@@ -36,7 +36,7 @@ public class AdminActivity extends Activity {
     private static final int BG = AeroclubUi.BACKGROUND;
     private static final int NAVY = AeroclubUi.NAVY;
     private static final int MUTED = AeroclubUi.MUTED;
-    private static final int BLUE = AeroclubUi.BLUE;
+    private static final int BLUE = Color.rgb(8, 103, 237);
     private static final int GREEN = AeroclubUi.GREEN;
     private LinearLayout root, content;
     private String section = "Обзор";
@@ -73,7 +73,7 @@ public class AdminActivity extends Activity {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
-        root.setPadding(dp(16), dp(12), dp(16), dp(8));
+        root.setPadding(0, 0, 0, 0);
         FlightRepository.ensureInitialized(this);
         ParticipantRepository.ensureInitialized(this);
         FlightReminderScheduler.syncAll(this);
@@ -154,50 +154,54 @@ public class AdminActivity extends Activity {
     private void render() {
         ModuleDebugLog.log(this, "UI", "screen_transition", "success", "screen=" + section);
         root.removeAllViews();
-        TextView eyebrow = text("АЭРОКЛУБ  •  " + screenIdForSection(section) + "  •  УПРАВЛЕНИЕ", 11, MUTED, true);
-        root.addView(eyebrow);
-        LinearLayout heading = new LinearLayout(this);
-        heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.setOrientation(LinearLayout.HORIZONTAL);
-        TextView title = text(section, 25, NAVY, true);
-        heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        Button back = smallButton(section.equals("Обзор") ? "К информеру" : "← Назад");
-        back.setOnClickListener(v -> {
+        root.setPadding(0, 0, 0, 0);
+        root.setBackgroundColor(Color.rgb(243, 247, 253));
+
+        // Reference-matched blue application bar used on every administrator screen.
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setOrientation(LinearLayout.HORIZONTAL);
+        toolbar.setPadding(dp(16), 0, dp(16), 0);
+        toolbar.setBackgroundColor(Color.rgb(8, 103, 237));
+        TextView backIcon = text(section.equals("Обзор") ? "✈" : "‹", 27, Color.WHITE, true);
+        backIcon.setGravity(Gravity.CENTER);
+        toolbar.addView(backIcon, lp(dp(42), dp(58)));
+        backIcon.setOnClickListener(v -> {
             if (!"Обзор".equals(section)) goBack();
             else finish();
         });
-        heading.addView(back);
-        LinearLayout.LayoutParams hp = lp(-1, -2); hp.topMargin = dp(6);
-        root.addView(heading, hp);
-
-        TextView demoWarning = text("ДЕМО-РЕЖИМ. Данные хранятся только на этом устройстве; серверная авторизация и общая база не подключены. Не используйте конфиденциальные данные.", 11, Color.rgb(120, 80, 20), false);
-        demoWarning.setPadding(dp(10), dp(8), dp(10), dp(8));
-        demoWarning.setBackground(AeroclubUi.rounded(this, Color.rgb(255, 248, 225), 10, Color.rgb(240, 220, 170)));
-        LinearLayout.LayoutParams warningParams = lp(-1, -2);
-        warningParams.topMargin = dp(8);
-        root.addView(demoWarning, warningParams);
-
-        LinearLayout nav = new LinearLayout(this);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
-        String[] items = {"Обзор", "Вылеты", "Участники", "Сообщения"};
-        for (String item : items) {
-            Button b = smallButton(item);
-            b.setTextSize(11);
-            b.setTextColor(section.equals(item) ? Color.WHITE : NAVY);
-            b.setBackground(rippleBackground(section.equals(item) ? BLUE : Color.WHITE, 12, Color.rgb(220,228,236)));
-            LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, dp(42), 1);
-            np.setMargins(0, dp(10), dp(4), dp(8));
-            nav.addView(b, np);
-            b.setOnClickListener(v -> navigateTo(item));
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
+        titleBox.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = text(section.equals("Обзор") ? "Аэроклуб" : section, 19, Color.WHITE, true);
+        titleBox.addView(title);
+        TextView subtitle = text(section.equals("Обзор") ? "Панель администратора" : "Управление клубом", 11,
+            Color.rgb(225, 238, 255), false);
+        titleBox.addView(subtitle);
+        toolbar.addView(titleBox, new LinearLayout.LayoutParams(0, -1, 1));
+        if (!section.equals("Обзор")) {
+            TextView home = text("⌂", 23, Color.WHITE, true);
+            home.setGravity(Gravity.CENTER);
+            toolbar.addView(home, lp(dp(42), dp(58)));
+            home.setOnClickListener(v -> goOverview());
         }
-        root.addView(nav);
+        root.addView(toolbar, lp(-1, dp(64)));
 
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        scroll.setFillViewport(true);
+        content.setPadding(dp(14), dp(14), dp(14), dp(18));
         scroll.addView(content);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        TextView demoWarning = text("ДЕМО-РЕЖИМ • Данные хранятся только на этом устройстве. Серверная база и авторизация не подключены.", 11,
+            Color.rgb(120, 80, 20), false);
+        demoWarning.setPadding(dp(11), dp(9), dp(11), dp(9));
+        demoWarning.setBackground(AeroclubUi.rounded(this, Color.rgb(255, 248, 225), 10, Color.rgb(240, 220, 170)));
+        LinearLayout.LayoutParams warningParams = lp(-1, -2);
+        warningParams.bottomMargin = dp(12);
+        content.addView(demoWarning, warningParams);
 
         switch (section) {
             case "Вылеты": showFlights(); break;
@@ -208,11 +212,33 @@ public class AdminActivity extends Activity {
             case "Уведомления": showNotifications(); break;
             default: showOverview();
         }
-        if (!section.equals("Обзор")) {
-            Button overview = smallButton("Обзор");
-            overview.setOnClickListener(v -> goOverview());
-            root.addView(overview, lp(-1, dp(44)));
+
+        // Persistent bottom navigation mirrors the participant app and the supplied design board.
+        LinearLayout nav = new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER);
+        nav.setBackgroundColor(Color.WHITE);
+        nav.setElevation(dp(9));
+        String[] labels = {"Главная", "Участники", "Календарь", "Настройки"};
+        String[] icons = {"⌂", "♙", "▦", "⚙"};
+        String[] destinations = {"Обзор", "Участники", "Календарь", "Настройки"};
+        for (int i = 0; i < labels.length; i++) {
+            final String destination = destinations[i];
+            boolean selected = section.equals(destination) ||
+                (destination.equals("Главная") && section.equals("Обзор"));
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER);
+            TextView icon = text(icons[i], 21, selected ? Color.rgb(8, 103, 237) : Color.rgb(104, 124, 155), true);
+            icon.setGravity(Gravity.CENTER);
+            TextView label = text(labels[i], 10, selected ? Color.rgb(8, 103, 237) : Color.rgb(104, 124, 155), selected);
+            label.setGravity(Gravity.CENTER);
+            cell.addView(icon, lp(-1, dp(27)));
+            cell.addView(label, lp(-1, dp(19)));
+            nav.addView(cell, new LinearLayout.LayoutParams(0, dp(62), 1));
+            cell.setOnClickListener(v -> navigateTo(destination));
         }
+        root.addView(nav, lp(-1, dp(62)));
     }
 
     private void showOverview() {

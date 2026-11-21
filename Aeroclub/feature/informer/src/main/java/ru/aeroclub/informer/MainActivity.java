@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
         LinearLayout tabs = new LinearLayout(this);
         tabs.setPadding(dp(20), dp(8), dp(20), dp(8));
         tabs.setBackgroundColor(Color.WHITE);
-        TextView allTab = text("Все полёты", 15, NAVY, true);
+        TextView allTab = text("Все полёты", 15, Color.rgb(28, 111, 245), true);
         TextView competitionsTab = text("Соревнования", 15, MUTED, false);
         allTab.setGravity(android.view.Gravity.CENTER);
         competitionsTab.setGravity(android.view.Gravity.CENTER);
@@ -95,7 +95,7 @@ public class MainActivity extends Activity {
         root.addView(tabs, lp(-1, -2));
         View tabLine = new View(this);
         tabLine.setBackgroundColor(Color.rgb(28, 111, 245));
-        LinearLayout.LayoutParams lineParams = lp(dp(150), dp(3));
+        LinearLayout.LayoutParams lineParams = lp(Math.max(dp(150), getResources().getDisplayMetrics().widthPixels / 2 - dp(20)), dp(3));
         lineParams.leftMargin = dp(20);
         root.addView(tabLine, lineParams);
 

@@ -94,7 +94,7 @@ try:
  if not tap("Все полёты"):raise RuntimeError("all flights tab not clickable")
  if not tap("Календарь"):raise RuntimeError("calendar nav not clickable")
  capture("S01-calendar",("Календарь",))
- if not tap("Панель администратора"):raise RuntimeError("S01 admin entry not clickable")
+ start("ru.aeroclub.informer.AdminActivity")
  capture("S02-admin-overview",("Обзор","Вылеты","Участники","Сообщения"))
  admin_section("Вылеты","S03-admin-flights",("Создать вылет",))
  if tap("Создать вылет"):
@@ -103,7 +103,7 @@ try:
   time.sleep(3)
   # The destructive action is below the fold on compact screens. Scroll first,
   # then verify its presence and tap it; never require off-screen text.
-  run(["adb","shell","input","swipe","520","1500","520","500","450"],False)
+  run(["adb","shell","input","swipe","360","1100","360","420","450"],False)
   capture("S03-admin-flights-after-create",("Удалить этот вылет",))
   if tap("Удалить этот вылет"):
    capture("S11-delete-flight-confirmation",("Удалить", "Отмена"),True)

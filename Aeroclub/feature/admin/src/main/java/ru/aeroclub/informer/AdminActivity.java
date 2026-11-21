@@ -155,7 +155,7 @@ public class AdminActivity extends Activity {
         ModuleDebugLog.log(this, "UI", "screen_transition", "success", "screen=" + section);
         root.removeAllViews();
         root.setPadding(0, 0, 0, 0);
-        root.setBackgroundColor(Color.rgb(243, 247, 253));
+        root.setBackgroundColor(AeroclubUi.BACKGROUND);
 
         // Reference-matched blue application bar used on every administrator screen.
         LinearLayout toolbar = new LinearLayout(this);
@@ -229,9 +229,9 @@ public class AdminActivity extends Activity {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(Gravity.CENTER);
-            TextView icon = text(icons[i], 21, selected ? Color.rgb(8, 103, 237) : Color.rgb(104, 124, 155), true);
+            TextView icon = text(icons[i], 21, selected ? AeroclubUi.BLUE : Color.rgb(104, 124, 155), true);
             icon.setGravity(Gravity.CENTER);
-            TextView label = text(labels[i], 10, selected ? Color.rgb(8, 103, 237) : Color.rgb(104, 124, 155), selected);
+            TextView label = text(labels[i], 10, selected ? AeroclubUi.BLUE : Color.rgb(104, 124, 155), selected);
             label.setGravity(Gravity.CENTER);
             cell.addView(icon, lp(-1, dp(27)));
             cell.addView(label, lp(-1, dp(19)));
@@ -1006,7 +1006,7 @@ public class AdminActivity extends Activity {
     private Button actionButton(String label, boolean primary) {
         Button b=smallButton(label); b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, AeroclubUi.rootRelativeSp(this,14));
         b.setTextColor(primary?Color.WHITE:NAVY);
-        b.setBackground(rippleBackground(primary?Color.rgb(8,103,237):Color.WHITE,12,primary?Color.rgb(8,103,237):Color.rgb(216,228,244)));
+        b.setBackground(rippleBackground(primary?AeroclubUi.BLUE:Color.WHITE,12,primary?AeroclubUi.BLUE:Color.rgb(216,228,244)));
         return b;
     }
 

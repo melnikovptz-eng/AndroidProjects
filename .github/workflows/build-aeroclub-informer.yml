@@ -53,7 +53,7 @@ jobs:
           packages: platform-tools
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "emulator" "system-images;android-30;google_apis;x86_64"
-      - name: Verify native macOS hardware acceleration
+      - name: Verify Linux KVM hardware acceleration
         shell: bash
         run: |
           mkdir -p diagnostics
@@ -134,6 +134,17 @@ jobs:
             Aeroclub/app/build/outputs/apk/debug/app-debug.apk
             Aeroclub/app/build/outputs/apk/debug/build-info.txt
           if-no-files-found: error
+      - name: Read mandatory hardware acceleration policy before every emulator launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
+          grep -Fq -- '-accel on' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
+          grep -Fq -- '-gpu host' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md
+          if grep -Eiq 'swiftshader|llvmpipe|software rendering' Aeroclub/EMULATOR_HARDWARE_ACCELERATION.md; then
+            echo "::error::Software GPU rendering is forbidden by the hardware acceleration policy"
+            exit 1
+          fi
       - name: Launch KD PILOT and verify the actual S12 flights home UI
         id: emulator_ui
         timeout-minutes: 25
@@ -145,7 +156,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel on -memory 3072 -skin 720x1280
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu host -accel on -memory 3072 -skin 720x1280
           emulator-boot-timeout: 900
           cores: 4
           disable-animations: true

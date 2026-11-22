@@ -23,7 +23,8 @@ jobs:
           gradle-version: '8.9'
       - name: Install Android SDK components
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
       - name: Build debug APK

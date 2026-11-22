@@ -11,6 +11,7 @@ import com.google.android.material.tabs.TabLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import ru.aeroclub.informer.feature.R;
 
 /** Static visual implementation of the supplied Aeroclub design. No backend or live data. */
 public class MainActivity extends Activity {

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:cardBackgroundColor="@color/bg_block" app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="0dp">
+ <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="20dp">
+  <TextView android:id="@+id/tvDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_main" android:textSize="18sp" android:textStyle="bold" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent"/>
+  <ImageView android:id="@+id/ivChevron" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_chevron_right" app:tint="@color/text_secondary" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent"/>
+  <TextView android:id="@+id/tvTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/text_main" android:textSize="16sp" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toBottomOf="@id/tvDate"/>
+  <LinearLayout android:id="@+id/rowPlace" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center_vertical" android:orientation="horizontal" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toBottomOf="@id/tvTime">
+   <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_location" app:tint="@color/text_secondary"/><TextView android:id="@+id/tvPlace" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textColor="@color/text_secondary" android:textSize="14sp"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/rowAvatars" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toBottomOf="@id/rowPlace"/>
+ </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

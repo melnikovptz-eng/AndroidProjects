@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import de.hdodenhof.circleimageview.CircleImageView;
 import java.util.List;
+import ru.aeroclub.informer.feature.R;
 
 public final class StaticFlightAdapter extends RecyclerView.Adapter<StaticFlightAdapter.Holder> {
     public static final class Flight {

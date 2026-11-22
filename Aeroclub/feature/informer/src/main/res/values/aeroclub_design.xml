@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><resources>
+ <color name="primary_blue">#0066FF</color><color name="green">#00C853</color><color name="red">#FF3830</color><color name="text_main">#1F2937</color><color name="text_secondary">#9CA3AF</color><color name="bg_page">#F3F7FA</color><color name="bg_block">#FFFFFF</color><color name="divider">#E5E7EB</color><color name="badge_plus_bg">#D6E7FF</color><color name="white">#FFFFFF</color>
+ <string name="aeroclub_design_app_name">Аэроклуб</string>
+ <style name="TabTextStyle" parent="TextAppearance.MaterialComponents.Tab"><item name="android:textSize">16sp</item><item name="android:textStyle">bold</item></style>
+</resources>
